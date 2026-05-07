@@ -9,6 +9,43 @@ exports.handler = async function(event, context) {
   };
 
   if (event.httpMethod === 'OPTIONS') {
+    // save to Beta_Recommendations sheet
+    try {
+      const sheetData = JSON.stringify({
+        type: 'recommendation',
+        user_id: data.user_id || '',
+        child: data.child || '',
+        goalName: data.goalName || '',
+        working: JSON.stringify(analysis.working || []),
+        not_working: JSON.stringify(analysis.not_working || []),
+        next_actions: JSON.stringify(analysis.next_actions || []),
+        avoid: JSON.stringify(analysis.avoid || []),
+      });
+
+      await new Promise((resolve) => {
+        const scriptUrl = new URL('https://script.google.com/macros/s/AKfycbyvPMitlZGQqbA-4mjj4JDXpBLr1J4gtSC4ag7Ce4vZ6qqfVc6b_ohy1dcIvH2Vymo3/exec');
+        const postData = sheetData;
+        const options = {
+          hostname: 'script.google.com',
+          path: scriptUrl.pathname,
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(postData)
+          }
+        };
+        const req = https.request(options, (res) => {
+          res.on('data', () => {});
+          res.on('end', resolve);
+        });
+        req.on('error', () => resolve());
+        req.write(postData);
+        req.end();
+      });
+      console.log('Saved to Beta_Recommendations');
+    } catch(e) {
+      console.log('Sheet save failed:', e.toString());
+    }
     return { statusCode: 200, headers, body: '' };
   }
 

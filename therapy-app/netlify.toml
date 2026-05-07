@@ -1,3 +1,5 @@
 [build]
   publish = "therapy-app"
   functions = "therapy-app/netlify/functions"
+[functions]
+  timeout = 26

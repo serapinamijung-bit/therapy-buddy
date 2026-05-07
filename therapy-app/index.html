@@ -549,7 +549,7 @@ function renderLog() {
   const sectionTitle=(t)=>{const e=div(`font-size:11px;font-weight:600;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid ${T.border};`);e.textContent=t;return e;};
 
   // BEFORE
-  wrap.appendChild(sectionTitle('Before — Ian\'s state'));
+  wrap.appendChild(sectionTitle(`Before — ${S.child||'child'}'s state`));
   const stateChips=['Calm / happy','Focused on activity','Resistant','Transition moment'];
   const sc=div('display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;');
   stateChips.forEach(opt=>{const b=document.createElement('button');const on=S.tempLog.before===opt;b.style.cssText=`padding:8px 14px;border-radius:20px;border:1.5px solid ${on?T.green:T.border};background:${on?T.gl:'#fff'};color:${on?T.green:T.tm};font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;`;b.textContent=opt;b.onclick=()=>{S.tempLog.before=opt;render();};sc.appendChild(b);});
@@ -580,7 +580,7 @@ function renderLog() {
   // AFTER
   wrap.appendChild(sectionTitle('After — results'));
   const reactionOpts=['Positive','Neutral','Negative'];
-  wrap.appendChild(p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;`,"Ian's reaction"));
+  wrap.appendChild(p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;`,`${S.child||'Child'}'s reaction`));
   const rc=div('display:flex;gap:8px;margin-bottom:12px;');
   reactionOpts.forEach(opt=>{const b=document.createElement('button');const on=S.tempLog.reaction===opt;b.style.cssText=`padding:8px 14px;border-radius:20px;border:1.5px solid ${on?T.green:T.border};background:${on?T.gl:'#fff'};color:${on?T.green:T.tm};font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;`;b.textContent=opt;b.onclick=()=>{S.tempLog.reaction=opt;render();};rc.appendChild(b);});
   wrap.appendChild(rc);

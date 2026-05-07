@@ -47,7 +47,7 @@ Respond ONLY with a JSON object in this exact format, no other text:
 }`;
 
     const postData = JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5',
       max_tokens: 1000,
       messages: [{ role: 'user', content: prompt }]
     });

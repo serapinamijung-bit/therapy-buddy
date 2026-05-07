@@ -9,42 +9,6 @@ exports.handler = async function(event, context) {
   };
 
   if (event.httpMethod === 'OPTIONS') {
-    // save to Beta_Recommendations sheet
-    try {
-      const sheetData = JSON.stringify({
-        type: 'recommendation',
-        user_id: data.user_id || '',
-        child: data.child || '',
-        goalName: data.goalName || '',
-        working: JSON.stringify(analysis.working || []),
-        not_working: JSON.stringify(analysis.not_working || []),
-        next_actions: JSON.stringify(analysis.next_actions || []),
-        avoid: JSON.stringify(analysis.avoid || []),
-      });
-
-      await new Promise((resolve) => {
-       const postData = sheetData;
-const options = {
-  hostname: 'script.google.com',
-  path: '/macros/s/AKfycbyvPMitlZGQqbA-4mjj4JDXpBLr1J4gtSC4ag7Ce4vZ6qqfVc6b_ohy1dcIvH2Vymo3/exec',
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Content-Length': Buffer.byteLength(postData)
-          }
-        };
-        const req = https.request(options, (res) => {
-          res.on('data', () => {});
-          res.on('end', resolve);
-        });
-        req.on('error', () => resolve());
-        req.write(postData);
-        req.end();
-      });
-      console.log('Saved to Beta_Recommendations');
-    } catch(e) {
-      console.log('Sheet save failed:', e.toString());
-    }
     return { statusCode: 200, headers, body: '' };
   }
 
@@ -72,7 +36,7 @@ Based on these logs, provide:
 3. Specific action card recommendations for next cycle (3-4 concrete steps)
 4. What to avoid
 
-Keep it practical and specific. Parents are busy — be concise.
+Keep it practical and specific. Parents are busy -- be concise.
 
 Respond ONLY with a JSON object in this exact format, no other text:
 {
@@ -125,6 +89,42 @@ Respond ONLY with a JSON object in this exact format, no other text:
     const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
     const analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : { raw: text };
+
+    // save recommendation to Google Sheet
+    try {
+      const recPostData = JSON.stringify({
+        type: 'recommendation',
+        user_id: data.user_id || '',
+        child: data.child || '',
+        goalName: data.goalName || '',
+        working: JSON.stringify(analysis.working || []),
+        not_working: JSON.stringify(analysis.not_working || []),
+        next_actions: JSON.stringify(analysis.next_actions || []),
+        avoid: JSON.stringify(analysis.avoid || []),
+      });
+
+      await new Promise((resolve) => {
+        const recOptions = {
+          hostname: 'script.google.com',
+          path: '/macros/s/AKfycbyvPMitlZGQqbA-4mjj4JDXpBLr1J4gtSC4ag7Ce4vZ6qqfVc6b_ohy1dcIvH2Vymo3/exec',
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(recPostData)
+          }
+        };
+        const req = https.request(recOptions, (res) => {
+          res.on('data', () => {});
+          res.on('end', resolve);
+        });
+        req.on('error', () => resolve());
+        req.write(recPostData);
+        req.end();
+      });
+      console.log('Saved to Beta_Recommendations');
+    } catch(e) {
+      console.log('Rec save failed:', e.toString());
+    }
 
     return {
       statusCode: 200,

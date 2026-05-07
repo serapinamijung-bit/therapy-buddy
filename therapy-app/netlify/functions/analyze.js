@@ -1,3 +1,4 @@
+const https = require('https');
 exports.handler = async function(event, context) {
   // CORS headers
   const headers = {
@@ -45,19 +46,40 @@ Respond ONLY with a JSON object in this exact format, no other text:
   "avoid": ["thing 1", "thing 2"]
 }`;
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
+    const response = await new Promise((resolve, reject) => {
+  const postData = JSON.stringify({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 1000,
+    messages: [{ role: 'user', content: prompt }]
+  });
+
+  const options = {
+    hostname: 'api.anthropic.com',
+    path: '/v1/messages',
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': process.env.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'Content-Length': Buffer.byteLength(postData)
+    }
+  };
+
+  const req = https.request(options, (res) => {
+    let data = '';
+    res.on('data', chunk => data += chunk);
+    res.on('end', () => resolve({ status: res.statusCode, text: () => Promise.resolve(data) }));
+  });
+  req.on('error', reject);
+  req.write(postData);
+  req.end();
+});
+
+console.log('Claude response status:', response.status);
+const responseText = await response.text();
+console.log('Claude response:', responseText.slice(0, 500));
+const result = JSON.parse(responseText);
+    
 console.log('Claude response status:', response.status);
 const responseText = await response.text();
 console.log('Claude response:', responseText.slice(0, 500));

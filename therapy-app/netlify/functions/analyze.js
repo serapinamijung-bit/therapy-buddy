@@ -23,11 +23,10 @@ exports.handler = async function(event, context) {
       });
 
       await new Promise((resolve) => {
-        const scriptUrl = new URL('https://script.google.com/macros/s/AKfycbyvPMitlZGQqbA-4mjj4JDXpBLr1J4gtSC4ag7Ce4vZ6qqfVc6b_ohy1dcIvH2Vymo3/exec');
-        const postData = sheetData;
-        const options = {
-          hostname: 'script.google.com',
-          path: scriptUrl.pathname,
+       const postData = sheetData;
+const options = {
+  hostname: 'script.google.com',
+  path: '/macros/s/AKfycbyvPMitlZGQqbA-4mjj4JDXpBLr1J4gtSC4ag7Ce4vZ6qqfVc6b_ohy1dcIvH2Vymo3/exec',
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

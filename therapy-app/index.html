@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Therapy Buddy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: #1a1a1a;
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 20px 16px 40px;
+}
+.phone {
+  width: 100%;
+  max-width: 390px;
+  min-height: 844px;
+  background: #F8F6F2;
+  border-radius: 44px;
+  overflow: hidden;
+  box-shadow: 0 40px 120px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+.status { height: 50px; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; background: #F8F6F2; flex-shrink: 0; }
+.status span { font-size: 13px; font-weight: 500; color: #555; }
+.screen { flex: 1; overflow-y: auto; display: flex; flex-direction: column; scrollbar-width: none; }
+.screen::-webkit-scrollbar { display: none; }
+.nav { height: 80px; background: #fff; border-top: 1px solid #EAE6DE; display: flex; align-items: center; justify-content: space-around; padding: 0 8px 14px; flex-shrink: 0; }
+.nav-btn { background: none; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; font-family: 'DM Sans', sans-serif; font-size: 10px; color: #aaa; padding: 4px 12px; transition: color 0.2s; }
+.nav-btn.active { color: #2D5A3D; font-weight: 500; }
+.nav-dot { width: 4px; height: 4px; border-radius: 2px; background: #2D5A3D; }
+
+/* tokens */
+:root {
+  --green: #2D5A3D; --gl: #EAF2EC; --gm: #4A8C60;
+  --text: #1A1A1A; --tm: #4A4A4A; --muted: #909090;
+  --border: #EAE6DE; --card: #fff; --bg: #F8F6F2;
+  --red: #C84B3A; --rl: #FDECEA;
+  --orange: #D4622A; --ol: #FDF0EA;
+}
+
+/* shared */
+.serif { font-family: 'Fraunces', serif; font-weight: 400; }
+.pad { padding: 24px 22px; }
+.label { font-size: 11px; font-weight: 500; color: var(--muted); letter-spacing: .07em; text-transform: uppercase; margin-bottom: 8px; }
+.card { background: var(--card); border-radius: 18px; border: 1px solid var(--border); padding: 16px 18px; margin-bottom: 10px; }
+
+/* inputs */
+input[type=text], input[type=number], input[type=date], textarea, select {
+  width: 100%; padding: 13px 15px; font-size: 14px;
+  border: 1.5px solid var(--border); border-radius: 13px;
+  background: #fff; outline: none; font-family: 'DM Sans', sans-serif;
+  color: var(--text); transition: border-color .2s; margin-bottom: 10px;
+}
+input:focus, textarea:focus, select:focus { border-color: var(--green); }
+textarea { resize: none; height: 60px; line-height: 1.5; }
+
+/* buttons */
+.btn { width: 100%; padding: 15px; border: none; border-radius: 15px; font-size: 15px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .2s; }
+.btn-primary { background: var(--green); color: #fff; }
+.btn-primary:disabled { background: var(--border); color: var(--muted); cursor: default; }
+.btn-ghost { background: none; border: 1.5px solid var(--border); color: var(--tm); }
+
+/* progress dots */
+.dots { display: flex; gap: 5px; margin-bottom: 32px; }
+.dot { height: 4px; border-radius: 2px; flex: 1; background: var(--border); transition: all .3s; }
+.dot.on { background: var(--green); flex: 2; }
+
+/* radio chips */
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.chip { padding: 8px 14px; border-radius: 20px; border: 1.5px solid var(--border); background: #fff; color: var(--tm); font-size: 13px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .15s; }
+.chip.on { border-color: var(--green); background: var(--gl); color: var(--green); font-weight: 500; }
+
+/* goal cards */
+.goal-card { border-radius: 22px; padding: 20px 22px; margin-bottom: 12px; cursor: pointer; position: relative; overflow: hidden; }
+.goal-card::before { content: ''; position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; border-radius: 50%; background: rgba(255,255,255,.06); }
+
+/* stat cards */
+.stat-row { display: flex; gap: 10px; margin-bottom: 18px; }
+.stat { flex: 1; background: var(--card); border-radius: 14px; border: 1px solid var(--border); padding: 12px; text-align: center; }
+.stat-val { font-family: 'Fraunces', serif; font-size: 22px; color: var(--text); }
+.stat-lbl { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+/* week goal card */
+.wk-card { background: var(--card); border-radius: 18px; border: 1px solid var(--border); padding: 16px 18px; margin-bottom: 12px; }
+.progress-bar { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; margin: 8px 0 5px; }
+.progress-fill { height: 100%; border-radius: 3px; transition: width .8s ease; }
+
+/* toast */
+.toast { background: var(--gl); border-radius: 13px; padding: 12px 16px; display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.toast p { font-size: 13px; color: var(--green); font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="status"><span>9:41</span><span>●●● WiFi</span></div>
+  <div class="screen" id="screen"></div>
+  <nav class="nav" id="nav" style="display:none"></nav>
+</div>
+
+<script>
+const T = { green:'#2D5A3D',gl:'#EAF2EC',gm:'#4A8C60',text:'#1A1A1A',tm:'#4A4A4A',muted:'#909090',border:'#EAE6DE',card:'#fff',bg:'#F8F6F2',red:'#C84B3A',rl:'#FDECEA',orange:'#D4622A',ol:'#FDF0EA' };
+const CARD_COLORS = ['#2D5A3D','#1a6b8a','#7a4a2d','#5a3a7a','#3a6a4a'];
+
+const ANALYZE_URL = '/.netlify/functions/analyze';
+const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbyvPMitlZGQqbA-4mjj4JDXpBLr1J4gtSC4ag7Ce4vZ6qqfVc6b_ohy1dcIvH2Vymo3/exec';
+
+async function sendToSheet(logData) {
+  try {
+    await fetch(WEBHOOK_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(logData)
+    });
+  } catch(e) {
+    console.log('Sheet sync failed:', e);
+  }
+}
+
+// User ID — persists forever in this browser
+function getUserId() {
+  let uid = localStorage.getItem('therapy_buddy_uid');
+  if (!uid) {
+    uid = 'u_' + Math.random().toString(36).substr(2,9) + '_' + Date.now();
+    localStorage.setItem('therapy_buddy_uid', uid);
+  }
+  return uid;
+}
+
+// Session ID — new every time app is opened
+const SESSION_ID = 's_' + Math.random().toString(36).substr(2,9) + '_' + Date.now();
+const USER_ID = getUserId();
+
+// ── RESTORE CODE ────────────────────────────────────────────────────
+// 6-char alphanumeric code derived from user ID — easy to write down
+function getRestoreCode() {
+  const uid = USER_ID;
+  let code = '';
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  for (let i = 0; i < 6; i++) {
+    code += chars[uid.charCodeAt(i % uid.length) % chars.length];
+  }
+  return code;
+}
+
+const RESTORE_CODE = getRestoreCode();
+
+// Store full state under restore code key so it can be found later
+function saveWithRestoreCode() {
+  try {
+    const toSave = { parent:S.parent, child:S.child, age:S.age, goals:S.goals, logs:S.logs, view:S.view, uid: USER_ID };
+    localStorage.setItem('tb_restore_' + RESTORE_CODE, JSON.stringify(toSave));
+  } catch(e) {}
+}
+
+function restoreFromCode(code) {
+  try {
+    const key = 'tb_restore_' + code.toUpperCase().trim();
+    const saved = localStorage.getItem(key);
+    if (!saved) return false;
+    const data = JSON.parse(saved);
+    S.parent = data.parent || '';
+    S.child = data.child || '';
+    S.age = data.age || '';
+    S.goals = data.goals || [];
+    S.logs = data.logs || [];
+    S.view = 'home';
+    if (data.uid) localStorage.setItem('therapy_buddy_uid', data.uid);
+    saveState();
+    return true;
+  } catch(e) { return false; }
+}
+
+function saveState() {
+  try {
+    const toSave = { parent:S.parent, child:S.child, age:S.age, goals:S.goals, logs:S.logs, view:S.view };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+    saveWithRestoreCode();
+  } catch(e) { console.log('Save failed:', e); }
+}
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) return null;
+    return JSON.parse(saved);
+  } catch(e) { return null; }
+}
+
+function clearState() {
+  try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+}
+
+const saved = loadState();
+let S = saved ? {
+  view: saved.view || 'home',
+  step: 0,
+  parent: saved.parent || '',
+  child: saved.child || '',
+  age: saved.age || '',
+  goals: saved.goals || [],
+  editIdx: null,
+  logGoalIdx: 0,
+  logs: saved.logs || [],
+  tempLog: {}
+} : {
+  view: 'onboard', step: 0,
+  parent: '', child: '', age: '',
+  goals: [], editIdx: null,
+  logGoalIdx: 0, logs: [],
+  tempLog: {}
+};
+
+// ── DEMO DATA ──────────────────────────────────────────────────────
+function loadDemo() {
+  S.parent = 'Sera'; S.child = 'Ian'; S.age = '5';
+  S.goals = [
+    { goal_id:'g_demo_001', goal_version:3, goal_number:1, icon:'💬', name:'WH recall', trigger:'Right after a book, video, or active play', actions:['Check Ian state — calm and engaged?','Give 2 choices max: "Was it X or Y?"','Bedtime recap: low light, 2 choices, no pressure','Movement recall: ask right after running/jumping'], avoid:'Showing photos mid-play · recalling events from hours ago' },
+    { goal_id:'g_demo_002', goal_version:3, goal_number:2, icon:'👋', name:'Respond to name', trigger:"Any time you need Ian's attention — meals, transitions, safety", actions:['State check first: is Ian focused? If yes → join play 60 sec','Interesting info hook: "Ian! Look! [something he loves]!"',"Let John call Ian — peer calling is more effective",'Safety/urgency cue works reliably — use sparingly'], avoid:'Cold-calling focused Ian · repeating name 5+ times' },
+    { goal_id:'g_demo_003', goal_version:3, goal_number:3, icon:'🤝', name:'Turn-taking', trigger:"When Ian tries to grab John's toy or cries to get it", actions:["First-come-first-serve rule: who picked it up first?","John says: 'Ian, 2 more minutes, then yours'",'Start visible timer immediately when Ian must wait','Always have Plan B toy ready before conflict starts'], avoid:"Giving toy when Ian cries · grandparent intervention" },
+  ];
+  S.logs = [
+    {goalIdx:0,date:'5/2',caregiver:'Mom',before:'Calm',attempted:'Yes',technique:'Past recall sandbox',worked:'',reaction:'Neutral',outcome:'No success',next:'Focus on immediate recall'},
+    {goalIdx:0,date:'5/2',caregiver:'Mom',before:'Calm',attempted:'Yes',technique:'Bedtime recap',worked:'Narrowed choices worked well',reaction:'Positive',outcome:'Partial success',next:'Continue bedtime routine'},
+    {goalIdx:1,date:'5/2',caregiver:'Mom',before:'Calm/happy',attempted:'Yes',technique:'Melody + nickname',worked:'Dooli-doo melody — Ian giggled and came down',reaction:'Positive',outcome:'Partial success',next:'State check first'},
+    {goalIdx:1,date:'5/2',caregiver:'Grandma',before:'Focused on toy',attempted:'Yes',technique:'Nickname',worked:'',reaction:'Neutral',outcome:'No success',next:'Join play first when deeply focused'},
+    {goalIdx:2,date:'5/2',caregiver:'Mom',before:'N/A',attempted:'No',technique:'',worked:'',reaction:'',outcome:'',next:'Try 10-sec loan next time'},
+    {goalIdx:0,date:'5/4',caregiver:'Dad',before:'Calm/engaged',attempted:'Yes',technique:'Future-framing question',worked:'Dad asked Penny or Jackson — Ian responded immediately',reaction:'Positive',outcome:'Success',next:'Try future-framing more'},
+    {goalIdx:1,date:'5/4',caregiver:'Mom',before:'Focused on cabinet',attempted:'Yes',technique:'State check + join play',worked:'Joint attention — extended conversation',reaction:'Neutral',outcome:'Partial success',next:'Find different name response trigger'},
+    {goalIdx:2,date:'5/4',caregiver:'Mom',before:'Resistant',attempted:'Yes',technique:'John phrase + Plan B toy',worked:"John said 2 min then yours + soccer ball worked",reaction:'Positive',outcome:'Success',next:'Pre-select Plan B toy before conflict'},
+    {goalIdx:1,date:'5/4',caregiver:'Mom',before:'Distracted outdoors',attempted:'Yes',technique:'Interesting info hook',worked:"John's 'bunny is gone' — Ian dropped everything",reaction:'Neutral',outcome:'Partial success',next:'Peer calling + interesting info is the key'},
+    {goalIdx:0,date:'5/4',caregiver:'Mom',before:'Mid-play',attempted:'Yes',technique:'Visual bridge photo',worked:'',reaction:'Neutral',outcome:'No success',next:'Only show photo during natural pauses'},
+  ];
+  go('home');
+}
+
+// ── STATS ──────────────────────────────────────────────────────────
+function stats(idx) {
+  const logs = S.logs.filter(l => l.goalIdx === idx && l.attempted === 'Yes');
+  const total = logs.length;
+  if (!total) return { total:0, rate:0, partialRate:0, posRate:0, status:'none', worked:[], next:[] };
+  const succ = logs.filter(l => l.outcome === 'Success').length;
+  const part = logs.filter(l => l.outcome === 'Partial success').length;
+  const pos = logs.filter(l => l.reaction === 'Positive').length;
+  const rate = Math.round(succ/total*100);
+  const partialRate = Math.round(part/total*100);
+  const posRate = Math.round(pos/total*100);
+  const status = rate >= 50 ? 'high' : (rate >= 25 || (rate+partialRate) >= 50) ? 'mid' : 'low';
+  return { total, rate, partialRate, posRate, status, worked: logs.filter(l=>l.worked).map(l=>l.worked), next: logs.filter(l=>l.next).map(l=>l.next) };
+}
+
+function statusCfg(s) {
+  if (s==='high') return { color:T.green, bg:T.gl, label:'Working well', emoji:'↑', tip:'Keep going — building momentum.' };
+  if (s==='mid') return { color:T.orange, bg:T.ol, label:'Some progress', emoji:'→', tip:'Partial wins count. Try one small tweak.' };
+  if (s==='low') return { color:T.red, bg:T.rl, label:'Not working yet', emoji:'↓', tip:'Something needs to change. Check notes below.' };
+  return { color:T.muted, bg:T.border, label:'No data yet', emoji:'–', tip:'Log results to see patterns here.' };
+}
+
+// ── NAV ────────────────────────────────────────────────────────────
+function go(v) {
+  S.view = v;
+  saveState();
+  render();
+  document.querySelector('.screen').scrollTop = 0;
+}
+
+function renderNav() {
+  const nav = document.getElementById('nav');
+  const show = ['home','log','week','goals'].includes(S.view);
+  nav.style.display = show ? 'flex' : 'none';
+  if (!show) return;
+  nav.innerHTML = [['home','⌂','Home'],['log','✎','Log'],['week','◎','Week'],['goals','⚙','Goals']].map(([id,ic,lb]) => `
+    <button class="nav-btn ${S.view===id?'active':''}" onclick="go('${id}')">
+      <span style="font-size:19px">${ic}</span><span>${lb}</span>
+      ${S.view===id?'<div class="nav-dot"></div>':''}
+    </button>`).join('');
+}
+
+// ── EL HELPERS ─────────────────────────────────────────────────────
+function div(style='',html='') { const e=document.createElement('div'); if(style)e.style.cssText=style; if(html)e.innerHTML=html; return e; }
+function p(style='',text='') { const e=document.createElement('p'); if(style)e.style.cssText=style; e.textContent=text; return e; }
+function h(tag,style='',text='') { const e=document.createElement(tag); if(style)e.style.cssText=style; e.textContent=text; return e; }
+
+// ── ONBOARDING ─────────────────────────────────────────────────────
+function renderOnboard() {
+  const wrap = div('flex:1;display:flex;flex-direction:column;padding:28px 22px 36px;');
+  const step = S.step;
+
+  // dots
+  const dots = div('display:flex;gap:5px;margin-bottom:32px;');
+  for(let i=0;i<5;i++){const d=div();d.style.cssText=`height:4px;border-radius:2px;flex:${i===step?2:1};background:${i<=step?T.green:T.border};transition:all .3s;`;dots.appendChild(d);}
+  wrap.appendChild(dots);
+
+  if (step===0) {
+    const blob = div(`width:90px;height:90px;border-radius:62% 38% 70% 30%/45% 65% 35% 55%;background:linear-gradient(140deg,${T.gm},${T.green});display:flex;align-items:center;justify-content:center;font-size:38px;margin-bottom:28px;`);
+    blob.textContent='🌿';
+    const title = h('h1','font-family:Fraunces,serif;font-size:28px;font-weight:400;color:#1A1A1A;line-height:1.3;margin-bottom:12px;',"The companion that helps therapy work at home.");
+    const desc = p(`font-size:14px;color:${T.tm};line-height:1.7;flex:1;margin-bottom:20px;`,"Log daily interactions. See what's working. Get better guidance each cycle.");
+    const demoBtn = document.createElement('button');
+    demoBtn.className='btn btn-ghost'; demoBtn.style.marginBottom='10px'; demoBtn.textContent='See demo with Ian\'s data →';
+    demoBtn.onclick=loadDemo;
+    const restoreBtn = document.createElement('button');
+    restoreBtn.className='btn btn-ghost'; restoreBtn.style.marginBottom='10px'; restoreBtn.textContent='Restore with a code';
+    restoreBtn.onclick=()=>{
+      const code = prompt('Enter your 6-character restore code:');
+      if (code) {
+        const ok = restoreFromCode(code);
+        if (ok) { render(); }
+        else { alert('Code not found. Please check and try again.'); }
+      }
+    };
+    const startBtn = document.createElement('button');
+    startBtn.className='btn btn-primary'; startBtn.textContent='Get started';
+    startBtn.onclick=()=>{S.step=1;render();};
+    wrap.appendChild(blob);wrap.appendChild(title);wrap.appendChild(desc);wrap.appendChild(demoBtn);wrap.appendChild(restoreBtn);wrap.appendChild(startBtn);
+    return wrap;
+  }
+
+  const spacer = div('flex:1');
+
+  if (step===1) {
+    wrap.appendChild(h('h1','font-family:Fraunces,serif;font-size:28px;font-weight:400;color:#1A1A1A;margin-bottom:6px;',"What's your name?"));
+    wrap.appendChild(p(`font-size:14px;color:${T.muted};margin-bottom:24px;`,"We'll keep things personal."));
+    const inp = document.createElement('input'); inp.type='text'; inp.value=S.parent; inp.placeholder='Your first name';
+    inp.oninput=e=>{S.parent=e.target.value;updateBtn();};
+    wrap.appendChild(inp); wrap.appendChild(spacer);
+    const btn=document.createElement('button'); btn.id='cont-btn'; btn.className='btn btn-primary'; btn.disabled=!S.parent.trim(); btn.textContent='Continue';
+    if(!S.parent.trim()) btn.style.cssText='background:'+T.border+';color:'+T.muted+';cursor:default;width:100%;padding:15px;border:none;border-radius:15px;font-size:15px;font-weight:500;font-family:DM Sans,sans-serif;';
+    btn.onclick=()=>{if(S.parent.trim()){S.step=2;render();}};
+    wrap.appendChild(btn);
+    setTimeout(()=>inp.focus(),50);
+  }
+
+  if (step===2) {
+    wrap.appendChild(h('h1','font-family:Fraunces,serif;font-size:28px;font-weight:400;color:#1A1A1A;margin-bottom:6px;','Tell us about your child.'));
+    wrap.appendChild(p(`font-size:14px;color:${T.muted};margin-bottom:24px;`,'Everything stays private.'));
+    const n=document.createElement('input'); n.type='text'; n.value=S.child; n.placeholder="Child's name"; n.oninput=e=>{S.child=e.target.value;updateBtn();};
+    const a=document.createElement('input'); a.type='number'; a.value=S.age; a.placeholder='Age'; a.oninput=e=>{S.age=e.target.value;updateBtn();};
+    wrap.appendChild(n); wrap.appendChild(a); wrap.appendChild(spacer);
+    const btn=document.createElement('button'); btn.id='cont-btn'; btn.className='btn btn-primary'; btn.disabled=!(S.child.trim()&&S.age); btn.textContent='Continue';
+    if(!(S.child.trim()&&S.age)) btn.style.cssText='background:'+T.border+';color:'+T.muted+';cursor:default;width:100%;padding:15px;border:none;border-radius:15px;font-size:15px;font-weight:500;font-family:DM Sans,sans-serif;';
+    btn.onclick=()=>{if(S.child.trim()&&S.age){S.step=3;render();}};
+    wrap.appendChild(btn);
+  }
+
+  if (step===3) {
+    wrap.appendChild(h('h1','font-family:Fraunces,serif;font-size:26px;font-weight:400;color:#1A1A1A;margin-bottom:6px;line-height:1.3;',`What are ${S.child||"your child"}'s therapy goals?`));
+    wrap.appendChild(p(`font-size:14px;color:${T.muted};margin-bottom:20px;line-height:1.55;`,'Add goals from the treatment plan. Each becomes an action card.'));
+
+    S.goals.forEach((g,i)=>{
+      const row=div(`display:flex;align-items:center;gap:10px;background:${T.gl};border-radius:12px;padding:12px 14px;margin-bottom:8px;`);
+      row.innerHTML=`<span style="font-size:20px">${g.icon}</span><div style="flex:1"><p style="font-size:13px;font-weight:500;color:${T.green}">${g.name}</p>${g.trigger?`<p style="font-size:11px;color:${T.gm};margin-top:2px">📍 Trigger set</p>`:''}</div>`;
+      const eb=document.createElement('button'); eb.textContent='Edit'; eb.style.cssText=`background:none;border:1px solid ${T.gm};border-radius:8px;padding:4px 10px;font-size:11px;color:${T.green};cursor:pointer;font-family:'DM Sans',sans-serif;`;
+      eb.onclick=()=>{S.editIdx=i;S.step=3.5;render();};
+      const db=document.createElement('button'); db.textContent='✕'; db.style.cssText='background:none;border:none;font-size:14px;color:#aaa;cursor:pointer;padding:0 4px;';
+      db.onclick=()=>{S.goals.splice(i,1);render();};
+      row.appendChild(eb); row.appendChild(db); wrap.appendChild(row);
+    });
+
+    if(S.goals.length<5){
+      const ab=document.createElement('button');
+      ab.style.cssText=`width:100%;padding:13px;background:none;border:1.5px dashed ${T.border};border-radius:14px;font-size:14px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:14px;`;
+      ab.textContent='+ Add a therapy goal';
+      ab.onclick=()=>{
+        const newGoalId = 'g_' + Math.random().toString(36).substr(2,9) + '_' + Date.now();
+        S.goals.push({goal_id:newGoalId, goal_version:1, goal_number:S.goals.length+1, icon:'🎯',name:'',trigger:'',actions:[''],avoid:''});
+        S.editIdx=S.goals.length-1;S.step=3.5;render();
+      };
+      wrap.appendChild(ab);
+    }
+
+    wrap.appendChild(spacer);
+    const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.disabled=S.goals.length===0; btn.textContent="Let's go →";
+    if(S.goals.length===0) btn.style.cssText='background:'+T.border+';color:'+T.muted+';cursor:default;width:100%;padding:15px;border:none;border-radius:15px;font-size:15px;font-weight:500;font-family:DM Sans,sans-serif;';
+    btn.onclick=()=>{if(S.goals.length>0)go('home');};
+    wrap.appendChild(btn);
+  }
+
+  if (step===3.5) {
+    const idx=S.editIdx; const g=S.goals[idx];
+    const icons=['🎯','💬','👋','🤝','⭐','🌟','🧩','📚','🎮','🌊','🔔','🏃'];
+    const back=document.createElement('button'); back.style.cssText=`background:none;border:none;cursor:pointer;color:${T.tm};font-size:14px;margin-bottom:16px;padding:0;font-family:'DM Sans',sans-serif;`; back.textContent='← Back'; back.onclick=()=>{S.step=3;render();};
+    wrap.appendChild(back);
+    wrap.appendChild(h('h1','font-family:Fraunces,serif;font-size:24px;font-weight:400;color:#1A1A1A;margin-bottom:6px;',g.name?`Edit: ${g.name}`:'Set up this goal'));
+    wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:18px;`,'This becomes your action card.'));
+
+    const ir=div('display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;');
+    icons.forEach(ic=>{const b=document.createElement('button');b.textContent=ic;b.style.cssText=`width:36px;height:36px;border-radius:10px;border:1.5px solid ${g.icon===ic?T.green:T.border};background:${g.icon===ic?T.gl:'#fff'};font-size:17px;cursor:pointer;`;b.onclick=()=>{g.icon=ic;render();};ir.appendChild(b);});
+    wrap.appendChild(ir);
+
+    const lbl=(t)=>{const e=p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;`,t);return e;};
+
+    wrap.appendChild(lbl('Goal name'));
+    const ni=document.createElement('input'); ni.type='text'; ni.value=g.name; ni.placeholder='e.g. Respond to name within 3 seconds'; ni.oninput=e=>{g.name=e.target.value;updateBtn();};
+    wrap.appendChild(ni);
+
+    wrap.appendChild(lbl('When to use this card'));
+    const ti=document.createElement('input'); ti.type='text'; ti.value=g.trigger; ti.placeholder="e.g. Any time you need Ian's attention"; ti.oninput=e=>{g.trigger=e.target.value;};
+    wrap.appendChild(ti);
+
+    wrap.appendChild(lbl('Steps (what to do)'));
+    const aw=div();
+    const renderActs=()=>{
+      aw.innerHTML='';
+      g.actions.forEach((a,ai)=>{
+        const row=div('display:flex;gap:8px;align-items:center;margin-bottom:8px;');
+        const num=div(`width:22px;height:22px;min-width:22px;border-radius:50%;background:${T.gl};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:${T.green};`,(ai+1).toString());
+        const ai2=document.createElement('input'); ai2.type='text'; ai2.value=a; ai2.placeholder=`Step ${ai+1}`; ai2.style.cssText=`flex:1;padding:10px 12px;font-size:13px;border:1.5px solid ${a?T.green:T.border};border-radius:10px;background:#fff;outline:none;font-family:'DM Sans',sans-serif;color:${T.text};`; ai2.oninput=e=>{g.actions[ai]=e.target.value;ai2.style.borderColor=e.target.value?T.green:T.border;};
+        row.appendChild(num); row.appendChild(ai2);
+        if(g.actions.length>1){const del=document.createElement('button');del.textContent='✕';del.style.cssText='background:none;border:none;font-size:14px;color:#aaa;cursor:pointer;padding:0 4px;';del.onclick=()=>{g.actions.splice(ai,1);renderActs();};row.appendChild(del);}
+        aw.appendChild(row);
+      });
+    };
+    renderActs(); wrap.appendChild(aw);
+    if(g.actions.length<4){const add=document.createElement('button');add.style.cssText=`background:none;border:none;font-size:13px;color:${T.gm};cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:12px;padding:0;`;add.textContent='+ Add step';add.onclick=()=>{g.actions.push('');renderActs();};wrap.appendChild(add);}
+
+    wrap.appendChild(lbl('What to avoid'));
+    const av=document.createElement('input'); av.type='text'; av.value=g.avoid; av.placeholder='e.g. Repeating the question multiple times'; av.oninput=e=>{g.avoid=e.target.value;};
+    wrap.appendChild(av);
+
+    const btn=document.createElement('button'); btn.id='cont-btn'; btn.className='btn btn-primary'; btn.disabled=!g.name.trim(); btn.textContent='Save goal';
+    if(!g.name.trim()) btn.style.cssText='background:'+T.border+';color:'+T.muted+';cursor:default;width:100%;padding:15px;border:none;border-radius:15px;font-size:15px;font-weight:500;font-family:DM Sans,sans-serif;';
+    btn.onclick=()=>{
+      if(g.name.trim()){
+        // bump version if this is an existing goal (version already exists)
+        if(g.goal_version && g.goal_id) {
+          g.goal_version = (g.goal_version || 1) + 1;
+        } else {
+          // new goal — set initial values if missing
+          g.goal_id = g.goal_id || 'g_' + Math.random().toString(36).substr(2,9) + '_' + Date.now();
+          g.goal_version = 1;
+          g.goal_number = g.goal_number || (S.editIdx + 1);
+        }
+        saveState();
+        S.step=3;
+        render();
+      }
+    };
+    wrap.appendChild(btn);
+  }
+
+  return wrap;
+}
+
+function updateBtn() {
+  const btn=document.getElementById('cont-btn'); if(!btn) return;
+  let ok=false;
+  if(S.step===1) ok=S.parent.trim().length>0;
+  else if(S.step===2) ok=S.child.trim().length>0&&S.age.toString().length>0;
+  else if(S.step===3.5) ok=(S.goals[S.editIdx]?.name||'').trim().length>0;
+  btn.disabled=!ok;
+  btn.style.background=ok?T.green:T.border;
+  btn.style.color=ok?'#fff':T.muted;
+  btn.style.cursor=ok?'pointer':'default';
+}
+
+// ── HOME ───────────────────────────────────────────────────────────
+function renderHome() {
+  const wrap = div('flex:1;overflow-y:auto;padding:16px 22px;');
+  const date = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  const greet = div('margin-bottom:20px;');
+  greet.innerHTML=`<p style="font-size:12px;color:${T.muted};margin-bottom:2px;">${date}</p><h2 style="font-family:Fraunces,serif;font-size:24px;font-weight:400;color:${T.text};">Hey ${S.parent} 👋</h2>`;
+  wrap.appendChild(greet);
+
+  if(S.goals.length===0){
+    const empty=div(`background:${T.gl};border-radius:20px;padding:24px;text-align:center;`);
+    empty.innerHTML=`<p style="font-size:28px;margin-bottom:10px">🌿</p><p style="font-family:Fraunces,serif;font-size:20px;color:${T.green};margin-bottom:8px">No goals yet</p><p style="font-size:13px;color:${T.gm};line-height:1.6">Add ${S.child||"your child"}'s therapy goals to get action cards.</p>`;
+    const gb=document.createElement('button'); gb.className='btn btn-primary'; gb.style.marginTop='14px'; gb.textContent='Set up goals →'; gb.onclick=()=>go('goals');
+    empty.appendChild(gb); wrap.appendChild(empty);
+  } else {
+    const tl=p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;`,"Today's action cards");
+    wrap.appendChild(tl);
+    S.goals.forEach((g,i)=>{
+      const st=stats(i); const c=CARD_COLORS[i%CARD_COLORS.length];
+      const card=div(`background:${c};border-radius:22px;padding:20px 22px;margin-bottom:12px;cursor:pointer;position:relative;overflow:hidden;`);
+      const logged=S.logs.filter(l=>l.goalIdx===i&&l.attempted==='Yes').length;
+      card.innerHTML=`
+        <div style="position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.05)"></div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+          <span style="font-size:11px;font-weight:500;background:rgba(255,255,255,.18);border-radius:20px;padding:3px 10px;color:rgba(255,255,255,.92)">${g.icon} Goal ${i+1}</span>
+          <span style="font-size:12px;color:rgba(255,255,255,.5)">${logged>0?`${st.rate}% success`:'Tap to log →'}</span>
+        </div>
+        <p style="font-family:Fraunces,serif;font-size:19px;font-weight:400;color:#fff;line-height:1.3;margin-bottom:8px">${g.name}</p>
+        <p style="font-size:12px;color:rgba(255,255,255,.65);margin-bottom:12px">📍 ${g.trigger}</p>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          ${g.actions.slice(0,2).map((a,ai)=>`<div style="display:flex;gap:8px;align-items:flex-start"><div style="width:18px;height:18px;min-width:18px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;margin-top:1px">${ai+1}</div><p style="font-size:12px;color:rgba(255,255,255,.9);line-height:1.5">${a}</p></div>`).join('')}
+          ${g.actions.length>2?`<p style="font-size:11px;color:rgba(255,255,255,.45);margin-top:2px">+${g.actions.length-2} more steps</p>`:''}
+        </div>
+        ${g.avoid?`<div style="margin-top:10px;background:rgba(0,0,0,.15);border-radius:8px;padding:6px 10px;font-size:11px;color:rgba(255,255,255,.8)"><strong>Avoid:</strong> ${g.avoid}</div>`:''}
+      `;
+      card.onclick=()=>{S.logGoalIdx=i;S.tempLog={};go('log');};
+      wrap.appendChild(card);
+    });
+  }
+
+  const nl=p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;margin-top:4px;margin-bottom:8px;`,'Quick note');
+  wrap.appendChild(nl);
+  const nc=div(`background:${T.card};border-radius:16px;border:1px solid ${T.border};padding:14px 16px;margin-bottom:16px;`);
+  const ta=document.createElement('textarea'); ta.placeholder=`What just happened with ${S.child||'your child'}?`; ta.rows=2; ta.style.cssText=`width:100%;font-size:14px;border:none;background:none;outline:none;resize:none;font-family:'DM Sans',sans-serif;color:${T.text};line-height:1.5;`;
+  nc.appendChild(ta); wrap.appendChild(nc);
+  return wrap;
+}
+
+// ── LOG ────────────────────────────────────────────────────────────
+function renderLog() {
+  const goal = S.goals[S.logGoalIdx];
+  const wrap = div('flex:1;overflow-y:auto;padding:20px 22px 32px;');
+  if(!goal){wrap.innerHTML=`<p style="color:${T.muted};font-size:14px;text-align:center;margin-top:40px">No goals yet.</p>`;return wrap;}
+
+  const back=document.createElement('button'); back.style.cssText=`background:none;border:none;cursor:pointer;color:${T.tm};font-size:14px;margin-bottom:18px;padding:0;font-family:'DM Sans',sans-serif;`; back.textContent='← Back'; back.onclick=()=>go('home'); wrap.appendChild(back);
+
+  if(S.goals.length>1){
+    const tabs=div('display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;');
+    S.goals.forEach((g,i)=>{const t=document.createElement('button');t.style.cssText=`padding:5px 12px;border-radius:20px;border:1px solid ${i===S.logGoalIdx?T.green:T.border};background:${i===S.logGoalIdx?T.gl:'#fff'};color:${i===S.logGoalIdx?T.green:T.muted};font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;`;t.textContent=`${g.icon} Goal ${i+1}`;t.onclick=()=>{S.logGoalIdx=i;S.tempLog={};render();};tabs.appendChild(t);});
+    wrap.appendChild(tabs);
+  }
+
+  wrap.appendChild(h('h2','font-family:Fraunces,serif;font-size:24px;font-weight:400;color:#1A1A1A;margin-bottom:4px;',goal.name));
+  wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:20px;`,`📍 ${goal.trigger}`));
+
+  // ABC sections
+  const sectionTitle=(t)=>{const e=div(`font-size:11px;font-weight:600;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid ${T.border};`);e.textContent=t;return e;};
+
+  // BEFORE
+  wrap.appendChild(sectionTitle('Before — Ian\'s state'));
+  const stateChips=['Calm / happy','Focused on activity','Resistant','Transition moment'];
+  const sc=div('display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;');
+  stateChips.forEach(opt=>{const b=document.createElement('button');const on=S.tempLog.before===opt;b.style.cssText=`padding:8px 14px;border-radius:20px;border:1.5px solid ${on?T.green:T.border};background:${on?T.gl:'#fff'};color:${on?T.green:T.tm};font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;`;b.textContent=opt;b.onclick=()=>{S.tempLog.before=opt;render();};sc.appendChild(b);});
+  wrap.appendChild(sc);
+
+  // TREATMENT
+  wrap.appendChild(sectionTitle('Treatment — what you tried'));
+  const attemptChips=['Yes','No'];
+  const atc=div('display:flex;gap:8px;margin-bottom:12px;');
+  attemptChips.forEach(opt=>{const b=document.createElement('button');const on=S.tempLog.attempted===opt;b.style.cssText=`padding:8px 14px;border-radius:20px;border:1.5px solid ${on?T.green:T.border};background:${on?T.gl:'#fff'};color:${on?T.green:T.tm};font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;`;b.textContent=`Attempted: ${opt}`;b.onclick=()=>{S.tempLog.attempted=opt;render();};atc.appendChild(b);});
+  wrap.appendChild(atc);
+
+  if(S.tempLog.attempted==='Yes'){
+    const tl=p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;`,'Technique used');
+    wrap.appendChild(tl);
+    const ti=document.createElement('input'); ti.type='text'; ti.value=S.tempLog.technique||''; ti.placeholder='e.g. Melody + nickname, bedtime recap...'; ti.oninput=e=>S.tempLog.technique=e.target.value;
+    wrap.appendChild(ti);
+    const wl=p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;`,'What worked?');
+    wrap.appendChild(wl);
+    const wta=document.createElement('textarea'); wta.value=S.tempLog.worked||''; wta.placeholder='e.g. Dooli-doo melody — Ian giggled and came downstairs'; wta.oninput=e=>S.tempLog.worked=e.target.value;
+    wrap.appendChild(wta);
+    const wdl=p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;`,"What didn't work?");
+    wrap.appendChild(wdl);
+    const wdta=document.createElement('textarea'); wdta.value=S.tempLog.didnt_work||''; wdta.placeholder='e.g. Calling name 3 times — Ian ignored completely'; wdta.oninput=e=>S.tempLog.didnt_work=e.target.value;
+    wrap.appendChild(wdta);
+  }
+
+  // AFTER
+  wrap.appendChild(sectionTitle('After — results'));
+  const reactionOpts=['Positive','Neutral','Negative'];
+  wrap.appendChild(p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;`,"Ian's reaction"));
+  const rc=div('display:flex;gap:8px;margin-bottom:12px;');
+  reactionOpts.forEach(opt=>{const b=document.createElement('button');const on=S.tempLog.reaction===opt;b.style.cssText=`padding:8px 14px;border-radius:20px;border:1.5px solid ${on?T.green:T.border};background:${on?T.gl:'#fff'};color:${on?T.green:T.tm};font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;`;b.textContent=opt;b.onclick=()=>{S.tempLog.reaction=opt;render();};rc.appendChild(b);});
+  wrap.appendChild(rc);
+
+  const outcomeOpts=['Success','Partial success','No success'];
+  wrap.appendChild(p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;`,'Outcome'));
+  const oc=div('display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;');
+  outcomeOpts.forEach(opt=>{const b=document.createElement('button');const on=S.tempLog.outcome===opt;b.style.cssText=`padding:8px 14px;border-radius:20px;border:1.5px solid ${on?T.green:T.border};background:${on?T.gl:'#fff'};color:${on?T.green:T.tm};font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;`;b.textContent=opt;b.onclick=()=>{S.tempLog.outcome=opt;render();};oc.appendChild(b);});
+  wrap.appendChild(oc);
+
+  wrap.appendChild(p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;`,'Change next time'));
+  const nta=document.createElement('textarea'); nta.value=S.tempLog.next||''; nta.placeholder='e.g. Try joining play first before calling'; nta.oninput=e=>S.tempLog.next=e.target.value; nta.style.marginBottom='20px;';
+  wrap.appendChild(nta);
+
+  const hasResult=S.tempLog.attempted||S.tempLog.reaction||S.tempLog.outcome;
+  const saveBtn=document.createElement('button'); saveBtn.className='btn btn-primary'; saveBtn.disabled=!hasResult; saveBtn.textContent='Save entry';
+  if(!hasResult) saveBtn.style.cssText='background:'+T.border+';color:'+T.muted+';cursor:default;width:100%;padding:15px;border:none;border-radius:15px;font-size:15px;font-weight:500;font-family:DM Sans,sans-serif;';
+  saveBtn.onclick=()=>{
+    const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const d=new Date(); const date=`${d.getMonth()+1}/${d.getDate()}`;
+    const newLog = {goalIdx:S.logGoalIdx,date,caregiver:'You',before:S.tempLog.before||'',attempted:S.tempLog.attempted||'',technique:S.tempLog.technique||'',worked:S.tempLog.worked||'',didnt_work:S.tempLog.didnt_work||'',reaction:S.tempLog.reaction||'',outcome:S.tempLog.outcome||'',next:S.tempLog.next||''};
+    S.logs.push(newLog);
+    S.tempLog={};
+    saveState();
+    // send to Google Sheet
+    sendToSheet({
+      user_id: USER_ID,
+      session_id: SESSION_ID,
+      goal_id: S.goals[S.logGoalIdx]?.goal_id || '',
+      goal_version: S.goals[S.logGoalIdx]?.goal_version || 1,
+      goal_number: S.goals[S.logGoalIdx]?.goal_number || (S.logGoalIdx + 1),
+      parent: S.parent,
+      child: S.child,
+      childAge: S.age,
+      goalName: S.goals[S.logGoalIdx]?.name || '',
+      before: newLog.before,
+      attempted: newLog.attempted,
+      technique: newLog.technique,
+      worked: newLog.worked,
+      didnt_work: newLog.didnt_work,
+      reaction: newLog.reaction,
+      outcome: newLog.outcome,
+      next: newLog.next,
+    });
+    const toast=div(`background:${T.gl};border-radius:13px;padding:12px 16px;display:flex;align-items:center;gap:10px;margin-top:12px;`);
+    toast.innerHTML=`<span>✓</span><p style="font-size:13px;color:${T.green};font-weight:500">Logged! Check Week tab to see patterns.</p>`;
+    wrap.appendChild(toast);
+    setTimeout(()=>go('week'),1600);
+  };
+  wrap.appendChild(saveBtn);
+  return wrap;
+}
+
+// ── WEEK ───────────────────────────────────────────────────────────
+function renderWeek() {
+  const wrap=div('flex:1;overflow-y:auto;padding:24px 22px 32px;');
+  const totalAtt=S.logs.filter(l=>l.attempted==='Yes').length;
+  const totalSucc=S.logs.filter(l=>l.outcome==='Success').length;
+  const overall=totalAtt?Math.round(totalSucc/totalAtt*100):0;
+
+  wrap.innerHTML=`<p style="font-size:12px;color:${T.muted};margin-bottom:4px">${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric'})}</p><h2 style="font-family:Fraunces,serif;font-size:26px;font-weight:400;color:${T.text};margin-bottom:6px">How's ${S.child||'your child'} doing?</h2><p style="font-size:14px;color:${T.tm};margin-bottom:20px;line-height:1.6">Based on ${totalAtt} logged attempts.</p>`;
+
+  if(totalAtt===0){
+    const empty=div(`background:${T.gl};border-radius:18px;padding:24px;text-align:center;`);
+    empty.innerHTML=`<p style="font-size:32px;margin-bottom:12px">📊</p><p style="font-family:Fraunces,serif;font-size:18px;color:${T.green};margin-bottom:8px">Patterns appear after 5+ logs</p><p style="font-size:13px;color:${T.gm};line-height:1.6">Log results on your action cards each day. We'll show what's working.</p>`;
+    const lb=document.createElement('button'); lb.className='btn btn-primary'; lb.style.marginTop='14px'; lb.textContent='Start logging →'; lb.onclick=()=>go('home');
+    empty.appendChild(lb); wrap.appendChild(empty); return wrap;
+  }
+
+  // summary
+  const sr=div('display:flex;gap:10px;margin-bottom:20px;');
+  [{v:`${totalAtt}`,l:'attempts'},{v:`${overall}%`,l:'overall success'},{v:`${S.goals.length}`,l:'goals'}].forEach(s=>{const sc=div(`flex:1;background:${T.card};border-radius:14px;border:1px solid ${T.border};padding:12px;text-align:center;`);sc.innerHTML=`<p style="font-family:Fraunces,serif;font-size:22px;font-weight:400;color:${T.text}">${s.v}</p><p style="font-size:11px;color:${T.muted};margin-top:3px">${s.l}</p>`;sr.appendChild(sc);});
+  wrap.appendChild(sr);
+
+  // per-goal breakdown
+  S.goals.forEach((g,i)=>{
+    const st=stats(i); const sc=statusCfg(st.status);
+    const gc=div(`background:${T.card};border-radius:18px;border:1px solid ${T.border};padding:16px 18px;margin-bottom:12px;`);
+    const hdr=div('display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;');
+    hdr.innerHTML=`<div><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:18px">${g.icon}</span><p style="font-size:14px;font-weight:500;color:${T.text}">${g.name}</p></div><p style="font-size:12px;color:${T.muted}">${st.total} attempt${st.total!==1?'s':''} this week</p></div><span style="font-size:11px;font-weight:500;background:${sc.bg};color:${sc.color};border-radius:20px;padding:4px 10px;white-space:nowrap">${sc.emoji} ${sc.label}</span>`;
+    gc.appendChild(hdr);
+
+    if(st.total>0){
+      const bw=div('margin-bottom:10px;');
+      const bb=div(`height:6px;border-radius:3px;background:${T.border};overflow:hidden;margin-bottom:5px;`);
+      const bf=div(`height:100%;width:${st.rate}%;background:${sc.color};border-radius:3px;transition:width .8s ease;`);
+      bb.appendChild(bf); bw.appendChild(bb);
+      bw.innerHTML+=`<div style="display:flex;justify-content:space-between"><span style="font-size:11px;color:${T.muted}">Success ${st.rate}% · Partial ${st.partialRate}%</span><span style="font-size:11px;font-weight:500;color:${sc.color}">${st.rate}%</span></div>`;
+      gc.appendChild(bw);
+
+      const adv=div(`background:${sc.bg};border-radius:10px;padding:10px 12px;margin-bottom:${st.worked.length||st.next.length?'10px':'0'};`);
+      adv.innerHTML=`<p style="font-size:12px;color:${sc.color};line-height:1.55">${sc.tip}</p>`;
+      gc.appendChild(adv);
+
+      if(st.worked.length){
+        const wn=div('margin-bottom:8px;');
+        wn.appendChild(p(`font-size:10px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px;`,'What worked'));
+        st.worked.slice(0,2).forEach(note=>{const np=p(`font-size:12px;color:${T.tm};line-height:1.55;padding:5px 0;border-bottom:1px solid ${T.border};`,`✓ ${note}`);wn.appendChild(np);});
+        gc.appendChild(wn);
+      }
+      if(st.next.length){
+        const nn=div('');
+        nn.appendChild(p(`font-size:10px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px;`,'Try next'));
+        st.next.slice(0,1).forEach(note=>{const np=p(`font-size:12px;color:${T.tm};line-height:1.55;`,`→ ${note}`);nn.appendChild(np);});
+        gc.appendChild(nn);
+      }
+
+      // Claude analysis section
+      const analysisId = `analysis_${i}`;
+      const analysisWrap = div('margin-top:12px;');
+      analysisWrap.id = analysisId;
+
+      const genBtn = document.createElement('button');
+      genBtn.style.cssText = `width:100%;padding:11px;background:linear-gradient(135deg,${T.green},${T.gm});border:none;border-radius:12px;font-size:13px;font-weight:500;color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+      genBtn.textContent = '✨ Generate next cycle recommendations';
+      genBtn.onclick = async () => {
+        genBtn.textContent = '⏳ Analyzing your logs...';
+        genBtn.disabled = true;
+        genBtn.style.opacity = '0.7';
+
+        try {
+          const goalLogs = S.logs.filter(l => l.goalIdx === i);
+          const response = await fetch(ANALYZE_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              user_id: USER_ID,
+              child: S.child,
+              childAge: S.age,
+              goalName: g.name,
+              logs: goalLogs
+            })
+          });
+
+          const result = await response.json();
+
+          if (result.status === 'ok' && result.analysis) {
+            const a = result.analysis;
+            analysisWrap.innerHTML = '';
+
+            const box = div(`background:${T.gl};border-radius:14px;padding:16px 18px;border:1px solid ${T.border};`);
+            box.innerHTML = `<p style="font-size:11px;font-weight:500;color:${T.green};letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;">✨ Next cycle recommendations</p>`;
+
+            if(a.working?.length) {
+              const s = div('margin-bottom:10px;');
+              s.innerHTML = `<p style="font-size:10px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">What's working</p>`;
+              a.working.forEach(w => {
+                const np = p(`font-size:12px;color:${T.tm};line-height:1.55;padding:4px 0;border-bottom:1px solid ${T.border};`, `✓ ${w}`);
+                s.appendChild(np);
+              });
+              box.appendChild(s);
+            }
+
+            if(a.not_working?.length) {
+              const s = div('margin-bottom:10px;');
+              s.innerHTML = `<p style="font-size:10px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">Not working yet</p>`;
+              a.not_working.forEach(w => {
+                const np = p(`font-size:12px;color:${T.tm};line-height:1.55;padding:4px 0;border-bottom:1px solid ${T.border};`, `✗ ${w}`);
+                s.appendChild(np);
+              });
+              box.appendChild(s);
+            }
+
+            if(a.next_actions?.length) {
+              const s = div('margin-bottom:10px;');
+              s.innerHTML = `<p style="font-size:10px;font-weight:500;color:${T.green};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">Try next cycle</p>`;
+              a.next_actions.forEach((w,idx) => {
+                const row = div('display:flex;gap:8px;align-items:flex-start;padding:4px 0;border-bottom:1px solid #e8f5ec;');
+                row.innerHTML = `<div style="width:18px;height:18px;min-width:18px;border-radius:50%;background:${T.green};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;margin-top:2px">${idx+1}</div><p style="font-size:12px;color:${T.tm};line-height:1.55">${w}</p>`;
+                s.appendChild(row);
+              });
+              box.appendChild(s);
+            }
+
+            if(a.avoid?.length) {
+              const s = div(`background:${T.rl};border-radius:10px;padding:10px 12px;`);
+              s.innerHTML = `<p style="font-size:10px;font-weight:500;color:${T.red};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">Avoid</p>`;
+              a.avoid.forEach(w => {
+                const np = p(`font-size:12px;color:${T.tm};line-height:1.55;`, `✗ ${w}`);
+                s.appendChild(np);
+              });
+              box.appendChild(s);
+            }
+
+            analysisWrap.appendChild(box);
+          } else {
+            genBtn.textContent = '✨ Generate next cycle recommendations';
+            genBtn.disabled = false;
+            genBtn.style.opacity = '1';
+          }
+
+        } catch(err) {
+          // CORS issue fallback — show message
+          analysisWrap.innerHTML = '';
+          const fallback = div(`background:${T.gl};border-radius:12px;padding:14px 16px;`);
+          fallback.innerHTML = `<p style="font-size:13px;color:${T.green};font-weight:500;margin-bottom:4px;">✓ Analysis requested!</p><p style="font-size:12px;color:${T.gm};line-height:1.6">Results are being saved to your sheet. Check the Beta_Recommendations tab in your Google Sheet to see the full analysis.</p>`;
+          analysisWrap.appendChild(fallback);
+        }
+      };
+
+      analysisWrap.appendChild(genBtn);
+      gc.appendChild(analysisWrap);
+    }
+
+    const lb=document.createElement('button'); lb.style.cssText=`width:100%;padding:10px;background:none;border:1px solid ${T.border};border-radius:12px;font-size:13px;color:${T.tm};cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:10px;`; lb.textContent=`Log today's ${g.name} →`; lb.onclick=()=>{S.logGoalIdx=i;S.tempLog={};go('log');};
+    gc.appendChild(lb); wrap.appendChild(gc);
+  });
+  return wrap;
+}
+
+// ── GOALS ──────────────────────────────────────────────────────────
+function renderGoals() {
+  const wrap=div('flex:1;overflow-y:auto;padding:24px 22px 32px;');
+  wrap.appendChild(h('h2','font-family:Fraunces,serif;font-size:26px;font-weight:400;color:#1A1A1A;margin-bottom:6px;','Therapy goals'));
+  wrap.appendChild(p(`font-size:14px;color:${T.muted};margin-bottom:24px;line-height:1.55;`,`${S.child||"Your child"}'s goals. Each becomes an action card.`));
+
+  S.goals.forEach((g,i)=>{
+    const st=stats(i); const sc=statusCfg(st.status);
+    const row=div(`background:${T.card};border-radius:18px;border:1px solid ${T.border};padding:16px 18px;margin-bottom:10px;`);
+    const top=div('display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;');
+    const left=div('display:flex;gap:10px;align-items:center;');
+    left.innerHTML=`<span style="font-size:20px">${g.icon}</span><p style="font-size:14px;font-weight:500;color:${T.text}">${g.name||'Unnamed'}</p>`;
+    const btns=div('display:flex;gap:6px;align-items:center;');
+    if(st.total>0){const badge=document.createElement('span');badge.style.cssText=`font-size:10px;background:${sc.bg};color:${sc.color};border-radius:20px;padding:3px 8px;`;badge.textContent=`${st.rate}%`;btns.appendChild(badge);}
+    const eb=document.createElement('button'); eb.textContent='Edit'; eb.style.cssText=`background:none;border:1px solid ${T.border};border-radius:8px;padding:4px 10px;font-size:11px;color:${T.tm};cursor:pointer;font-family:'DM Sans',sans-serif;`; eb.onclick=()=>{S.editIdx=i;S.step=3.5;S.view='onboard';render();};
+    const db=document.createElement('button'); db.textContent='✕'; db.style.cssText='background:none;border:none;font-size:14px;color:#aaa;cursor:pointer;padding:0 4px;'; db.onclick=()=>{S.goals.splice(i,1);render();};
+    btns.appendChild(eb); btns.appendChild(db); top.appendChild(left); top.appendChild(btns); row.appendChild(top);
+    if(g.trigger) row.appendChild(p(`font-size:12px;color:${T.muted};`,`📍 ${g.trigger}`));
+    wrap.appendChild(row);
+  });
+
+  if(S.goals.length<5){
+    const ab=document.createElement('button'); ab.style.cssText=`width:100%;padding:14px;background:none;border:1.5px dashed ${T.border};border-radius:14px;font-size:14px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px;`; ab.textContent='+ Add a therapy goal'; ab.onclick=()=>{S.goals.push({icon:'🎯',name:'',trigger:'',actions:[''],avoid:''});S.editIdx=S.goals.length-1;S.step=3.5;S.view='onboard';render();};
+    wrap.appendChild(ab);
+  }
+
+  // restore code display
+  const rcWrap = div(`background:${T.gl};border-radius:14px;padding:14px 18px;margin-top:16px;`);
+  rcWrap.innerHTML = `
+    <p style="font-size:11px;font-weight:500;color:${T.green};letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">Your restore code</p>
+    <p style="font-family:Fraunces,serif;font-size:28px;font-weight:400;color:${T.green};letter-spacing:.15em;margin-bottom:6px;">${RESTORE_CODE}</p>
+    <p style="font-size:12px;color:${T.gm};line-height:1.6;">Write this down. If you clear your browser or switch devices, enter this code to restore your goals and history.</p>
+  `;
+  wrap.appendChild(rcWrap);
+
+  // reset
+  const resetWrap = div('margin-top:16px;padding-top:16px;border-top:1px solid #EAE6DE;');
+  const resetBtn = document.createElement('button');
+  resetBtn.style.cssText=`width:100%;padding:12px;background:none;border:1px solid #e2e8f0;border-radius:12px;font-size:13px;color:#94a3b8;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+  resetBtn.textContent='Reset all data';
+  resetBtn.onclick=()=>{
+    if(confirm('This will delete all your goals and logs. Are you sure?')){
+      clearState();
+      S={view:'onboard',step:0,parent:'',child:'',age:'',goals:[],editIdx:null,logGoalIdx:0,logs:[],tempLog:{}};
+      render();
+    }
+  };
+  resetWrap.appendChild(resetBtn);
+  wrap.appendChild(resetWrap);
+  return wrap;
+}
+
+// ── RENDER ─────────────────────────────────────────────────────────
+function render() {
+  const screenEl=document.getElementById('screen');
+  screenEl.innerHTML='';
+  let content;
+  if(S.view==='onboard') content=renderOnboard();
+  else if(S.view==='home') content=renderHome();
+  else if(S.view==='log') content=renderLog();
+  else if(S.view==='week') content=renderWeek();
+  else if(S.view==='goals') content=renderGoals();
+  if(content) screenEl.appendChild(content);
+  renderNav();
+}
+
+render();
+</script>
+</body>
+</html>

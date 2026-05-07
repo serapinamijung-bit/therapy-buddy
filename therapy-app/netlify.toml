@@ -1,4 +1,3 @@
 [build]
-  base = "therapy-app"
   publish = "therapy-app"
   functions = "therapy-app/netlify/functions"

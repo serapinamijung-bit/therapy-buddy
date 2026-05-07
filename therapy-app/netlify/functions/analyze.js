@@ -17,6 +17,8 @@ exports.handler = async function(event, context) {
   }
 
   try {
+   console.log('Request received:', JSON.stringify(event.body).slice(0, 200));
+   console.log('API Key exists:', !!process.env.ANTHROPIC_API_KEY);
     const data = JSON.parse(event.body);
 
     const prompt = `You are an ABA therapy assistant helping parents improve their child's therapy outcomes at home.

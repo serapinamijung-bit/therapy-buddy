@@ -96,10 +96,11 @@ console.log('Claude response:', responseText.slice(0, 500));
     };
 
   } catch(err) {
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ status: 'error', message: err.toString() })
-    };
-  }
-};
+  console.log('Error caught:', err.toString());
+  console.log('Error stack:', err.stack);
+  return {
+    statusCode: 500,
+    headers,
+    body: JSON.stringify({ status: 'error', message: err.toString() })
+  };
+}

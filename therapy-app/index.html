@@ -433,14 +433,15 @@ function renderOnboard() {
     if(!g.name.trim()) btn.style.cssText='background:'+T.border+';color:'+T.muted+';cursor:default;width:100%;padding:15px;border:none;border-radius:15px;font-size:15px;font-weight:500;font-family:DM Sans,sans-serif;';
     btn.onclick=()=>{
       if(g.name.trim()){
-        // bump version if this is an existing goal (version already exists)
-        if(g.goal_version && g.goal_id) {
+        if(g.goal_id && g._saved) {
+          // existing saved goal — bump version
           g.goal_version = (g.goal_version || 1) + 1;
         } else {
-          // new goal — set initial values if missing
+          // new goal — set version to 1
           g.goal_id = g.goal_id || 'g_' + Math.random().toString(36).substr(2,9) + '_' + Date.now();
           g.goal_version = 1;
           g.goal_number = g.goal_number || (S.editIdx + 1);
+          g._saved = true;
         }
         saveState();
         S.step=3;

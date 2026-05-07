@@ -335,7 +335,7 @@ function renderOnboard() {
     wrap.appendChild(inp); wrap.appendChild(spacer);
     const btn=document.createElement('button'); btn.id='cont-btn'; btn.className='btn btn-primary'; btn.disabled=!S.parent.trim(); btn.textContent='Continue';
     if(!S.parent.trim()) btn.style.cssText='background:'+T.border+';color:'+T.muted+';cursor:default;width:100%;padding:15px;border:none;border-radius:15px;font-size:15px;font-weight:500;font-family:DM Sans,sans-serif;';
-    btn.onclick=()=>{if(S.parent.trim()){S.step=2;render();}};
+    btn.onclick=()=>{if(S.parent.trim()){saveState();S.step=2;render();}};
     wrap.appendChild(btn);
     setTimeout(()=>inp.focus(),50);
   }
@@ -348,7 +348,7 @@ function renderOnboard() {
     wrap.appendChild(n); wrap.appendChild(a); wrap.appendChild(spacer);
     const btn=document.createElement('button'); btn.id='cont-btn'; btn.className='btn btn-primary'; btn.disabled=!(S.child.trim()&&S.age); btn.textContent='Continue';
     if(!(S.child.trim()&&S.age)) btn.style.cssText='background:'+T.border+';color:'+T.muted+';cursor:default;width:100%;padding:15px;border:none;border-radius:15px;font-size:15px;font-weight:500;font-family:DM Sans,sans-serif;';
-    btn.onclick=()=>{if(S.child.trim()&&S.age){S.step=3;render();}};
+    btn.onclick=()=>{if(S.child.trim()&&S.age){saveState();S.step=3;render();}};
     wrap.appendChild(btn);
   }
 
@@ -381,7 +381,7 @@ function renderOnboard() {
     wrap.appendChild(spacer);
     const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.disabled=S.goals.length===0; btn.textContent="Let's go →";
     if(S.goals.length===0) btn.style.cssText='background:'+T.border+';color:'+T.muted+';cursor:default;width:100%;padding:15px;border:none;border-radius:15px;font-size:15px;font-weight:500;font-family:DM Sans,sans-serif;';
-    btn.onclick=()=>{if(S.goals.length>0)go('home');};
+    btn.onclick=()=>{if(S.goals.length>0){ saveState(); go('home');}};
     wrap.appendChild(btn);
   }
 

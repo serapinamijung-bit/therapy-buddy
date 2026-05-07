@@ -86,7 +86,8 @@ Respond ONLY with a JSON object in this exact format, no other text:
 
     const result = JSON.parse(responseText);
     const text = result.content[0].text;
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
     const analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : { raw: text };
 
     return {

@@ -183,7 +183,7 @@ function restoreFromCode(code) {
 
 function saveState() {
   try {
-    const toSave = { parent:S.parent, child:S.child, age:S.age, goals:S.goals, logs:S.logs, view:S.view };
+    const toSave = { parent:S.parent, child:S.child, age:S.age, goals:S.goals, logs:S.logs, view:S.view, analyses:S.analyses, isDemo:S.isDemo };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
     saveWithRestoreCode();
   } catch(e) { console.log('Save failed:', e); }
@@ -212,12 +212,16 @@ let S = saved ? {
   editIdx: null,
   logGoalIdx: 0,
   logs: saved.logs || [],
+  analyses: saved.analyses || [],
+  isDemo: saved.isDemo || false,
   tempLog: {}
 } : {
   view: 'onboard', step: 0,
   parent: '', child: '', age: '',
   goals: [], editIdx: null,
   logGoalIdx: 0, logs: [],
+  analyses: [],
+  isDemo: false,
   tempLog: {}
 };
 
@@ -518,7 +522,34 @@ function renderHome() {
       `;
       card.onclick=()=>{S.logGoalIdx=i;S.tempLog={};go('log');};
       wrap.appendChild(card);
+
+      // show analysis summary if available
+      const analysis = S.analyses && S.analyses[i];
+      if(analysis) {
+        const summary = div(`background:${T.card};border-radius:14px;border:1px solid ${T.border};padding:12px 16px;margin-top:-8px;margin-bottom:12px;`);
+        summary.innerHTML = `<p style="font-size:10px;font-weight:500;color:${T.green};letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">✨ Next cycle · updated ${analysis.date||''}</p>`;
+        if(analysis.working?.length) {
+          const w = p(`font-size:12px;color:${T.tm};line-height:1.55;margin-bottom:4px;padding-bottom:4px;border-bottom:1px solid ${T.border};`, `✓ ${analysis.working[0]}`);
+          summary.appendChild(w);
+        }
+        if(analysis.next_actions?.length) {
+          const na = div('margin-top:6px;');
+          analysis.next_actions.slice(0,2).forEach((a,idx) => {
+            const row = div('display:flex;gap:6px;align-items:flex-start;margin-bottom:4px;');
+            row.innerHTML = `<div style="width:16px;height:16px;min-width:16px;border-radius:50%;background:${T.green};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;margin-top:1px">${idx+1}</div><p style="font-size:12px;color:${T.tm};line-height:1.5">${a}</p>`;
+            na.appendChild(row);
+          });
+          summary.appendChild(na);
+        }
+        const weekBtn = document.createElement('button');
+        weekBtn.style.cssText=`background:none;border:none;font-size:12px;color:${T.gm};cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:8px;padding:0;`;
+        weekBtn.textContent='See full analysis →';
+        weekBtn.onclick=(e)=>{ e.stopPropagation(); go('week'); };
+        summary.appendChild(weekBtn);
+        wrap.appendChild(summary);
+      }
     });
+  }
   }
 
   const nl=p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;margin-top:4px;margin-bottom:8px;`,'Quick note');
@@ -720,7 +751,23 @@ function renderWeek() {
 
           if (result.status === 'ok' && result.analysis) {
             const a = result.analysis;
-            analysisWrap.innerHTML = '';
+
+            // save analysis to state
+            if (!S.analyses) S.analyses = [];
+            S.analyses[i] = { ...a, date: new Date().toLocaleDateString() };
+
+            // update goal actions with next_actions from Claude
+            if (a.next_actions && a.next_actions.length > 0) {
+              S.goals[i].actions = a.next_actions;
+              S.goals[i].avoid = a.avoid ? a.avoid.join(' · ') : S.goals[i].avoid;
+              S.goals[i].goal_version = (S.goals[i].goal_version || 1) + 1;
+            }
+            saveState();
+
+            // show updated toast
+            const updateToast = div(`background:${T.gl};border-radius:12px;padding:10px 14px;margin-bottom:10px;`);
+            updateToast.innerHTML = `<p style="font-size:13px;color:${T.green};font-weight:500;">✓ Action card updated for next cycle!</p>`;
+            analysisWrap.appendChild(updateToast);
 
             const box = div(`background:${T.gl};border-radius:14px;padding:16px 18px;border:1px solid ${T.border};`);
             box.innerHTML = `<p style="font-size:11px;font-weight:500;color:${T.green};letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;">✨ Next cycle recommendations</p>`;

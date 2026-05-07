@@ -224,6 +224,7 @@ let S = saved ? {
 // ── DEMO DATA ──────────────────────────────────────────────────────
 function loadDemo() {
   S.parent = 'Sera'; S.child = 'Ian'; S.age = '5';
+  S.isDemo = true;
   S.goals = [
     { goal_id:'g_demo_001', goal_version:3, goal_number:1, icon:'💬', name:'WH recall', trigger:'Right after a book, video, or active play', actions:['Check Ian state — calm and engaged?','Give 2 choices max: "Was it X or Y?"','Bedtime recap: low light, 2 choices, no pressure','Movement recall: ask right after running/jumping'], avoid:'Showing photos mid-play · recalling events from hours ago' },
     { goal_id:'g_demo_002', goal_version:3, goal_number:2, icon:'👋', name:'Respond to name', trigger:"Any time you need Ian's attention — meals, transitions, safety", actions:['State check first: is Ian focused? If yes → join play 60 sec','Interesting info hook: "Ian! Look! [something he loves]!"',"Let John call Ian — peer calling is more effective",'Safety/urgency cue works reliably — use sparingly'], avoid:'Cold-calling focused Ian · repeating name 5+ times' },
@@ -471,6 +472,22 @@ function renderHome() {
   const greet = div('margin-bottom:20px;');
   greet.innerHTML=`<p style="font-size:12px;color:${T.muted};margin-bottom:2px;">${date}</p><h2 style="font-family:Fraunces,serif;font-size:24px;font-weight:400;color:${T.text};">Hey ${S.parent} 👋</h2>`;
   wrap.appendChild(greet);
+
+  // demo banner
+  if(S.isDemo) {
+    const banner = div(`background:${T.ol};border-radius:12px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;`);
+    banner.innerHTML=`<p style="font-size:12px;color:${T.orange};font-weight:500;">👀 You're viewing Ian's demo data</p>`;
+    const exitBtn = document.createElement('button');
+    exitBtn.textContent = 'Start with my data →';
+    exitBtn.style.cssText=`background:${T.orange};color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;white-space:nowrap;`;
+    exitBtn.onclick = () => {
+      S = { view:'onboard', step:0, parent:'', child:'', age:'', goals:[], editIdx:null, logGoalIdx:0, logs:[], tempLog:{}, isDemo:false };
+      clearState();
+      render();
+    };
+    banner.appendChild(exitBtn);
+    wrap.appendChild(banner);
+  }
 
   if(S.goals.length===0){
     const empty=div(`background:${T.gl};border-radius:20px;padding:24px;text-align:center;`);

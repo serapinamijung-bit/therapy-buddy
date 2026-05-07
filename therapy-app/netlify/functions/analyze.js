@@ -78,13 +78,7 @@ Respond ONLY with a JSON object in this exact format, no other text:
 console.log('Claude response status:', response.status);
 const responseText = await response.text();
 console.log('Claude response:', responseText.slice(0, 500));
-const result = JSON.parse(responseText);
-    
-console.log('Claude response status:', response.status);
-const responseText = await response.text();
-console.log('Claude response:', responseText.slice(0, 500));
-    
-    const result = JSON.parse(responseText);
+const result = JSON.parse(responseText);   
     const text = result.content[0].text;
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     const analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : { raw: text };

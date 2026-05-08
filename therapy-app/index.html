@@ -140,7 +140,7 @@ const STRINGS = {
     saveGoal: 'Save goal',
     goalName: 'Goal name',
     whenToUse: 'Situation or behavior to work on',
-    whenToUsePlaceholder: 'e.g. When Ian grabs John\'s toy and cries to get it',
+    whenToUsePlaceholder: 'e.g. When sibling has a toy and child tries to grab it',
     steps: 'How to respond',
     stepsOptional: 'Optional — fill in what you know, skip the rest.',
     addStep: '+ Add step',
@@ -248,7 +248,7 @@ const STRINGS = {
     saveGoal: '목표 저장',
     goalName: '목표 이름',
     whenToUse: '개선하고 싶은 상황 또는 행동',
-    whenToUsePlaceholder: '예: 이안이 주안이 장난감을 빼앗고 울 때',
+    whenToUsePlaceholder: '예: 형제가 장난감을 갖고 있을 때 빼앗으려 할 때',
     steps: '부모의 대응',
     stepsOptional: '선택 사항 — 아는 것만 채워도 괜찮아요.',
     steps: '실행 단계',
@@ -653,7 +653,7 @@ function renderOnboard() {
     const lbl=(t)=>{const e=p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;`,t);return e;};
 
     wrap.appendChild(lbl(L('goalName')));
-    const ni=document.createElement('input'); ni.type='text'; ni.value=g.name; ni.placeholder=S.lang==='ko'?'예: 3초 안에 이름에 반응하기':'e.g. Respond to name within 3 seconds'; ni.oninput=e=>{g.name=e.target.value;updateBtn();};
+    const ni=document.createElement('input'); ni.type='text'; ni.value=g.name; ni.placeholder=S.lang==='ko'?'예: 장난감 공유하기':'e.g. Sharing toys with siblings'; ni.oninput=e=>{g.name=e.target.value;updateBtn()};
     wrap.appendChild(ni);
 
     wrap.appendChild(lbl(L('whenToUse')));

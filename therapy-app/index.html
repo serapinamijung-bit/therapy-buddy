@@ -9,6 +9,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+/* Force DM Sans for all non-Fraunces elements to prevent Korean text rendering issues */
+*:not([style*="Fraunces"]) { font-family: inherit; }
+.card-avoid, .card-avoid * { font-family: 'DM Sans', sans-serif !important; }
 body {
   font-family: 'DM Sans', sans-serif;
   background: #1a1a1a;
@@ -757,7 +760,7 @@ function renderHome() {
           ${g.actions.slice(0,2).map((a,ai)=>`<div style="display:flex;gap:8px;align-items:flex-start"><div style="width:18px;height:18px;min-width:18px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;margin-top:1px">${ai+1}</div><p style="font-size:12px;color:rgba(255,255,255,.9);line-height:1.5;font-family:'DM Sans',sans-serif;">${a}</p></div>`).join('')}
           ${g.actions.length>2?`<p style="font-size:11px;color:rgba(255,255,255,.45);margin-top:2px">+${g.actions.length-2} more steps</p>`:''}
         </div>
-        ${g.avoid?`<div style="margin-top:10px;background:rgba(0,0,0,.15);border-radius:8px;padding:6px 10px;font-size:11px;color:rgba(255,255,255,.8);font-family:'DM Sans',sans-serif;"><strong>${S.lang==='ko'?'피해야 할 것':'Avoid'}:</strong> ${g.avoid}</div>`:''}
+        ${g.avoid?`<div class="card-avoid" style="margin-top:10px;background:rgba(0,0,0,.15);border-radius:8px;padding:6px 10px;font-size:11px;color:rgba(255,255,255,.8);font-family:'DM Sans',sans-serif;"><strong>${S.lang==='ko'?'피해야 할 것':'Avoid'}:</strong> ${g.avoid}</div>`:''}
       `;
       card.onclick=()=>{S.logGoalIdx=i;S.tempLog={};go('log');};
       wrap.appendChild(card);
@@ -790,11 +793,6 @@ function renderHome() {
     });
   }
 
-  const nl=p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;margin-top:4px;margin-bottom:8px;`,L('quickNote'));
-  wrap.appendChild(nl);
-  const nc=div(`background:${T.card};border-radius:16px;border:1px solid ${T.border};padding:14px 16px;margin-bottom:16px;`);
-  const ta=document.createElement('textarea'); ta.placeholder=L('quickNotePlaceholder',S.child); ta.rows=2; ta.style.cssText=`width:100%;font-size:14px;border:none;background:none;outline:none;resize:none;font-family:'DM Sans',sans-serif;color:${T.text};line-height:1.5;`;
-  nc.appendChild(ta); wrap.appendChild(nc);
   return wrap;
 }
 

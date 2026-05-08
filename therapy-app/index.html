@@ -140,6 +140,7 @@ const STRINGS = {
     steps: 'Steps (what to do)',
     addStep: '+ Add step',
     whatToAvoid: 'What to avoid',
+    avoidPlaceholder: 'e.g. Repeating the question multiple times',
     backToGoals: '← Back to goals',
     back: '← Back',
     setupGoal: 'Set up this goal',
@@ -245,6 +246,7 @@ const STRINGS = {
     steps: '실행 단계',
     addStep: '+ 단계 추가',
     whatToAvoid: '피해야 할 것',
+    avoidPlaceholder: '예: 질문을 여러 번 반복하기',
     backToGoals: '← 목표로 돌아가기',
     back: '← 뒤로',
     setupGoal: '목표 설정하기',
@@ -657,7 +659,7 @@ function renderOnboard() {
       g.actions.forEach((a,ai)=>{
         const row=div('display:flex;gap:8px;align-items:center;margin-bottom:8px;');
         const num=div(`width:22px;height:22px;min-width:22px;border-radius:50%;background:${T.gl};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:${T.green};`,(ai+1).toString());
-        const ai2=document.createElement('input'); ai2.type='text'; ai2.value=a; ai2.placeholder=`Step ${ai+1}`; ai2.style.cssText=`flex:1;padding:10px 12px;font-size:13px;border:1.5px solid ${a?T.green:T.border};border-radius:10px;background:#fff;outline:none;font-family:'DM Sans',sans-serif;color:${T.text};`; ai2.oninput=e=>{g.actions[ai]=e.target.value;ai2.style.borderColor=e.target.value?T.green:T.border;};
+        const ai2=document.createElement('input'); ai2.type='text'; ai2.value=a; ai2.placeholder=S.lang==='ko'?`단계 ${ai+1}`:`Step ${ai+1}`; ai2.style.cssText=`flex:1;padding:10px 12px;font-size:13px;border:1.5px solid ${a?T.green:T.border};border-radius:10px;background:#fff;outline:none;font-family:'DM Sans',sans-serif;color:${T.text};`; ai2.oninput=e=>{g.actions[ai]=e.target.value;ai2.style.borderColor=e.target.value?T.green:T.border;};
         row.appendChild(num); row.appendChild(ai2);
         if(g.actions.length>1){const del=document.createElement('button');del.textContent='✕';del.style.cssText='background:none;border:none;font-size:14px;color:#aaa;cursor:pointer;padding:0 4px;';del.onclick=()=>{g.actions.splice(ai,1);renderActs();};row.appendChild(del);}
         aw.appendChild(row);
@@ -667,7 +669,7 @@ function renderOnboard() {
     if(g.actions.length<4){const add=document.createElement('button');add.style.cssText=`background:none;border:none;font-size:13px;color:${T.gm};cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:12px;padding:0;`;add.textContent=L('addStep');add.onclick=()=>{g.actions.push('');renderActs();};wrap.appendChild(add);}
 
     wrap.appendChild(lbl(L('whatToAvoid')));
-    const av=document.createElement('input'); av.type='text'; av.value=g.avoid; av.placeholder='e.g. Repeating the question multiple times'; av.oninput=e=>{g.avoid=e.target.value;};
+    const av=document.createElement('input'); av.type='text'; av.value=g.avoid; av.placeholder=L('avoidPlaceholder'); av.oninput=e=>{g.avoid=e.target.value;};
     wrap.appendChild(av);
 
     const btn=document.createElement('button'); btn.id='cont-btn'; btn.className='btn btn-primary'; btn.disabled=!g.name.trim(); btn.textContent=L('saveGoal');

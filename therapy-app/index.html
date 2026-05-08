@@ -677,7 +677,7 @@ function renderWeek() {
 
   if(totalAtt===0){
     const empty=div(`background:${T.gl};border-radius:18px;padding:24px;text-align:center;`);
-    empty.innerHTML=`<p style="font-size:32px;margin-bottom:12px">📊</p><p style="font-family:Fraunces,serif;font-size:18px;color:${T.green};margin-bottom:8px">Patterns appear after 5+ logs</p><p style="font-size:13px;color:${T.gm};line-height:1.6">Log results on your action cards each day. We'll show what's working.</p>`;
+    empty.innerHTML=`<p style="font-size:32px;margin-bottom:12px">📊</p><p style="font-family:Fraunces,serif;font-size:18px;color:${T.green};margin-bottom:8px">No logs yet</p><p style="font-size:13px;color:${T.gm};line-height:1.6">Log your first result on a goal card — then come back here to see patterns and generate next cycle recommendations.</p>`;
     const lb=document.createElement('button'); lb.className='btn btn-primary'; lb.style.marginTop='14px'; lb.textContent='Start logging →'; lb.onclick=()=>go('home');
     empty.appendChild(lb); wrap.appendChild(empty); return wrap;
   }

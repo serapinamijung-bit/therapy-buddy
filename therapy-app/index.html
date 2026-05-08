@@ -631,8 +631,8 @@ function renderOnboard() {
     const icons=['🎯','💬','👋','🤝','⭐','🌟','🧩','📚','🎮','🌊','🔔','🏃'];
     const back=document.createElement('button'); back.style.cssText=`background:none;border:none;cursor:pointer;color:${T.tm};font-size:14px;margin-bottom:16px;padding:0;font-family:'DM Sans',sans-serif;`; back.textContent=L('backToGoals'); back.onclick=()=>{S.step=3;render();};
     wrap.appendChild(back);
-    wrap.appendChild(h('h1','font-family:Fraunces,serif;font-size:24px;font-weight:400;color:#1A1A1A;margin-bottom:6px;',g.name?`Edit: ${g.name}`:'Set up this goal'));
-    wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:18px;`,'This becomes your action card.'));
+    wrap.appendChild(h('h1','font-family:Fraunces,serif;font-size:24px;font-weight:400;color:#1A1A1A;margin-bottom:6px;', g.name ? `${L('editGoal')}: ${g.name}` : 'Set up this goal'));
+    wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:18px;`, S.lang==='ko' ? '이 목표가 액션 카드가 됩니다.' : 'This becomes your action card.'));
 
     const ir=div('display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;');
     icons.forEach(ic=>{const b=document.createElement('button');b.textContent=ic;b.style.cssText=`width:36px;height:36px;border-radius:10px;border:1.5px solid ${g.icon===ic?T.green:T.border};background:${g.icon===ic?T.gl:'#fff'};font-size:17px;cursor:pointer;`;b.onclick=()=>{g.icon=ic;render();};ir.appendChild(b);});
@@ -641,14 +641,14 @@ function renderOnboard() {
     const lbl=(t)=>{const e=p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;`,t);return e;};
 
     wrap.appendChild(lbl(L('goalName')));
-    const ni=document.createElement('input'); ni.type='text'; ni.value=g.name; ni.placeholder='e.g. Respond to name within 3 seconds'; ni.oninput=e=>{g.name=e.target.value;updateBtn();};
+    const ni=document.createElement('input'); ni.type='text'; ni.value=g.name; ni.placeholder=S.lang==='ko'?'예: 3초 안에 이름에 반응하기':'e.g. Respond to name within 3 seconds'; ni.oninput=e=>{g.name=e.target.value;updateBtn();};
     wrap.appendChild(ni);
 
-    wrap.appendChild(lbl('When to use this card'));
-    const ti=document.createElement('input'); ti.type='text'; ti.value=g.trigger; ti.placeholder="e.g. Any time you need Ian's attention"; ti.oninput=e=>{g.trigger=e.target.value;};
+    wrap.appendChild(lbl(L('whenToUse')));
+    const ti=document.createElement('input'); ti.type='text'; ti.value=g.trigger; ti.placeholder=S.lang==='ko'?'예: 이안의 주의가 필요할 때 언제든지':"e.g. Any time you need Ian's attention"; ti.oninput=e=>{g.trigger=e.target.value;};
     wrap.appendChild(ti);
 
-    wrap.appendChild(lbl('Steps (what to do)'));
+    wrap.appendChild(lbl(L('steps')));
     const aw=div();
     const renderActs=()=>{
       aw.innerHTML='';

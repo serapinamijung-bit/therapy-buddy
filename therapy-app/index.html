@@ -548,7 +548,7 @@ function renderOnboard() {
       lb.onclick=()=>{ S.lang=lang; localStorage.setItem('tb_lang',lang); saveState(); render(); };
       langRow.appendChild(lb);
     });
-    const title = h('h1','font-family:'Fraunces','Noto Serif KR',serif;font-size:28px;font-weight:400;color:#1A1A1A;line-height:1.3;margin-bottom:12px;', L('appTagline'));
+    const title = h('h1',"font-family:'Fraunces','Noto Serif KR',serif;font-size:28px;font-weight:400;color:#1A1A1A;line-height:1.3;margin-bottom:12px;", L('appTagline'));
     const desc = p(`font-size:14px;color:${T.tm};line-height:1.7;flex:1;margin-bottom:20px;`, L('appDesc'));
     const demoBtn = document.createElement('button');
     demoBtn.className='btn btn-ghost'; demoBtn.style.marginBottom='10px'; demoBtn.textContent=L('seeDemo');
@@ -573,7 +573,7 @@ function renderOnboard() {
   const spacer = div('flex:1');
 
   if (step===1) {
-    wrap.appendChild(h('h1','font-family:'Fraunces','Noto Serif KR',serif;font-size:28px;font-weight:400;color:#1A1A1A;margin-bottom:6px;', L('yourName')));
+    wrap.appendChild(h('h1',"font-family:'Fraunces','Noto Serif KR',serif;font-size:28px;font-weight:400;color:#1A1A1A;margin-bottom:6px;", L('yourName')));
     wrap.appendChild(p(`font-size:14px;color:${T.muted};margin-bottom:24px;`, L('yourNameSub')));
     const inp = document.createElement('input'); inp.type='text'; inp.value=S.parent; inp.placeholder=L('yourNamePlaceholder');
     inp.oninput=e=>{S.parent=e.target.value;updateBtn();};
@@ -586,7 +586,7 @@ function renderOnboard() {
   }
 
   if (step===2) {
-    wrap.appendChild(h('h1','font-family:'Fraunces','Noto Serif KR',serif;font-size:28px;font-weight:400;color:#1A1A1A;margin-bottom:6px;', L('aboutChild')));
+    wrap.appendChild(h('h1',"font-family:'Fraunces','Noto Serif KR',serif;font-size:28px;font-weight:400;color:#1A1A1A;margin-bottom:6px;", L('aboutChild')));
     wrap.appendChild(p(`font-size:14px;color:${T.muted};margin-bottom:24px;`, L('aboutChildSub')));
     const n=document.createElement('input'); n.type='text'; n.value=S.child; n.placeholder=L('childName'); n.oninput=e=>{S.child=e.target.value;updateBtn();};
     const a=document.createElement('input'); a.type='number'; a.value=S.age; a.placeholder=L('childAge'); a.oninput=e=>{S.age=e.target.value;updateBtn();};
@@ -598,7 +598,7 @@ function renderOnboard() {
   }
 
   if (step===3) {
-    wrap.appendChild(h('h1','font-family:'Fraunces','Noto Serif KR',serif;font-size:26px;font-weight:400;color:#1A1A1A;margin-bottom:6px;line-height:1.3;', L('therapyGoals', S.child)));
+    wrap.appendChild(h('h1',"font-family:'Fraunces','Noto Serif KR',serif;font-size:26px;font-weight:400;color:#1A1A1A;margin-bottom:6px;line-height:1.3;", L('therapyGoals', S.child)));
     wrap.appendChild(p(`font-size:14px;color:${T.muted};margin-bottom:20px;line-height:1.55;`, L('therapyGoalsSub')));
 
     S.goals.forEach((g,i)=>{
@@ -635,7 +635,7 @@ function renderOnboard() {
     const icons=['🎯','💬','👋','🤝','⭐','🌟','🧩','📚','🎮','🌊','🔔','🏃'];
     const back=document.createElement('button'); back.style.cssText=`background:none;border:none;cursor:pointer;color:${T.tm};font-size:14px;margin-bottom:16px;padding:0;font-family:'DM Sans',sans-serif;`; back.textContent=L('backToGoals'); back.onclick=()=>{S.step=3;render();};
     wrap.appendChild(back);
-    wrap.appendChild(h('h1','font-family:'Fraunces','Noto Serif KR',serif;font-size:24px;font-weight:400;color:#1A1A1A;margin-bottom:6px;', g.name ? `${L('editGoal')}: ${g.name}` : L('setupGoal')));
+    wrap.appendChild(h('h1',"font-family:'Fraunces','Noto Serif KR',serif;font-size:24px;font-weight:400;color:#1A1A1A;margin-bottom:6px;", g.name ? `${L('editGoal')}: ${g.name}` : L('setupGoal')));
     wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:18px;`, S.lang==='ko' ? '이 목표가 액션 카드가 됩니다.' : 'This becomes your action card.'));
 
     const ir=div('display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;');
@@ -812,7 +812,7 @@ function renderLog() {
     wrap.appendChild(tabs);
   }
 
-  wrap.appendChild(h('h2','font-family:'Fraunces','Noto Serif KR',serif;font-size:24px;font-weight:400;color:#1A1A1A;margin-bottom:4px;',goal.name));
+  wrap.appendChild(h('h2',"font-family:'Fraunces','Noto Serif KR',serif;font-size:24px;font-weight:400;color:#1A1A1A;margin-bottom:4px;",goal.name));
   wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:12px;`,`📍 ${goal.trigger}`));
 
   // action steps card
@@ -1153,7 +1153,7 @@ function renderWeek() {
 // ── GOALS ──────────────────────────────────────────────────────────
 function renderGoals() {
   const wrap=div('flex:1;overflow-y:auto;padding:24px 22px 32px;');
-  wrap.appendChild(h('h2','font-family:'Fraunces','Noto Serif KR',serif;font-size:26px;font-weight:400;color:#1A1A1A;margin-bottom:6px;',L('goalsTitle')));
+  wrap.appendChild(h('h2',"font-family:'Fraunces','Noto Serif KR',serif;font-size:26px;font-weight:400;color:#1A1A1A;margin-bottom:6px;",L('goalsTitle')));
   wrap.appendChild(p(`font-size:14px;color:${T.muted};margin-bottom:24px;line-height:1.55;`, L('goalsSub', S.child)));
 
   S.goals.forEach((g,i)=>{

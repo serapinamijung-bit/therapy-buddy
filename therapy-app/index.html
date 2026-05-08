@@ -715,9 +715,11 @@ function updateBtn() {
 // ── HOME ───────────────────────────────────────────────────────────
 function renderHome() {
   const wrap = div('flex:1;overflow-y:auto;padding:16px 22px;');
-  const date = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  const date = S.lang==='ko'
+    ? new Date().toLocaleDateString('ko-KR',{weekday:'long',month:'long',day:'numeric'})
+    : new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
   const greet = div('margin-bottom:20px;');
-  greet.innerHTML=`<p style="font-size:12px;color:${T.muted};margin-bottom:2px;">${date}</p><h2 style="font-family:'Fraunces',serif;font-size:24px;font-weight:400;color:${T.text};">Hey ${S.parent} 👋</h2>`;
+  greet.innerHTML=`<p style="font-size:12px;color:${T.muted};margin-bottom:2px;">${date}</p><h2 style="font-family:'Fraunces',serif;font-size:24px;font-weight:400;color:${T.text};">${S.lang==='ko'?`안녕하세요, ${S.parent} 👋`:`Hey ${S.parent} 👋`}</h2>`;
   wrap.appendChild(greet);
 
   // demo banner
@@ -751,8 +753,8 @@ function renderHome() {
       card.innerHTML=`
         <div style="position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.05)"></div>
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
-          <span style="font-size:11px;font-weight:500;background:rgba(255,255,255,.18);border-radius:20px;padding:3px 10px;color:rgba(255,255,255,.92)">${g.icon} Goal ${i+1}</span>
-          <span style="font-size:12px;color:rgba(255,255,255,.5)">${logged>0?`${st.rate}% success`:L('tapToLog')}</span>
+          <span style="font-size:11px;font-weight:500;background:rgba(255,255,255,.18);border-radius:20px;padding:3px 10px;color:rgba(255,255,255,.92)">${g.icon} ${S.lang==='ko'?'목표':'Goal'} ${i+1}</span>
+          <span style="font-size:12px;color:rgba(255,255,255,.5)">${logged>0?(S.lang==='ko'?`성공률 ${st.rate}%`:`${st.rate}% success`):L('tapToLog')}</span>
         </div>
         <p style="font-family:${S.lang==='ko'?'\'DM Sans\',sans-serif':'\'Fraunces\',serif'};font-size:19px;font-weight:400;color:#fff;line-height:1.3;margin-bottom:8px">${g.name}</p>
         <p style="font-size:12px;color:rgba(255,255,255,.65);margin-bottom:12px;font-family:'DM Sans',sans-serif;">📍 ${g.trigger}</p>
@@ -780,7 +782,7 @@ function renderHome() {
       const analysis = S.analyses && S.analyses[i];
       if(analysis) {
         const summary = div(`background:${T.card};border-radius:14px;border:1px solid ${T.border};padding:12px 16px;margin-top:-8px;margin-bottom:12px;`);
-        summary.innerHTML = `<p style="font-size:10px;font-weight:500;color:${T.green};letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">✨ Next cycle · updated ${analysis.date||''}</p>`;
+        summary.innerHTML = `<p style="font-size:10px;font-weight:500;color:${T.green};letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">${S.lang==='ko'?'✨ 다음 사이클 · 업데이트':'✨ Next cycle · updated'} ${analysis.date||''}</p>`;
         if(analysis.working?.length) {
           const w = p(`font-size:12px;color:${T.tm};line-height:1.55;margin-bottom:4px;padding-bottom:4px;border-bottom:1px solid ${T.border};`, `✓ ${analysis.working[0]}`);
           summary.appendChild(w);
@@ -817,7 +819,7 @@ function renderLog() {
 
   if(S.goals.length>1){
     const tabs=div('display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;');
-    S.goals.forEach((g,i)=>{const t=document.createElement('button');t.style.cssText=`padding:5px 12px;border-radius:20px;border:1px solid ${i===S.logGoalIdx?T.green:T.border};background:${i===S.logGoalIdx?T.gl:'#fff'};color:${i===S.logGoalIdx?T.green:T.muted};font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;`;t.textContent=`${g.icon} Goal ${i+1}`;t.onclick=()=>{S.logGoalIdx=i;S.tempLog={};render();};tabs.appendChild(t);});
+    S.goals.forEach((g,i)=>{const t=document.createElement('button');t.style.cssText=`padding:5px 12px;border-radius:20px;border:1px solid ${i===S.logGoalIdx?T.green:T.border};background:${i===S.logGoalIdx?T.gl:'#fff'};color:${i===S.logGoalIdx?T.green:T.muted};font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;`;t.textContent=`${g.icon} ${S.lang==='ko'?'목표':'Goal'} ${i+1}`;t.onclick=()=>{S.logGoalIdx=i;S.tempLog={};render();};tabs.appendChild(t);});
     wrap.appendChild(tabs);
   }
 
@@ -1074,7 +1076,7 @@ function renderWeek() {
 
             // save analysis to state
             if (!S.analyses) S.analyses = [];
-            S.analyses[i] = { ...a, date: new Date().toLocaleDateString() };
+            S.analyses[i] = { ...a, date: new Date().toLocaleDateString(S.lang==='ko'?'ko-KR':'en-US') };
 
             // update goal actions with next_actions from Claude
             if (a.next_actions && a.next_actions.length > 0) {

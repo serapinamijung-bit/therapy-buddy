@@ -290,9 +290,9 @@ const STRINGS = {
     loggedToast: '기록됐어요! 주간 탭에서 패턴을 확인하세요.',
     weekTitle: (child) => `${child||'아이'} 어떤가요?`,
     weekSubtitle: (n) => `${n}번의 기록을 바탕으로 분석했어요.`,
-    attempts: '번 시도',
+    attempts: '시도 횟수',
     overallSuccess: '전체 성공률',
-    goals: '개 목표',
+    goals: '목표 개수',
     noLogsTitle: '아직 기록이 없어요',
     noLogsDesc: '액션 카드에서 첫 번째 결과를 기록해보세요 — 그러면 패턴과 다음 사이클 추천을 볼 수 있어요.',
     startLogging: '기록 시작하기 →',
@@ -313,7 +313,7 @@ const STRINGS = {
     tryNextCycle: '다음 사이클에 시도할 것',
     avoidLabel: '피해야 할 것',
     seeFullAnalysis: '전체 분석 보기 →',
-    logToday: (name) => `오늘 ${name} 기록하기 →`,
+    logToday: (name) => `오늘의 "${name}" 기록하기 →`,
     goalsTitle: '치료 목표',
     goalsSub: (child) => `${child||"아이"}의 목표. 각 목표가 액션 카드가 됩니다.`,
     editGoal: '수정',
@@ -512,7 +512,7 @@ function renderNav() {
   nav.style.display = show ? 'flex' : 'none';
   if (!show) return;
   const navLabels = S.lang === 'ko'
-    ? [['home','⌂','홈'],['log','✎','기록'],['week','◎','주간'],['goals','⚙','목표']]
+    ? [['home','⌂','홈'],['log','✎','기록'],['week','◎','이번 주'],['goals','⚙','목표']]
     : [['home','⌂','Home'],['log','✎','Log'],['week','◎','Week'],['goals','⚙','Goals']];
   nav.innerHTML = navLabels.map(([id,ic,lb]) => `
     <button class="nav-btn ${S.view===id?'active':''}" onclick="go('${id}')">
@@ -932,7 +932,11 @@ function renderWeek() {
   const totalSucc=S.logs.filter(l=>l.outcome==='Success').length;
   const overall=totalAtt?Math.round(totalSucc/totalAtt*100):0;
 
-  wrap.innerHTML=`<p style="font-size:12px;color:${T.muted};margin-bottom:4px">${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric'})}</p><h2 style="font-family:Fraunces,serif;font-size:26px;font-weight:400;color:${T.text};margin-bottom:6px">${L('weekTitle',S.child)}</h2><p style="font-size:14px;color:${T.tm};margin-bottom:20px;line-height:1.6">${L('weekSubtitle',totalAtt)}</p>`;
+  const dateStr = S.lang === 'ko'
+    ? new Date().toLocaleDateString('ko-KR', {month:'long', day:'numeric'})
+    : new Date().toLocaleDateString('en-US', {month:'long', day:'numeric'});
+
+  wrap.innerHTML=`<p style="font-size:12px;color:${T.muted};margin-bottom:4px">${dateStr}</p><h2 style="font-family:Fraunces,serif;font-size:26px;font-weight:400;color:${T.text};margin-bottom:6px">${L('weekTitle',S.child)}</h2><p style="font-size:14px;color:${T.tm};margin-bottom:20px;line-height:1.6">${L('weekSubtitle',totalAtt)}</p>`;
 
   if(totalAtt===0){
     const empty=div(`background:${T.gl};border-radius:18px;padding:24px;text-align:center;`);
@@ -959,7 +963,7 @@ function renderWeek() {
       const bb=div(`height:6px;border-radius:3px;background:${T.border};overflow:hidden;margin-bottom:5px;`);
       const bf=div(`height:100%;width:${st.rate}%;background:${sc.color};border-radius:3px;transition:width .8s ease;`);
       bb.appendChild(bf); bw.appendChild(bb);
-      bw.innerHTML+=`<div style="display:flex;justify-content:space-between"><span style="font-size:11px;color:${T.muted}">Success ${st.rate}% · Partial ${st.partialRate}%</span><span style="font-size:11px;font-weight:500;color:${sc.color}">${st.rate}%</span></div>`;
+      bw.innerHTML+=`<div style="display:flex;justify-content:space-between"><span style="font-size:11px;color:${T.muted}">${S.lang==='ko'?'성공':'Success'} ${st.rate}% · ${S.lang==='ko'?'부분 성공':'Partial'} ${st.partialRate}%</span><span style="font-size:11px;font-weight:500;color:${sc.color}">${st.rate}%</span></div>`;
       gc.appendChild(bw);
 
       const adv=div(`background:${sc.bg};border-radius:10px;padding:10px 12px;margin-bottom:${st.worked.length||st.next.length?'10px':'0'};`);

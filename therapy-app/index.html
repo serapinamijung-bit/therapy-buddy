@@ -541,7 +541,7 @@ function renderOnboard() {
       const lb = document.createElement('button');
       lb.textContent = lang==='en' ? '🇺🇸 English' : '🇰🇷 한국어';
       lb.style.cssText=`padding:7px 16px;border-radius:20px;border:1.5px solid ${S.lang===lang?T.green:T.border};background:${S.lang===lang?T.gl:'#fff'};color:${S.lang===lang?T.green:T.tm};font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:${S.lang===lang?'500':'400'};`;
-      lb.onclick=()=>{ S.lang=lang; localStorage.setItem('tb_lang',lang); render(); };
+      lb.onclick=()=>{ S.lang=lang; localStorage.setItem('tb_lang',lang); saveState(); render(); };
       langRow.appendChild(lb);
     });
     const title = h('h1','font-family:Fraunces,serif;font-size:28px;font-weight:400;color:#1A1A1A;line-height:1.3;margin-bottom:12px;', L('appTagline'));

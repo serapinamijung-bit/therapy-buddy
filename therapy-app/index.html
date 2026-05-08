@@ -139,8 +139,10 @@ const STRINGS = {
     continue: 'Continue',
     saveGoal: 'Save goal',
     goalName: 'Goal name',
-    whenToUse: 'When to use this card',
-    steps: 'Steps (what to do)',
+    whenToUse: 'Situation or behavior to work on',
+    whenToUsePlaceholder: 'e.g. When Ian grabs John\'s toy and cries to get it',
+    steps: 'How to respond',
+    stepsOptional: 'Optional — fill in what you know, skip the rest.',
     addStep: '+ Add step',
     whatToAvoid: 'What to avoid',
     avoidPlaceholder: 'e.g. Repeating the question multiple times',
@@ -245,7 +247,10 @@ const STRINGS = {
     continue: '다음',
     saveGoal: '목표 저장',
     goalName: '목표 이름',
-    whenToUse: '언제 이 카드를 사용하나요',
+    whenToUse: '개선하고 싶은 상황 또는 행동',
+    whenToUsePlaceholder: '예: 이안이 주안이 장난감을 빼앗고 울 때',
+    steps: '부모의 대응',
+    stepsOptional: '선택 사항 — 아는 것만 채워도 괜찮아요.',
     steps: '실행 단계',
     addStep: '+ 단계 추가',
     whatToAvoid: '피해야 할 것',
@@ -652,17 +657,21 @@ function renderOnboard() {
     wrap.appendChild(ni);
 
     wrap.appendChild(lbl(L('whenToUse')));
-    const ti=document.createElement('input'); ti.type='text'; ti.value=g.trigger; ti.placeholder=S.lang==='ko'?'예: 이안의 주의가 필요할 때 언제든지':"e.g. Any time you need Ian's attention"; ti.oninput=e=>{g.trigger=e.target.value;};
+    const ti=document.createElement('input'); ti.type='text'; ti.value=g.trigger; ti.placeholder=L('whenToUsePlaceholder'); ti.oninput=e=>{g.trigger=e.target.value;};
     wrap.appendChild(ti);
 
-    wrap.appendChild(lbl(L('steps')));
+    const stepsHeader = div('display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;');
+    stepsHeader.appendChild(lbl(L('steps')));
+    const optNote = p(`font-size:11px;color:${T.muted};font-style:italic;`, L('stepsOptional'));
+    stepsHeader.appendChild(optNote);
+    wrap.appendChild(stepsHeader);
     const aw=div();
     const renderActs=()=>{
       aw.innerHTML='';
       g.actions.forEach((a,ai)=>{
         const row=div('display:flex;gap:8px;align-items:center;margin-bottom:8px;');
         const num=div(`width:22px;height:22px;min-width:22px;border-radius:50%;background:${T.gl};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:${T.green};`,(ai+1).toString());
-        const ai2=document.createElement('input'); ai2.type='text'; ai2.value=a; ai2.placeholder=S.lang==='ko'?`단계 ${ai+1}`:`Step ${ai+1}`; ai2.style.cssText=`flex:1;padding:10px 12px;font-size:13px;border:1.5px solid ${a?T.green:T.border};border-radius:10px;background:#fff;outline:none;font-family:'DM Sans',sans-serif;color:${T.text};`; ai2.oninput=e=>{g.actions[ai]=e.target.value;ai2.style.borderColor=e.target.value?T.green:T.border;};
+        const ai2=document.createElement('input'); ai2.type='text'; ai2.value=a; ai2.placeholder=S.lang==='ko'?`예: 먼저 아이 상태 확인하기`:`e.g. Check child's state first`; ai2.style.cssText=`flex:1;padding:10px 12px;font-size:13px;border:1.5px solid ${a?T.green:T.border};border-radius:10px;background:#fff;outline:none;font-family:'DM Sans',sans-serif;color:${T.text};`; ai2.oninput=e=>{g.actions[ai]=e.target.value;ai2.style.borderColor=e.target.value?T.green:T.border;};
         row.appendChild(num); row.appendChild(ai2);
         if(g.actions.length>1){const del=document.createElement('button');del.textContent='✕';del.style.cssText='background:none;border:none;font-size:14px;color:#aaa;cursor:pointer;padding:0 4px;';del.onclick=()=>{g.actions.splice(ai,1);renderActs();};row.appendChild(del);}
         aw.appendChild(row);

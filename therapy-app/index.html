@@ -251,7 +251,7 @@ const STRINGS = {
     whenToUsePlaceholder: '예: 형제가 장난감을 갖고 있을 때 빼앗으려 할 때',
     steps: '부모의 대응',
     stepsOptional: '선택 사항 — 아는 것만 채워도 괜찮아요.',
-    steps: '실행 단계',
+    steps: '부모의 대응',
     addStep: '+ 단계 추가',
     whatToAvoid: '피해야 할 것',
     avoidPlaceholder: '예: 질문을 여러 번 반복하기',
@@ -263,7 +263,7 @@ const STRINGS = {
     successRate: (r) => `${r}% 성공률`,
     quickNote: '간단 메모',
     quickNotePlaceholder: (child) => `${child||'아이'}에게 방금 무슨 일이 있었나요?`,
-    actionSteps: '실행 단계',
+    actionSteps: '부모의 대응',
     avoid: '피해야 할 것',
     noGoalsTitle: '목표가 없어요',
     noGoalsDesc: (child) => `${child||"아이"}의 치료 목표를 추가하면 액션 카드가 생성됩니다.`,
@@ -967,7 +967,7 @@ function renderWeek() {
 
   // summary
   const sr=div('display:flex;gap:10px;margin-bottom:20px;');
-  [{v:`${totalAtt}`,l:L('attempts')},{v:`${overall}%`,l:L('overallSuccess')},{v:`${S.goals.length}`,l:L('goals')}].forEach(s=>{const sc=div(`flex:1;background:${T.card};border-radius:14px;border:1px solid ${T.border};padding:12px;text-align:center;`);sc.innerHTML=`<p style="font-family:'Fraunces',serif;font-size:22px;font-weight:400;color:${T.text}">${s.v}</p><p style="font-size:11px;color:${T.muted};margin-top:3px">${s.l}</p>`;sr.appendChild(sc);});
+  [{v:`${totalAtt}`,l:L('attempts'),click:null},{v:`${overall}%`,l:L('overallSuccess'),click:null},{v:`${S.goals.length}`,l:L('goals'),click:()=>go('goals')}].forEach(s=>{const sc=div(`flex:1;background:${T.card};border-radius:14px;border:1px solid ${T.border};padding:12px;text-align:center;${s.click?'cursor:pointer;':''}`);sc.innerHTML=`<p style="font-family:'Fraunces',serif;font-size:22px;font-weight:400;color:${T.text}">${s.v}</p><p style="font-size:11px;color:${s.click?T.green:T.muted};margin-top:3px">${s.l}${s.click?' →':''}</p>`;if(s.click)sc.onclick=s.click;sr.appendChild(sc);});
   wrap.appendChild(sr);
 
   // per-goal breakdown

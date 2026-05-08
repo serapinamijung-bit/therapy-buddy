@@ -988,6 +988,53 @@ function renderWeek() {
       const analysisWrap = div('margin-top:12px;');
       analysisWrap.id = analysisId;
 
+      // show existing analysis if available
+      const existingAnalysis = S.analyses && S.analyses[i];
+      if (existingAnalysis) {
+        const a = existingAnalysis;
+        const box = div(`background:${T.gl};border-radius:14px;padding:16px 18px;border:1px solid ${T.border};margin-bottom:10px;`);
+        box.innerHTML = `<p style="font-size:11px;font-weight:500;color:${T.green};letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;">${L('nextCycleLabel')}${a.date ? ' · ' + a.date : ''}</p>`;
+
+        if(a.working?.length) {
+          const s = div('margin-bottom:10px;');
+          s.innerHTML = `<p style="font-size:10px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">${L('workingLabel')}</p>`;
+          a.working.forEach(w => {
+            const np = p(`font-size:12px;color:${T.tm};line-height:1.55;padding:4px 0;border-bottom:1px solid ${T.border};`, `✓ ${w}`);
+            s.appendChild(np);
+          });
+          box.appendChild(s);
+        }
+        if(a.not_working?.length) {
+          const s = div('margin-bottom:10px;');
+          s.innerHTML = `<p style="font-size:10px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">${L('notWorkingLabel')}</p>`;
+          a.not_working.forEach(w => {
+            const np = p(`font-size:12px;color:${T.tm};line-height:1.55;padding:4px 0;border-bottom:1px solid ${T.border};`, `✗ ${w}`);
+            s.appendChild(np);
+          });
+          box.appendChild(s);
+        }
+        if(a.next_actions?.length) {
+          const s = div('margin-bottom:10px;');
+          s.innerHTML = `<p style="font-size:10px;font-weight:500;color:${T.green};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">${L('tryNextCycle')}</p>`;
+          a.next_actions.forEach((w,idx) => {
+            const row = div('display:flex;gap:8px;align-items:flex-start;padding:4px 0;border-bottom:1px solid #e8f5ec;');
+            row.innerHTML = `<div style="width:18px;height:18px;min-width:18px;border-radius:50%;background:${T.green};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;margin-top:2px">${idx+1}</div><p style="font-size:12px;color:${T.tm};line-height:1.55">${w}</p>`;
+            s.appendChild(row);
+          });
+          box.appendChild(s);
+        }
+        if(a.avoid?.length) {
+          const s = div(`background:${T.rl};border-radius:10px;padding:10px 12px;`);
+          s.innerHTML = `<p style="font-size:10px;font-weight:500;color:${T.red};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">${L('avoidLabel')}</p>`;
+          a.avoid.forEach(w => {
+            const np = p(`font-size:12px;color:${T.tm};line-height:1.55;`, `✗ ${w}`);
+            s.appendChild(np);
+          });
+          box.appendChild(s);
+        }
+        analysisWrap.appendChild(box);
+      }
+
       const genBtn = document.createElement('button');
       genBtn.style.cssText = `width:100%;padding:11px;background:linear-gradient(135deg,${T.green},${T.gm});border:none;border-radius:12px;font-size:13px;font-weight:500;color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;`;
       genBtn.textContent = L('generateBtn');

@@ -142,6 +142,7 @@ const STRINGS = {
     whatToAvoid: 'What to avoid',
     backToGoals: '← Back to goals',
     back: '← Back',
+    setupGoal: 'Set up this goal',
     todayCards: "Today's action cards",
     tapToLog: 'Tap to log →',
     successRate: (r) => `${r}% success`,
@@ -246,6 +247,7 @@ const STRINGS = {
     whatToAvoid: '피해야 할 것',
     backToGoals: '← 목표로 돌아가기',
     back: '← 뒤로',
+    setupGoal: '목표 설정하기',
     todayCards: '오늘의 액션 카드',
     tapToLog: '탭해서 기록하기 →',
     successRate: (r) => `${r}% 성공률`,
@@ -631,7 +633,7 @@ function renderOnboard() {
     const icons=['🎯','💬','👋','🤝','⭐','🌟','🧩','📚','🎮','🌊','🔔','🏃'];
     const back=document.createElement('button'); back.style.cssText=`background:none;border:none;cursor:pointer;color:${T.tm};font-size:14px;margin-bottom:16px;padding:0;font-family:'DM Sans',sans-serif;`; back.textContent=L('backToGoals'); back.onclick=()=>{S.step=3;render();};
     wrap.appendChild(back);
-    wrap.appendChild(h('h1','font-family:Fraunces,serif;font-size:24px;font-weight:400;color:#1A1A1A;margin-bottom:6px;', g.name ? `${L('editGoal')}: ${g.name}` : 'Set up this goal'));
+    wrap.appendChild(h('h1','font-family:Fraunces,serif;font-size:24px;font-weight:400;color:#1A1A1A;margin-bottom:6px;', g.name ? `${L('editGoal')}: ${g.name}` : L('setupGoal')));
     wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:18px;`, S.lang==='ko' ? '이 목표가 액션 카드가 됩니다.' : 'This becomes your action card.'));
 
     const ir=div('display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;');

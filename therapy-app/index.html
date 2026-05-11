@@ -151,6 +151,11 @@ async function initSupabase() {
   }
 }
 
+async function initSupabaseAndRender() {
+  await initSupabase();
+  render();
+}
+
 async function signInWithMagicLink(email) {
   if (!supabase) return { error: 'Not initialized' };
   const { error } = await supabase.auth.signInWithOtp({
@@ -1482,7 +1487,7 @@ function render() {
   renderNav();
 }
 
-initSupabase().then(() => render());
+initSupabaseAndRender();
 </script>
 </body>
 </html>

@@ -121,19 +121,33 @@ let currentUser = null;
 
 async function initSupabase() {
   try {
-    // fetch config from Netlify function
     const res = await fetch('/.netlify/functions/config');
     if (!res.ok) throw new Error('Config fetch failed');
     const { supabaseUrl, supabaseKey } = await res.json();
 
     const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
-    supabase = createClient(supabaseUrl, supabaseKey);
+    supabase = createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        detectSessionInUrl: true,
+        persistSession: true,
+        autoRefreshToken: true,
+      }
+    });
 
-    // check existing session
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      currentUser = session.user;
-      await loadFromSupabase();
+    // handle magic link token in URL hash
+    if (window.location.hash && window.location.hash.includes('access_token')) {
+      const { data, error } = await supabase.auth.getSession();
+      if (data?.session) {
+        currentUser = data.session.user;
+        await loadFromSupabase();
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    } else {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        currentUser = session.user;
+        await loadFromSupabase();
+      }
     }
 
     // listen for auth changes

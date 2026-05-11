@@ -243,84 +243,94 @@ async function saveLogToSupabase(log, goalId) {
 async function loadFromSupabase() {
   if (!supabase || !currentUser) return;
   try {
-    // load profile
     const { data: profile } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', currentUser.id)
       .single();
 
-    if (profile) {
+    if (profile && profile.parent_name) {
+      // existing user — load from Supabase
       S.parent = profile.parent_name || '';
       S.child = profile.child_name || '';
       S.age = profile.child_age || '';
       S.lang = profile.lang || 'en';
+
+      const { data: goals } = await supabase
+        .from('goals').select('*')
+        .eq('user_id', currentUser.id)
+        .order('goal_number');
+
+      if (goals && goals.length > 0) {
+        S.goals = goals.map(g => ({
+          goal_id: g.id,
+          goal_number: g.goal_number,
+          goal_version: g.goal_version,
+          icon: g.icon,
+          name: g.name,
+          trigger: g.trigger,
+          actions: g.actions || [],
+          avoid: g.avoid
+        }));
+      }
+
+      const { data: logs } = await supabase
+        .from('logs').select('*')
+        .eq('user_id', currentUser.id)
+        .order('created_at');
+
+      if (logs) {
+        S.logs = logs.map(l => ({
+          goalIdx: S.goals.findIndex(g => g.goal_id === l.goal_id),
+          date: l.date,
+          caregiver: l.caregiver,
+          before: l.before_state,
+          attempted: l.attempted,
+          technique: l.technique,
+          worked: l.worked,
+          didnt_work: l.didnt_work,
+          reaction: l.reaction,
+          outcome: l.outcome,
+          next: l.next
+        }));
+      }
+
+      const { data: analyses } = await supabase
+        .from('analyses').select('*')
+        .eq('user_id', currentUser.id);
+
+      if (analyses) {
+        S.analyses = [];
+        analyses.forEach(a => {
+          const idx = S.goals.findIndex(g => g.goal_id === a.goal_id);
+          if (idx >= 0) S.analyses[idx] = {
+            working: a.working,
+            not_working: a.not_working,
+            next_actions: a.next_actions,
+            avoid: a.avoid,
+            date: new Date(a.created_at).toLocaleDateString(S.lang==='ko'?'ko-KR':'en-US')
+          };
+        });
+      }
+
+      S.view = 'home';
+
+    } else {
+      // new user — check if localStorage has data to migrate
+      const localData = loadState();
+      if (localData && localData.parent) {
+        // migrate localStorage to Supabase
+        S.parent = localData.parent;
+        S.child = localData.child;
+        S.age = localData.age;
+        S.goals = localData.goals || [];
+        S.logs = localData.logs || [];
+        S.analyses = localData.analyses || [];
+        S.lang = localData.lang || 'en';
+        await saveToSupabase();
+        S.view = 'home';
+      }
     }
-
-    // load goals
-    const { data: goals } = await supabase
-      .from('goals')
-      .select('*')
-      .eq('user_id', currentUser.id)
-      .order('goal_number');
-
-    if (goals && goals.length > 0) {
-      S.goals = goals.map(g => ({
-        goal_id: g.id,
-        goal_number: g.goal_number,
-        goal_version: g.goal_version,
-        icon: g.icon,
-        name: g.name,
-        trigger: g.trigger,
-        actions: g.actions || [],
-        avoid: g.avoid
-      }));
-    }
-
-    // load logs
-    const { data: logs } = await supabase
-      .from('logs')
-      .select('*')
-      .eq('user_id', currentUser.id)
-      .order('created_at');
-
-    if (logs) {
-      S.logs = logs.map((l, idx) => ({
-        goalIdx: S.goals.findIndex(g => g.goal_id === l.goal_id),
-        date: l.date,
-        caregiver: l.caregiver,
-        before: l.before_state,
-        attempted: l.attempted,
-        technique: l.technique,
-        worked: l.worked,
-        didnt_work: l.didnt_work,
-        reaction: l.reaction,
-        outcome: l.outcome,
-        next: l.next
-      }));
-    }
-
-    // load analyses
-    const { data: analyses } = await supabase
-      .from('analyses')
-      .select('*')
-      .eq('user_id', currentUser.id);
-
-    if (analyses) {
-      S.analyses = [];
-      analyses.forEach(a => {
-        const idx = S.goals.findIndex(g => g.goal_id === a.goal_id);
-        if (idx >= 0) S.analyses[idx] = {
-          working: a.working,
-          not_working: a.not_working,
-          next_actions: a.next_actions,
-          avoid: a.avoid,
-          date: new Date(a.created_at).toLocaleDateString(S.lang==='ko'?'ko-KR':'en-US')
-        };
-      });
-    }
-
-    if (S.parent) S.view = 'home';
   } catch(e) {
     console.log('Supabase load failed:', e);
   }

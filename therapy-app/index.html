@@ -174,7 +174,10 @@ async function signInWithMagicLink(email) {
   if (!supabase) return { error: 'Not initialized' };
   const { error } = await supabase.auth.signInWithOtp({
     email,
-    options: { emailRedirectTo: window.location.href }
+    options: {
+      emailRedirectTo: window.location.origin,
+      shouldCreateUser: true,
+    }
   });
   return { error };
 }

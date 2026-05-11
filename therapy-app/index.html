@@ -115,6 +115,210 @@ const T = { green:'#2D5A3D',gl:'#EAF2EC',gm:'#4A8C60',text:'#1A1A1A',tm:'#4A4A4A
 const CARD_COLORS = ['#2D5A3D','#1a6b8a','#7a4a2d','#5a3a7a','#3a6a4a'];
 const STORAGE_KEY = 'therapy_buddy_v1';
 
+// ── SUPABASE ─────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://bvbveydgeotjshbjxpaa.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2YnZleWRnZW90anNoYmp4cGFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MzcyMDgsImV4cCI6MjA5NDExMzIwOH0.aysdbFkWuKe1VJB5aylBI2nw6tAC1YDxVnHUY7LFI_E';
+
+let supabase = null;
+let currentUser = null;
+
+async function initSupabase() {
+  try {
+    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+    supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // check existing session
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      currentUser = session.user;
+      await loadFromSupabase();
+    }
+
+    // listen for auth changes
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        currentUser = session.user;
+        await loadFromSupabase();
+        render();
+      } else if (event === 'SIGNED_OUT') {
+        currentUser = null;
+      }
+    });
+  } catch(e) {
+    console.log('Supabase init failed:', e);
+  }
+}
+
+async function signInWithMagicLink(email) {
+  if (!supabase) return { error: 'Not initialized' };
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: window.location.href }
+  });
+  return { error };
+}
+
+async function signOut() {
+  if (!supabase) return;
+  await supabase.auth.signOut();
+  currentUser = null;
+  render();
+}
+
+async function saveToSupabase() {
+  if (!supabase || !currentUser) return;
+  try {
+    // upsert profile
+    await supabase.from('profiles').upsert({
+      id: currentUser.id,
+      parent_name: S.parent,
+      child_name: S.child,
+      child_age: S.age,
+      lang: S.lang
+    });
+
+    // upsert goals
+    for (const g of S.goals) {
+      await supabase.from('goals').upsert({
+        id: g.goal_id,
+        user_id: currentUser.id,
+        goal_number: g.goal_number,
+        icon: g.icon,
+        name: g.name,
+        trigger: g.trigger,
+        actions: g.actions,
+        avoid: g.avoid,
+        goal_version: g.goal_version
+      });
+    }
+
+    // save analyses
+    for (let i = 0; i < S.goals.length; i++) {
+      const a = S.analyses?.[i];
+      if (!a) continue;
+      await supabase.from('analyses').upsert({
+        user_id: currentUser.id,
+        goal_id: S.goals[i].goal_id,
+        working: a.working || [],
+        not_working: a.not_working || [],
+        next_actions: a.next_actions || [],
+        avoid: a.avoid || []
+      });
+    }
+  } catch(e) {
+    console.log('Supabase save failed:', e);
+  }
+}
+
+async function saveLogToSupabase(log, goalId) {
+  if (!supabase || !currentUser) return;
+  try {
+    await supabase.from('logs').insert({
+      user_id: currentUser.id,
+      goal_id: goalId,
+      goal_name: log.goalName,
+      date: log.date,
+      caregiver: log.caregiver,
+      before_state: log.before,
+      attempted: log.attempted,
+      technique: log.technique,
+      worked: log.worked,
+      didnt_work: log.didnt_work,
+      reaction: log.reaction,
+      outcome: log.outcome,
+      next: log.next
+    });
+  } catch(e) {
+    console.log('Log save failed:', e);
+  }
+}
+
+async function loadFromSupabase() {
+  if (!supabase || !currentUser) return;
+  try {
+    // load profile
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', currentUser.id)
+      .single();
+
+    if (profile) {
+      S.parent = profile.parent_name || '';
+      S.child = profile.child_name || '';
+      S.age = profile.child_age || '';
+      S.lang = profile.lang || 'en';
+    }
+
+    // load goals
+    const { data: goals } = await supabase
+      .from('goals')
+      .select('*')
+      .eq('user_id', currentUser.id)
+      .order('goal_number');
+
+    if (goals && goals.length > 0) {
+      S.goals = goals.map(g => ({
+        goal_id: g.id,
+        goal_number: g.goal_number,
+        goal_version: g.goal_version,
+        icon: g.icon,
+        name: g.name,
+        trigger: g.trigger,
+        actions: g.actions || [],
+        avoid: g.avoid
+      }));
+    }
+
+    // load logs
+    const { data: logs } = await supabase
+      .from('logs')
+      .select('*')
+      .eq('user_id', currentUser.id)
+      .order('created_at');
+
+    if (logs) {
+      S.logs = logs.map((l, idx) => ({
+        goalIdx: S.goals.findIndex(g => g.goal_id === l.goal_id),
+        date: l.date,
+        caregiver: l.caregiver,
+        before: l.before_state,
+        attempted: l.attempted,
+        technique: l.technique,
+        worked: l.worked,
+        didnt_work: l.didnt_work,
+        reaction: l.reaction,
+        outcome: l.outcome,
+        next: l.next
+      }));
+    }
+
+    // load analyses
+    const { data: analyses } = await supabase
+      .from('analyses')
+      .select('*')
+      .eq('user_id', currentUser.id);
+
+    if (analyses) {
+      S.analyses = [];
+      analyses.forEach(a => {
+        const idx = S.goals.findIndex(g => g.goal_id === a.goal_id);
+        if (idx >= 0) S.analyses[idx] = {
+          working: a.working,
+          not_working: a.not_working,
+          next_actions: a.next_actions,
+          avoid: a.avoid,
+          date: new Date(a.created_at).toLocaleDateString(S.lang==='ko'?'ko-KR':'en-US')
+        };
+      });
+    }
+
+    if (S.parent) S.view = 'home';
+  } catch(e) {
+    console.log('Supabase load failed:', e);
+  }
+}
+
 // ── LANGUAGE ────────────────────────────────────────────────────────
 const STRINGS = {
   en: {
@@ -419,6 +623,7 @@ function saveState() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
     localStorage.setItem('tb_lang', S.lang);
     saveWithRestoreCode();
+    if (currentUser) saveToSupabase();
   } catch(e) { console.log('Save failed:', e); }
 }
 
@@ -574,9 +779,48 @@ function renderOnboard() {
     const startBtn = document.createElement('button');
     startBtn.className='btn btn-primary'; startBtn.textContent=L('getStarted');
     startBtn.onclick=()=>{S.step=1;render();};
-    wrap.appendChild(blob); wrap.appendChild(langRow); wrap.appendChild(title); wrap.appendChild(desc); wrap.appendChild(demoBtn); wrap.appendChild(restoreBtn); wrap.appendChild(startBtn);
+
+    // sign in section
+    const dividerEl = div('display:flex;align-items:center;gap:10px;margin:16px 0;');
+    dividerEl.innerHTML=`<div style="flex:1;height:1px;background:${T.border}"></div><p style="font-size:12px;color:${T.muted}">or</p><div style="flex:1;height:1px;background:${T.border}"></div>`;
+
+    if (currentUser) {
+      const signedInBox = div(`background:${T.gl};border-radius:14px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;`);
+      signedInBox.innerHTML=`<div><p style="font-size:12px;color:${T.green};font-weight:500;">✓ Signed in</p><p style="font-size:11px;color:${T.gm};">${currentUser.email}</p></div>`;
+      const soBtn = document.createElement('button');
+      soBtn.textContent='Sign out'; soBtn.style.cssText=`background:none;border:1px solid ${T.border};border-radius:8px;padding:4px 10px;font-size:12px;color:${T.tm};cursor:pointer;font-family:'DM Sans',sans-serif;`;
+      soBtn.onclick=signOut;
+      signedInBox.appendChild(soBtn);
+      wrap.appendChild(blob); wrap.appendChild(langRow); wrap.appendChild(title); wrap.appendChild(desc); wrap.appendChild(demoBtn); wrap.appendChild(restoreBtn); wrap.appendChild(startBtn); wrap.appendChild(dividerEl); wrap.appendChild(signedInBox);
+    } else {
+      const siBox = div(`background:${T.card};border-radius:14px;border:1px solid ${T.border};padding:14px 16px;`);
+      siBox.innerHTML=`<p style="font-size:12px;font-weight:500;color:${T.tm};margin-bottom:8px;">💾 Save your data across devices</p>`;
+      const emailInp = document.createElement('input');
+      emailInp.type='email'; emailInp.placeholder='your@email.com';
+      emailInp.style.cssText=`width:100%;padding:10px 12px;border:1.5px solid ${T.border};border-radius:10px;font-size:14px;font-family:'DM Sans',sans-serif;margin-bottom:8px;outline:none;`;
+      const siBtn = document.createElement('button');
+      siBtn.style.cssText=`width:100%;padding:10px;background:${T.green};color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+      siBtn.textContent='Send magic link →';
+      const siMsg = p(`font-size:12px;color:${T.gm};margin-top:8px;display:none;`,'✓ Check your email for a sign-in link!');
+
+      siBtn.onclick = async () => {
+        const email = emailInp.value.trim();
+        if (!email) return;
+        siBtn.textContent = 'Sending...'; siBtn.disabled = true;
+        const { error } = await signInWithMagicLink(email);
+        if (error) {
+          siBtn.textContent = 'Send magic link →'; siBtn.disabled = false;
+          siMsg.textContent = '✗ Something went wrong. Try again.'; siMsg.style.color = T.red;
+        } else {
+          siMsg.textContent = '✓ Check your email for a sign-in link!'; siMsg.style.color = T.gm;
+        }
+        siMsg.style.display = 'block';
+      };
+
+      siBox.appendChild(emailInp); siBox.appendChild(siBtn); siBox.appendChild(siMsg);
+      wrap.appendChild(blob); wrap.appendChild(langRow); wrap.appendChild(title); wrap.appendChild(desc); wrap.appendChild(demoBtn); wrap.appendChild(restoreBtn); wrap.appendChild(startBtn); wrap.appendChild(dividerEl); wrap.appendChild(siBox);
+    }
     return wrap;
-  }
 
   const spacer = div('flex:1');
 
@@ -1236,7 +1480,7 @@ function render() {
   renderNav();
 }
 
-render();
+initSupabase().then(() => render());
 </script>
 </body>
 </html>

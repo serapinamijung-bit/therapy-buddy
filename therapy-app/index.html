@@ -116,16 +116,18 @@ const CARD_COLORS = ['#2D5A3D','#1a6b8a','#7a4a2d','#5a3a7a','#3a6a4a'];
 const STORAGE_KEY = 'therapy_buddy_v1';
 
 // ── SUPABASE ─────────────────────────────────────────────────────────
-const SUPABASE_URL = 'https://bvbveydgeotjshbjxpaa.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2YnZleWRnZW90anNoYmp4cGFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MzcyMDgsImV4cCI6MjA5NDExMzIwOH0.aysdbFkWuKe1VJB5aylBI2nw6tAC1YDxVnHUY7LFI_E';
-
 let supabase = null;
 let currentUser = null;
 
 async function initSupabase() {
   try {
+    // fetch config from Netlify function
+    const res = await fetch('/.netlify/functions/config');
+    if (!res.ok) throw new Error('Config fetch failed');
+    const { supabaseUrl, supabaseKey } = await res.json();
+
     const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
-    supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    supabase = createClient(supabaseUrl, supabaseKey);
 
     // check existing session
     const { data: { session } } = await supabase.auth.getSession();

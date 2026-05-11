@@ -801,25 +801,24 @@ function renderOnboard() {
       wrap.appendChild(blob); wrap.appendChild(langRow); wrap.appendChild(title); wrap.appendChild(desc); wrap.appendChild(demoBtn); wrap.appendChild(restoreBtn); wrap.appendChild(startBtn); wrap.appendChild(dividerEl); wrap.appendChild(signedInBox);
     } else {
       const siBox = div(`background:${T.card};border-radius:14px;border:1px solid ${T.border};padding:14px 16px;`);
-      siBox.innerHTML=`<p style="font-size:12px;font-weight:500;color:${T.tm};margin-bottom:8px;">💾 Save your data across devices</p>`;
+      siBox.innerHTML=`<p style="font-size:13px;font-weight:500;color:${T.tm};margin-bottom:4px;">Create a free account</p><p style="font-size:12px;color:${T.muted};margin-bottom:10px;">Save your data and access it from any device.</p>`;
       const emailInp = document.createElement('input');
       emailInp.type='email'; emailInp.placeholder='your@email.com';
       emailInp.style.cssText=`width:100%;padding:10px 12px;border:1.5px solid ${T.border};border-radius:10px;font-size:14px;font-family:'DM Sans',sans-serif;margin-bottom:8px;outline:none;`;
       const siBtn = document.createElement('button');
       siBtn.style.cssText=`width:100%;padding:10px;background:${T.green};color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
-      siBtn.textContent='Send magic link →';
+      siBtn.textContent='Send sign-in link to my email →';
       const siMsg = p(`font-size:12px;color:${T.gm};margin-top:8px;display:none;`,'✓ Check your email for a sign-in link!');
 
       siBtn.onclick = async () => {
         const email = emailInp.value.trim();
         if (!email) return;
-        siBtn.textContent = 'Sending...'; siBtn.disabled = true;
-        const { error } = await signInWithMagicLink(email);
+        siBtn.textContent = 'Sending...'; siBtn.disabled = true;        const { error } = await signInWithMagicLink(email);
         if (error) {
-          siBtn.textContent = 'Send magic link →'; siBtn.disabled = false;
+          siBtn.textContent = 'Send sign-in link to my email →'; siBtn.disabled = false;
           siMsg.textContent = '✗ Something went wrong. Try again.'; siMsg.style.color = T.red;
         } else {
-          siMsg.textContent = '✓ Check your email for a sign-in link!'; siMsg.style.color = T.gm;
+          siMsg.textContent = '✓ Link sent! Check your email and tap the link to sign in.'; siMsg.style.color = T.gm;
         }
         siMsg.style.display = 'block';
       };

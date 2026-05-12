@@ -951,6 +951,7 @@ function renderOnboard() {
   const spacer = div('flex:1');
 
   if (step===1) {
+    const back=document.createElement('button'); back.style.cssText=`background:none;border:none;cursor:pointer;color:${T.tm};font-size:14px;margin-bottom:16px;padding:0;font-family:'DM Sans',sans-serif;`; back.textContent='← '+L('back').replace('← ',''); back.onclick=()=>{S.step=0;render();}; wrap.appendChild(back);
     wrap.appendChild(h('h1',"font-family:'Fraunces',serif;font-size:28px;font-weight:400;color:#1A1A1A;margin-bottom:6px;", L('yourName')));
     wrap.appendChild(p(`font-size:14px;color:${T.muted};margin-bottom:24px;`, L('yourNameSub')));
     const inp = document.createElement('input'); inp.type='text'; inp.value=S.parent; inp.placeholder=L('yourNamePlaceholder');
@@ -964,6 +965,7 @@ function renderOnboard() {
   }
 
   if (step===2) {
+    const back=document.createElement('button'); back.style.cssText=`background:none;border:none;cursor:pointer;color:${T.tm};font-size:14px;margin-bottom:16px;padding:0;font-family:'DM Sans',sans-serif;`; back.textContent='← '+L('back').replace('← ',''); back.onclick=()=>{S.step=1;render();}; wrap.appendChild(back);
     wrap.appendChild(h('h1',"font-family:'Fraunces',serif;font-size:28px;font-weight:400;color:#1A1A1A;margin-bottom:6px;", L('aboutChild')));
     wrap.appendChild(p(`font-size:14px;color:${T.muted};margin-bottom:24px;`, L('aboutChildSub')));
     const n=document.createElement('input'); n.type='text'; n.value=S.child; n.placeholder=L('childName'); n.oninput=e=>{S.child=e.target.value;updateBtn();};
@@ -976,6 +978,7 @@ function renderOnboard() {
   }
 
   if (step===3) {
+    const back=document.createElement('button'); back.style.cssText=`background:none;border:none;cursor:pointer;color:${T.tm};font-size:14px;margin-bottom:16px;padding:0;font-family:'DM Sans',sans-serif;`; back.textContent='← '+L('back').replace('← ',''); back.onclick=()=>{S.step=2;render();}; wrap.appendChild(back);
     wrap.appendChild(h('h1',"font-family:'Fraunces',serif;font-size:26px;font-weight:400;color:#1A1A1A;margin-bottom:6px;line-height:1.3;", L('therapyGoals', S.child)));
     wrap.appendChild(p(`font-size:14px;color:${T.muted};margin-bottom:20px;line-height:1.55;`, L('therapyGoalsSub')));
 
@@ -1046,7 +1049,12 @@ function renderOnboard() {
       const ni=document.createElement('input'); ni.type='text'; ni.value=g.name;
       ni.placeholder=S.lang==='ko'?'예: 장난감 공유하기':'e.g. Sharing toys with siblings';
       ni.style.cssText=`width:100%;padding:12px 14px;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:16px;`;
-      ni.oninput=e=>{g.name=e.target.value;};
+      ni.oninput=e=>{
+        g.name=e.target.value;
+        nextBtn.style.background = e.target.value.trim() ? T.green : T.border;
+        nextBtn.style.color = e.target.value.trim() ? '#fff' : T.muted;
+        nextBtn.style.cursor = e.target.value.trim() ? 'pointer' : 'default';
+      };
       wrap.appendChild(ni);
       wrap.appendChild(spacer);
 

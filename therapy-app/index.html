@@ -257,20 +257,26 @@ async function signOut() {
 }
 
 async function saveToSupabase() {
-  if (!supabase || !currentUser) return;
+  if (!supabase || !currentUser) {
+    console.log('saveToSupabase: no supabase or user', supabase, currentUser);
+    return;
+  }
   try {
+    console.log('Saving to Supabase, user:', currentUser.id);
     // upsert profile
-    await supabase.from('profiles').upsert({
+    const { error: profileError } = await supabase.from('profiles').upsert({
       id: currentUser.id,
       parent_name: S.parent,
       child_name: S.child,
       child_age: S.age,
       lang: S.lang
     });
+    if (profileError) console.log('Profile error:', profileError);
+    else console.log('Profile saved!');
 
     // upsert goals
     for (const g of S.goals) {
-      await supabase.from('goals').upsert({
+      const { error: goalError } = await supabase.from('goals').upsert({
         id: g.goal_id,
         user_id: currentUser.id,
         goal_number: g.goal_number,
@@ -281,13 +287,15 @@ async function saveToSupabase() {
         avoid: g.avoid,
         goal_version: g.goal_version
       });
+      if (goalError) console.log('Goal error:', goalError);
+      else console.log('Goal saved:', g.name);
     }
 
     // save analyses
     for (let i = 0; i < S.goals.length; i++) {
       const a = S.analyses?.[i];
       if (!a) continue;
-      await supabase.from('analyses').upsert({
+      const { error: analysisError } = await supabase.from('analyses').upsert({
         user_id: currentUser.id,
         goal_id: S.goals[i].goal_id,
         working: a.working || [],
@@ -295,6 +303,7 @@ async function saveToSupabase() {
         next_actions: a.next_actions || [],
         avoid: a.avoid || []
       });
+      if (analysisError) console.log('Analysis error:', analysisError);
     }
   } catch(e) {
     console.log('Supabase save failed:', e);

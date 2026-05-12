@@ -134,13 +134,16 @@ async function initSupabase() {
       }
     });
 
-    // handle magic link token in URL hash
-    if (window.location.hash && window.location.hash.includes('access_token')) {
+    // handle auth callback - check both hash and search params
+    const hasToken = window.location.hash.includes('access_token') ||
+                     window.location.search.includes('code=');
+
+    if (hasToken) {
       const { data, error } = await supabase.auth.getSession();
       if (data?.session) {
         currentUser = data.session.user;
         await loadFromSupabase();
-        window.history.replaceState({}, document.title, window.location.pathname);
+        window.history.replaceState({}, document.title, '/');
       }
     } else {
       const { data: { session } } = await supabase.auth.getSession();
@@ -186,7 +189,7 @@ async function signInWithMagicLink(email) {
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: window.location.origin,
+      emailRedirectTo: `${window.location.origin}/auth/callback`,
       shouldCreateUser: true,
     }
   });

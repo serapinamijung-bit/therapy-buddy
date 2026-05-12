@@ -1760,6 +1760,177 @@ function renderWeek() {
     const lb=document.createElement('button'); lb.style.cssText=`width:100%;padding:10px;background:none;border:1px solid ${T.border};border-radius:12px;font-size:13px;color:${T.tm};cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:10px;`; lb.textContent=L('logToday',g.name); lb.onclick=()=>{S.logGoalIdx=i;S.tempLog={};go('log');};
     gc.appendChild(lb); wrap.appendChild(gc);
   });
+
+  // report button
+  if (S.logs.length > 0) {
+    const reportBtn = document.createElement('button');
+    reportBtn.style.cssText=`width:100%;padding:14px;background:#fff;border:1.5px solid ${T.green};border-radius:14px;font-size:14px;font-weight:500;color:${T.green};cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:16px;display:flex;align-items:center;justify-content:center;gap:8px;`;
+    reportBtn.innerHTML=`<span>📋</span> ${S.lang==='ko'?'리포트 생성하기':'Generate Report'}`;
+    reportBtn.onclick=()=>go('report');
+    wrap.appendChild(reportBtn);
+  }
+
+  return wrap;
+}
+
+// ── REPORT ─────────────────────────────────────────────────────────
+function renderReport() {
+  const wrap=div('flex:1;overflow-y:auto;padding:24px 22px 40px;');
+
+  // header
+  const back=document.createElement('button'); back.style.cssText=`background:none;border:none;cursor:pointer;color:${T.tm};font-size:14px;margin-bottom:20px;padding:0;font-family:'DM Sans',sans-serif;`; back.textContent='← '+(S.lang==='ko'?'뒤로':'Back'); back.onclick=()=>go('week'); wrap.appendChild(back);
+
+  wrap.appendChild(h('h2',"font-family:'Fraunces',serif;font-size:26px;font-weight:400;color:#1A1A1A;margin-bottom:4px;", S.lang==='ko'?'진행 리포트':'Progress Report'));
+  wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:20px;`, `${S.child} · ${S.lang==='ko'?'작성자':'by'} ${S.parent}`));
+
+  // period selector
+  if (!S.reportPeriod) S.reportPeriod = '4w';
+  const periodRow = div('display:flex;gap:8px;margin-bottom:20px;');
+  const periods = S.lang==='ko'
+    ? [['2w','2주'],['4w','4주'],['all','전체']]
+    : [['2w','2 weeks'],['4w','4 weeks'],['all','All time']];
+  periods.forEach(([val,label])=>{
+    const b=document.createElement('button');
+    b.style.cssText=`padding:7px 14px;border-radius:20px;border:1.5px solid ${S.reportPeriod===val?T.green:T.border};background:${S.reportPeriod===val?T.gl:'#fff'};color:${S.reportPeriod===val?T.green:T.tm};font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+    b.textContent=label;
+    b.onclick=()=>{ S.reportPeriod=val; render(); };
+    periodRow.appendChild(b);
+  });
+  wrap.appendChild(periodRow);
+
+  // filter logs by period
+  const now = new Date();
+  const cutoff = S.reportPeriod==='2w' ? 14 : S.reportPeriod==='4w' ? 28 : 999;
+  const filteredLogs = S.logs.filter(l => {
+    if (S.reportPeriod==='all') return true;
+    const parts = l.date?.split('/');
+    if (!parts || parts.length < 2) return true;
+    const logDate = new Date(now.getFullYear(), parseInt(parts[0])-1, parseInt(parts[1]));
+    return (now - logDate) / (1000*60*60*24) <= cutoff;
+  });
+
+  // overall summary box
+  const totalAtt = filteredLogs.filter(l=>l.attempted==='Yes').length;
+  const totalSucc = filteredLogs.filter(l=>l.outcome===L('success')||l.outcome==='Success').length;
+  const totalPart = filteredLogs.filter(l=>l.outcome===L('partial')||l.outcome==='Partial success').length;
+  const overallRate = totalAtt > 0 ? Math.round(totalSucc/totalAtt*100) : 0;
+
+  const summaryBox = div(`background:${T.gl};border-radius:16px;padding:16px 18px;margin-bottom:20px;`);
+  summaryBox.innerHTML=`<p style="font-size:11px;font-weight:500;color:${T.green};letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;">${S.lang==='ko'?'전체 요약':'Overall Summary'}</p>`;
+  const statsRow = div('display:flex;gap:8px;');
+  [
+    [totalAtt, S.lang==='ko'?'시도 횟수':'Attempts'],
+    [overallRate+'%', S.lang==='ko'?'성공률':'Success rate'],
+    [S.goals.length, S.lang==='ko'?'목표 개수':'Goals'],
+  ].forEach(([val,label])=>{
+    const sc=div(`flex:1;background:#fff;border-radius:12px;padding:10px;text-align:center;`);
+    sc.innerHTML=`<p style="font-family:'Fraunces',serif;font-size:20px;color:${T.text}">${val}</p><p style="font-size:11px;color:${T.muted};margin-top:2px">${label}</p>`;
+    statsRow.appendChild(sc);
+  });
+  summaryBox.appendChild(statsRow);
+
+  // what worked overall
+  const allWorked = filteredLogs.filter(l=>l.worked).map(l=>l.worked).filter(Boolean);
+  const allNext = filteredLogs.filter(l=>l.next).map(l=>l.next).filter(Boolean);
+  if (allWorked.length > 0) {
+    const ww = div(`margin-top:12px;padding-top:12px;border-top:1px solid ${T.border};`);
+    ww.innerHTML=`<p style="font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">${S.lang==='ko'?'효과 있었던 것':'What worked'}</p>`;
+    allWorked.slice(0,3).forEach(w=>{
+      const row=div('display:flex;gap:6px;align-items:flex-start;margin-bottom:4px;');
+      row.innerHTML=`<span style="color:${T.green};font-size:12px;margin-top:1px;">✓</span><p style="font-size:12px;color:${T.tm};line-height:1.5;">${w}</p>`;
+      ww.appendChild(row);
+    });
+    summaryBox.appendChild(ww);
+  }
+  wrap.appendChild(summaryBox);
+
+  // per goal breakdown
+  const goalLabel = div(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;`);
+  goalLabel.textContent = S.lang==='ko'?'목표별 세분화':'By Goal';
+  wrap.appendChild(goalLabel);
+
+  S.goals.forEach((g,i)=>{
+    const goalLogs = filteredLogs.filter(l=>l.goalIdx===i);
+    const att = goalLogs.filter(l=>l.attempted==='Yes').length;
+    const succ = goalLogs.filter(l=>l.outcome===L('success')||l.outcome==='Success').length;
+    const part = goalLogs.filter(l=>l.outcome===L('partial')||l.outcome==='Partial success').length;
+    const rate = att>0 ? Math.round(succ/att*100) : 0;
+    const worked = goalLogs.filter(l=>l.worked).map(l=>l.worked).filter(Boolean);
+    const notWorked = goalLogs.filter(l=>l.didnt_work).map(l=>l.didnt_work).filter(Boolean);
+    const next = goalLogs.filter(l=>l.next).map(l=>l.next).filter(Boolean);
+    const analysis = S.analyses?.[i];
+
+    const gc = div(`background:#fff;border-radius:16px;border:1px solid ${T.border};padding:16px 18px;margin-bottom:12px;`);
+
+    // goal header
+    const ghdr = div('display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;');
+    ghdr.innerHTML=`<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:18px">${g.icon}</span><p style="font-size:14px;font-weight:500;color:${T.text}">${g.name}</p></div><span style="font-size:12px;font-weight:500;color:${rate>=50?T.green:T.orange};">${rate}% ${S.lang==='ko'?'성공':'success'}</span>`;
+    gc.appendChild(ghdr);
+
+    // progress bar
+    const pb = div(`height:6px;border-radius:3px;background:${T.border};overflow:hidden;margin-bottom:12px;`);
+    const pf = div(`height:100%;border-radius:3px;background:${T.green};width:${rate}%;transition:width .8s;`);
+    pb.appendChild(pf); gc.appendChild(pb);
+
+    // stats
+    const sr = div('display:flex;gap:8px;margin-bottom:12px;');
+    [[att, S.lang==='ko'?'시도':'attempts'],[succ, S.lang==='ko'?'성공':'success'],[part, S.lang==='ko'?'부분 성공':'partial']].forEach(([v,l])=>{
+      const sc=div(`flex:1;background:${T.bg};border-radius:10px;padding:8px;text-align:center;`);
+      sc.innerHTML=`<p style="font-size:16px;font-weight:500;color:${T.text}">${v}</p><p style="font-size:10px;color:${T.muted};margin-top:2px">${l}</p>`;
+      sr.appendChild(sc);
+    });
+    gc.appendChild(sr);
+
+    // what worked
+    if (worked.length > 0) {
+      const ww = div(`background:${T.gl};border-radius:10px;padding:10px 12px;margin-bottom:8px;`);
+      ww.innerHTML=`<p style="font-size:10px;font-weight:500;color:${T.green};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">${S.lang==='ko'?'효과 있었던 것':'What worked'}</p>`;
+      worked.slice(0,2).forEach(w=>{
+        const row=div('display:flex;gap:6px;margin-bottom:3px;');
+        row.innerHTML=`<span style="color:${T.green};font-size:11px;">✓</span><p style="font-size:12px;color:${T.tm};line-height:1.5;">${w}</p>`;
+        ww.appendChild(row);
+      });
+      gc.appendChild(ww);
+    }
+
+    // what didn't work
+    if (notWorked.length > 0) {
+      const nw = div(`background:${T.rl};border-radius:10px;padding:10px 12px;margin-bottom:8px;`);
+      nw.innerHTML=`<p style="font-size:10px;font-weight:500;color:${T.red};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">${S.lang==='ko'?'효과 없었던 것':'What didn\'t work'}</p>`;
+      notWorked.slice(0,2).forEach(w=>{
+        const row=div('display:flex;gap:6px;margin-bottom:3px;');
+        row.innerHTML=`<span style="color:${T.red};font-size:11px;">✗</span><p style="font-size:12px;color:${T.tm};line-height:1.5;">${w}</p>`;
+        nw.appendChild(row);
+      });
+      gc.appendChild(nw);
+    }
+
+    // latest recommendations
+    if (analysis?.next_actions?.length) {
+      const rec = div(`background:${T.ol};border-radius:10px;padding:10px 12px;margin-bottom:8px;`);
+      rec.innerHTML=`<p style="font-size:10px;font-weight:500;color:${T.orange};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">${S.lang==='ko'?'최근 추천':'Latest recommendations'}</p>`;
+      analysis.next_actions.slice(0,3).forEach((a,ai)=>{
+        const row=div('display:flex;gap:6px;align-items:flex-start;margin-bottom:4px;');
+        row.innerHTML=`<div style="width:16px;height:16px;min-width:16px;border-radius:50%;background:${T.orange};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;margin-top:1px">${ai+1}</div><p style="font-size:12px;color:${T.tm};line-height:1.5;">${a}</p>`;
+        rec.appendChild(row);
+      });
+      gc.appendChild(rec);
+    }
+
+    if (att === 0) {
+      gc.appendChild(p(`font-size:13px;color:${T.muted};font-style:italic;`, S.lang==='ko'?'이 기간에 기록이 없어요.':'No logs for this period.'));
+    }
+
+    wrap.appendChild(gc);
+  });
+
+  // print button
+  const printBtn = document.createElement('button');
+  printBtn.style.cssText=`width:100%;padding:14px;background:${T.green};color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:8px;`;
+  printBtn.innerHTML=`🖨️ ${S.lang==='ko'?'인쇄 / PDF 저장':'Print / Save as PDF'}`;
+  printBtn.onclick=()=>window.print();
+  wrap.appendChild(printBtn);
+
   return wrap;
 }
 
@@ -1915,6 +2086,7 @@ function render() {
   else if(S.view==='log') content=renderLog();
   else if(S.view==='week') content=renderWeek();
   else if(S.view==='goals') content=renderGoals();
+  else if(S.view==='report') content=renderReport();
   if(content) screenEl.appendChild(content);
   renderNav();
 }

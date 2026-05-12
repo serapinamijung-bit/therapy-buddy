@@ -15,16 +15,16 @@
 body {
   font-family: 'DM Sans', sans-serif;
   background: #1a1a1a;
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 20px 16px 40px;
+  padding: 0;
 }
 .phone {
   width: 100%;
   max-width: 390px;
-  min-height: 844px;
+  height: 100dvh;
   background: #F8F6F2;
   border-radius: 44px;
   overflow: hidden;
@@ -35,9 +35,9 @@ body {
 }
 .status { height: 50px; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; background: #F8F6F2; flex-shrink: 0; }
 .status span { font-size: 13px; font-weight: 500; color: #555; }
-.screen { flex: 1; overflow-y: auto; display: flex; flex-direction: column; scrollbar-width: none; }
+.screen { flex: 1; overflow-y: auto; display: flex; flex-direction: column; scrollbar-width: none; min-height: 0; }
 .screen::-webkit-scrollbar { display: none; }
-.nav { height: 80px; background: #fff; border-top: 1px solid #EAE6DE; display: flex; align-items: center; justify-content: space-around; padding: 0 8px 14px; flex-shrink: 0; }
+.nav { height: 80px; background: #fff; border-top: 1px solid #EAE6DE; display: flex; align-items: center; justify-content: space-around; padding: 0 8px 14px; flex-shrink: 0; position: relative; z-index: 10; }
 .nav-btn { background: none; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; font-family: 'DM Sans', sans-serif; font-size: 10px; color: #aaa; padding: 4px 12px; transition: color 0.2s; }
 .nav-btn.active { color: #2D5A3D; font-weight: 500; }
 .nav-dot { width: 4px; height: 4px; border-radius: 2px; background: #2D5A3D; }
@@ -1120,6 +1120,8 @@ function renderHome() {
     wrap.appendChild(tl);
     S.goals.forEach((g,i)=>{
       const st=stats(i); const c=CARD_COLORS[i%CARD_COLORS.length];
+      const analysis = S.analyses && S.analyses[i];
+
       const card=div(`background:${c};border-radius:22px;padding:20px 22px;margin-bottom:12px;cursor:pointer;position:relative;overflow:hidden;font-family:'DM Sans',sans-serif;`);
       const logged=S.logs.filter(l=>l.goalIdx===i&&l.attempted==='Yes').length;
       card.innerHTML=`
@@ -1130,51 +1132,76 @@ function renderHome() {
         </div>
         <p style="font-family:${S.lang==='ko'?'\'DM Sans\',sans-serif':'\'Fraunces\',serif'};font-size:19px;font-weight:400;color:#fff;line-height:1.3;margin-bottom:8px">${g.name}</p>
         <p style="font-size:12px;color:rgba(255,255,255,.65);margin-bottom:12px;font-family:'DM Sans',sans-serif;">📍 ${g.trigger}</p>
-        <div style="display:flex;flex-direction:column;gap:5px">
-          ${g.actions.slice(0,2).map((a,ai)=>`<div style="display:flex;gap:8px;align-items:flex-start"><div style="width:18px;height:18px;min-width:18px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;margin-top:1px">${ai+1}</div><p style="font-size:12px;color:rgba(255,255,255,.9);line-height:1.5;font-family:'DM Sans',sans-serif;">${a}</p></div>`).join('')}
-          ${g.actions.length>2?`<p style="font-size:11px;color:rgba(255,255,255,.45);margin-top:2px">+${g.actions.length-2} more steps</p>`:''}
-        </div>
       `;
-      // avoid box added as DOM element (not innerHTML) to fix Korean font rendering
-      if(g.avoid) {
-        const avoidBox = document.createElement('div');
-        avoidBox.style.cssText = `margin-top:10px;background:rgba(0,0,0,.15);border-radius:8px;padding:6px 10px;font-size:11px;color:rgba(255,255,255,.8);font-family:'DM Sans',sans-serif;`;
-        const avoidLabel = document.createElement('strong');
-        avoidLabel.style.fontFamily = "'DM Sans',sans-serif";
-        avoidLabel.textContent = (S.lang==='ko'?'피해야 할 것':'Avoid') + ': ';
-        const avoidText = document.createTextNode(g.avoid);
-        avoidBox.appendChild(avoidLabel);
-        avoidBox.appendChild(avoidText);
-        card.appendChild(avoidBox);
-      }
-      card.onclick=()=>{S.logGoalIdx=i;S.tempLog={};go('log');};
-      wrap.appendChild(card);
 
-      // show analysis summary if available
-      const analysis = S.analyses && S.analyses[i];
+      // show analysis inside card if available, otherwise show actions
       if(analysis) {
-        const summary = div(`background:${T.card};border-radius:14px;border:1px solid ${T.border};padding:12px 16px;margin-top:-8px;margin-bottom:12px;`);
-        summary.innerHTML = `<p style="font-size:10px;font-weight:500;color:${T.green};letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">${S.lang==='ko'?'✨ 다음 사이클 · 업데이트':'✨ Next cycle · updated'} ${analysis.date||''}</p>`;
+        const updatedLabel = document.createElement('p');
+        updatedLabel.style.cssText = `font-size:10px;font-weight:500;color:rgba(255,255,255,.5);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;font-family:'DM Sans',sans-serif;`;
+        updatedLabel.textContent = (S.lang==='ko' ? '업데이트 ' : 'Updated ') + (analysis.date||'');
+        card.appendChild(updatedLabel);
+
         if(analysis.working?.length) {
-          const w = p(`font-size:12px;color:${T.tm};line-height:1.55;margin-bottom:4px;padding-bottom:4px;border-bottom:1px solid ${T.border};`, `✓ ${analysis.working[0]}`);
-          summary.appendChild(w);
+          const wRow = div('display:flex;gap:6px;align-items:flex-start;margin-bottom:6px;');
+          wRow.innerHTML = `<span style="color:rgba(255,255,255,.7);font-size:12px;">✓</span><p style="font-size:12px;color:rgba(255,255,255,.85);line-height:1.5;font-family:'DM Sans',sans-serif;">${analysis.working[0]}</p>`;
+          card.appendChild(wRow);
         }
+
         if(analysis.next_actions?.length) {
-          const na = div('margin-top:6px;');
-          analysis.next_actions.slice(0,2).forEach((a,idx) => {
-            const row = div('display:flex;gap:6px;align-items:flex-start;margin-bottom:4px;');
-            row.innerHTML = `<div style="width:16px;height:16px;min-width:16px;border-radius:50%;background:${T.green};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;margin-top:1px">${idx+1}</div><p style="font-size:12px;color:${T.tm};line-height:1.5">${a}</p>`;
+          const na = div('display:flex;flex-direction:column;gap:5px;margin-top:4px;');
+          analysis.next_actions.slice(0,2).forEach((a,ai) => {
+            const row = div('display:flex;gap:8px;align-items:flex-start;');
+            row.innerHTML = `<div style="width:18px;height:18px;min-width:18px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;margin-top:1px">${ai+1}</div><p style="font-size:12px;color:rgba(255,255,255,.9);line-height:1.5;font-family:'DM Sans',sans-serif;">${a}</p>`;
             na.appendChild(row);
           });
-          summary.appendChild(na);
+          card.appendChild(na);
         }
+
+        // avoid
+        if(g.avoid) {
+          const avoidBox = document.createElement('div');
+          avoidBox.style.cssText = `margin-top:10px;background:rgba(0,0,0,.15);border-radius:8px;padding:6px 10px;font-size:11px;color:rgba(255,255,255,.8);font-family:'DM Sans',sans-serif;`;
+          const avoidLabel = document.createElement('strong');
+          avoidLabel.style.fontFamily = "'DM Sans',sans-serif";
+          avoidLabel.textContent = (S.lang==='ko'?'피해야 할 것':'Avoid') + ': ';
+          avoidBox.appendChild(avoidLabel);
+          avoidBox.appendChild(document.createTextNode(g.avoid));
+          card.appendChild(avoidBox);
+        }
+
+        // see full analysis link
         const weekBtn = document.createElement('button');
-        weekBtn.style.cssText=`background:none;border:none;font-size:12px;color:${T.gm};cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:8px;padding:0;`;
-        weekBtn.textContent=L('seeFullAnalysis');
+        weekBtn.style.cssText=`background:none;border:none;font-size:12px;color:rgba(255,255,255,.6);cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:10px;padding:0;text-decoration:underline;`;
+        weekBtn.textContent = L('seeFullAnalysis');
         weekBtn.onclick=(e)=>{ e.stopPropagation(); go('week'); };
-        summary.appendChild(weekBtn);
-        wrap.appendChild(summary);
+        card.appendChild(weekBtn);
+
+      } else {
+        // no analysis yet — show action steps
+        const stepsDiv = div('display:flex;flex-direction:column;gap:5px;');
+        stepsDiv.innerHTML = g.actions.slice(0,2).map((a,ai)=>`<div style="display:flex;gap:8px;align-items:flex-start"><div style="width:18px;height:18px;min-width:18px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;margin-top:1px">${ai+1}</div><p style="font-size:12px;color:rgba(255,255,255,.9);line-height:1.5;font-family:'DM Sans',sans-serif;">${a}</p></div>`).join('');
+        if(g.actions.length>2) {
+          const more = document.createElement('p');
+          more.style.cssText = 'font-size:11px;color:rgba(255,255,255,.45);margin-top:2px;';
+          more.textContent = `+${g.actions.length-2} more steps`;
+          stepsDiv.appendChild(more);
+        }
+        card.appendChild(stepsDiv);
+
+        if(g.avoid) {
+          const avoidBox = document.createElement('div');
+          avoidBox.style.cssText = `margin-top:10px;background:rgba(0,0,0,.15);border-radius:8px;padding:6px 10px;font-size:11px;color:rgba(255,255,255,.8);font-family:'DM Sans',sans-serif;`;
+          const avoidLabel = document.createElement('strong');
+          avoidLabel.style.fontFamily = "'DM Sans',sans-serif";
+          avoidLabel.textContent = (S.lang==='ko'?'피해야 할 것':'Avoid') + ': ';
+          avoidBox.appendChild(avoidLabel);
+          avoidBox.appendChild(document.createTextNode(g.avoid));
+          card.appendChild(avoidBox);
+        }
       }
+
+      card.onclick=()=>{S.logGoalIdx=i;S.tempLog={};go('log');};
+      wrap.appendChild(card);
     });
   }
 

@@ -2024,19 +2024,19 @@ function renderReport() {
       </div>`;
 
     try {
-      const res = await fetch(WEBHOOK_URL, {
+      await fetch('/.netlify/functions/email', {
         method: 'POST',
-        mode: 'no-cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type: 'send_report',
           to,
           replyTo: S.parent,
           subject: `Therapy Buddy Progress Report — ${S.child} (${period})`,
           body: emailBody
         })
       });
-      sendMsg.textContent = S.lang==='ko'?'✓ 이메일이 전송됐어요!':'✓ Report sent!';
+      sendBtn.textContent = S.lang==='ko'?'✓ 전송됐어요':'✓ Sent!';
+      sendBtn.style.background = '#4A8C60';
+      sendMsg.textContent = S.lang==='ko'?'이메일이 전송됐어요!':'Report sent!';
       sendMsg.style.color = '#2D5A3D';
     } catch(e) {
       sendMsg.textContent = S.lang==='ko'?'✗ 오류가 발생했어요. 다시 시도해주세요.':'✗ Something went wrong. Try again.';

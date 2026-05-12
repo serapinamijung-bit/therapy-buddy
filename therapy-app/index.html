@@ -1926,10 +1926,130 @@ function renderReport() {
 
   // print button
   const printBtn = document.createElement('button');
-  printBtn.style.cssText=`width:100%;padding:14px;background:${T.green};color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:8px;`;
+  printBtn.style.cssText=`width:100%;padding:14px;background:#fff;color:${T.green};border:1.5px solid ${T.green};border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:8px;`;
   printBtn.innerHTML=`🖨️ ${S.lang==='ko'?'인쇄 / PDF 저장':'Print / Save as PDF'}`;
   printBtn.onclick=()=>window.print();
   wrap.appendChild(printBtn);
+
+  // send email section
+  const emailSection = div(`margin-top:12px;background:#fff;border-radius:16px;border:1px solid ${T.border};padding:16px 18px;`);
+  emailSection.innerHTML=`<p style="font-size:13px;font-weight:500;color:${T.tm};margin-bottom:4px;">📧 ${S.lang==='ko'?'이메일로 공유하기':'Share via email'}</p><p style="font-size:12px;color:${T.muted};margin-bottom:12px;">${S.lang==='ko'?'리포트를 이메일로 전송해요.':'Report will be shared via email.'}</p>`;
+
+  const emailInp = document.createElement('input');
+  emailInp.type='email';
+  emailInp.placeholder=S.lang==='ko'?'받는 사람 이메일 주소':'Recipient email address';
+  emailInp.style.cssText=`width:100%;padding:11px 14px;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;margin-bottom:10px;outline:none;`;
+  emailSection.appendChild(emailInp);
+
+  const sendMsg = p(`font-size:12px;color:${T.gm};margin-top:8px;display:none;`,'');
+  const sendBtn = document.createElement('button');
+  sendBtn.style.cssText=`width:100%;padding:12px;background:${T.green};color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+  sendBtn.textContent=S.lang==='ko'?'이메일 전송하기 →':'Send report →';
+
+  sendBtn.onclick = async () => {
+    const to = emailInp.value.trim();
+    if (!to) return;
+    sendBtn.textContent = S.lang==='ko'?'전송 중...':'Sending...';
+    sendBtn.disabled = true;
+
+    // build report HTML
+    const period = S.reportPeriod==='2w'?(S.lang==='ko'?'최근 2주':'Last 2 weeks'):S.reportPeriod==='4w'?(S.lang==='ko'?'최근 4주':'Last 4 weeks'):(S.lang==='ko'?'전체':'All time');
+    const now2 = new Date();
+    const cutoff2 = S.reportPeriod==='2w'?14:S.reportPeriod==='4w'?28:999;
+    const fLogs = S.logs.filter(l=>{
+      if(S.reportPeriod==='all') return true;
+      const parts=l.date?.split('/');
+      if(!parts||parts.length<2) return true;
+      const ld=new Date(now2.getFullYear(),parseInt(parts[0])-1,parseInt(parts[1]));
+      return (now2-ld)/(1000*60*60*24)<=cutoff2;
+    });
+
+    const tAtt=fLogs.filter(l=>l.attempted==='Yes').length;
+    const tSucc=fLogs.filter(l=>l.outcome===L('success')||l.outcome==='Success').length;
+    const oRate=tAtt>0?Math.round(tSucc/tAtt*100):0;
+
+    let goalsHtml = '';
+    S.goals.forEach((g,i)=>{
+      const gl=fLogs.filter(l=>l.goalIdx===i);
+      const ga=gl.filter(l=>l.attempted==='Yes').length;
+      const gs=gl.filter(l=>l.outcome===L('success')||l.outcome==='Success').length;
+      const gr=ga>0?Math.round(gs/ga*100):0;
+      const gw=gl.filter(l=>l.worked).map(l=>l.worked).filter(Boolean);
+      const gn=gl.filter(l=>l.didnt_work).map(l=>l.didnt_work).filter(Boolean);
+      const an=S.analyses?.[i];
+      goalsHtml += `
+        <div style="background:#fff;border:1px solid #EAE6DE;border-radius:12px;padding:16px;margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <strong>${g.icon} ${g.name}</strong>
+            <span style="color:${gr>=50?'#2D5A3D':'#D4622A'};font-weight:500;">${gr}% success</span>
+          </div>
+          <div style="height:4px;background:#EAE6DE;border-radius:2px;margin-bottom:10px;">
+            <div style="height:100%;width:${gr}%;background:#2D5A3D;border-radius:2px;"></div>
+          </div>
+          <p style="font-size:12px;color:#909090;margin-bottom:8px;">${ga} attempts · ${gs} success</p>
+          ${gw.length?`<p style="font-size:12px;color:#2D5A3D;margin-bottom:4px;"><strong>✓ What worked:</strong> ${gw.slice(0,2).join(' / ')}</p>`:''}
+          ${gn.length?`<p style="font-size:12px;color:#C84B3A;margin-bottom:4px;"><strong>✗ What didn't work:</strong> ${gn.slice(0,2).join(' / ')}</p>`:''}
+          ${an?.next_actions?.length?`<p style="font-size:12px;color:#D4622A;"><strong>→ Recommendations:</strong> ${an.next_actions.slice(0,2).join(' / ')}</p>`:''}
+        </div>`;
+    });
+
+    const emailBody = `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#F8F6F2;">
+        <h1 style="font-size:22px;color:#2D5A3D;margin-bottom:4px;">🌿 Therapy Buddy</h1>
+        <h2 style="font-size:20px;font-weight:400;color:#1A1A1A;margin-bottom:4px;">Progress Report — ${S.child}</h2>
+        <p style="font-size:13px;color:#909090;margin-bottom:20px;">Period: ${period} · Prepared by ${S.parent}</p>
+
+        <div style="background:#EAF2EC;border-radius:12px;padding:16px;margin-bottom:20px;">
+          <p style="font-size:11px;font-weight:bold;color:#2D5A3D;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Overall Summary</p>
+          <div style="display:flex;gap:12px;">
+            <div style="flex:1;background:#fff;border-radius:8px;padding:10px;text-align:center;">
+              <p style="font-size:20px;font-weight:500;color:#1A1A1A;">${tAtt}</p>
+              <p style="font-size:11px;color:#909090;">Attempts</p>
+            </div>
+            <div style="flex:1;background:#fff;border-radius:8px;padding:10px;text-align:center;">
+              <p style="font-size:20px;font-weight:500;color:#1A1A1A;">${oRate}%</p>
+              <p style="font-size:11px;color:#909090;">Success rate</p>
+            </div>
+            <div style="flex:1;background:#fff;border-radius:8px;padding:10px;text-align:center;">
+              <p style="font-size:20px;font-weight:500;color:#1A1A1A;">${S.goals.length}</p>
+              <p style="font-size:11px;color:#909090;">Goals</p>
+            </div>
+          </div>
+        </div>
+
+        <p style="font-size:11px;font-weight:bold;color:#909090;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">By Goal</p>
+        ${goalsHtml}
+
+        <p style="font-size:12px;color:#909090;margin-top:20px;text-align:center;">Sent via Therapy Buddy · therapybuddy.org</p>
+      </div>`;
+
+    try {
+      const res = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'send_report',
+          to,
+          replyTo: S.parent,
+          subject: `Therapy Buddy Progress Report — ${S.child} (${period})`,
+          body: emailBody
+        })
+      });
+      sendMsg.textContent = S.lang==='ko'?'✓ 이메일이 전송됐어요!':'✓ Report sent!';
+      sendMsg.style.color = '#2D5A3D';
+    } catch(e) {
+      sendMsg.textContent = S.lang==='ko'?'✗ 오류가 발생했어요. 다시 시도해주세요.':'✗ Something went wrong. Try again.';
+      sendMsg.style.color = '#C84B3A';
+      sendBtn.textContent = S.lang==='ko'?'이메일 전송하기 →':'Send report →';
+      sendBtn.disabled = false;
+    }
+    sendMsg.style.display = 'block';
+  };
+
+  emailSection.appendChild(sendBtn);
+  emailSection.appendChild(sendMsg);
+  wrap.appendChild(emailSection);
 
   return wrap;
 }

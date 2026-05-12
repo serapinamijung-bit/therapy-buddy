@@ -1570,6 +1570,7 @@ function renderWeek() {
               S.goals[i].goal_version = (S.goals[i].goal_version || 1) + 1;
             }
             saveState();
+            if (currentUser) await saveToSupabase();
 
             // show updated toast
             const updateToast = div(`background:${T.gl};border-radius:12px;padding:10px 14px;margin-bottom:10px;`);

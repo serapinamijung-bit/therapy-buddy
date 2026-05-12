@@ -155,12 +155,19 @@ async function initSupabase() {
                      window.location.search.includes('token=');
 
     if (hasToken) {
-      // this is the magic link tab — get session and notify original tab
+      // this is the magic link/OAuth tab — get session and notify original tab
+      document.body.innerHTML = `
+        <div style="font-family:'DM Sans',sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#F8F6F2;gap:16px;">
+          <div style="font-size:40px;">🌿</div>
+          <p style="font-size:18px;color:#2D5A3D;font-weight:500;">Signed in successfully!</p>
+          <p style="font-size:14px;color:#909090;">Go back to your previous tab to continue.</p>
+          <button onclick="window.close()" style="margin-top:8px;padding:12px 24px;background:#2D5A3D;color:#fff;border:none;border-radius:12px;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;">Close this tab →</button>
+        </div>`;
       setTimeout(async () => {
         const { data } = await supabase.auth.getSession();
         if (data?.session) {
           authChannel.postMessage({ type: 'SIGNED_IN', session: data.session });
-          window.close(); // close this tab
+          setTimeout(() => window.close(), 2000);
         }
       }, 1000);
       return;

@@ -1682,14 +1682,16 @@ function renderGoals() {
     wrap.appendChild(ab);
   }
 
-  // restore code display
-  const rcWrap = div(`background:${T.gl};border-radius:14px;padding:14px 18px;margin-top:16px;`);
-  rcWrap.innerHTML = `
-    <p style="font-size:11px;font-weight:500;color:${T.green};letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">${L('restoreCode')}</p>
-    <p style="font-family:'Fraunces',serif;font-size:28px;font-weight:400;color:${T.green};letter-spacing:.15em;margin-bottom:6px;">${RESTORE_CODE}</p>
-    <p style="font-size:12px;color:${T.gm};line-height:1.6;">${L('restoreCodeDesc')}</p>
-  `;
-  wrap.appendChild(rcWrap);
+  // restore code display — only show if not logged in
+  if (!currentUser) {
+    const rcWrap = div(`background:${T.gl};border-radius:14px;padding:14px 18px;margin-top:16px;`);
+    rcWrap.innerHTML = `
+      <p style="font-size:11px;font-weight:500;color:${T.green};letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">${L('restoreCode')}</p>
+      <p style="font-family:'Fraunces',serif;font-size:28px;font-weight:400;color:${T.green};letter-spacing:.15em;margin-bottom:6px;">${RESTORE_CODE}</p>
+      <p style="font-size:12px;color:${T.gm};line-height:1.6;">${L('restoreCodeDesc')}</p>
+    `;
+    wrap.appendChild(rcWrap);
+  }
 
   // reset
   const resetWrap = div('margin-top:16px;padding-top:16px;border-top:1px solid #EAE6DE;');

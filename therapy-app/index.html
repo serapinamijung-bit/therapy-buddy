@@ -192,7 +192,7 @@ async function signInWithGoogle() {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: window.location.origin
+      redirectTo: 'https://therapybuddy.org/auth/callback'
     }
   });
   if (error) console.log('Google sign in error:', error);
@@ -203,7 +203,7 @@ async function signInWithMagicLink(email) {
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: `${window.location.origin}/auth/callback`,
+      emailRedirectTo: 'https://therapybuddy.org/auth/callback',
       shouldCreateUser: true,
     }
   });

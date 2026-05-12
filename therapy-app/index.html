@@ -155,7 +155,6 @@ async function initSupabase() {
                      window.location.search.includes('token=');
 
     if (hasToken) {
-      // this is the magic link/OAuth tab — get session and notify original tab
       document.body.innerHTML = `
         <div style="font-family:'DM Sans',sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#F8F6F2;gap:16px;">
           <div style="font-size:40px;">🌿</div>
@@ -167,7 +166,6 @@ async function initSupabase() {
         const { data } = await supabase.auth.getSession();
         if (data?.session) {
           authChannel.postMessage({ type: 'SIGNED_IN', session: data.session });
-          setTimeout(() => window.close(), 2000);
         }
       }, 1000);
       return;

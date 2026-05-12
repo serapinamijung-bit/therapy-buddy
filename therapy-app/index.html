@@ -281,7 +281,7 @@ async function loadFromSupabase() {
       .single();
 
     if (profile && profile.parent_name) {
-      // existing user — load from Supabase
+      // existing Supabase user
       S.parent = profile.parent_name || '';
       S.child = profile.child_name || '';
       S.age = profile.child_age || '';
@@ -347,8 +347,10 @@ async function loadFromSupabase() {
       S.view = 'home';
 
     } else {
-      // new user — check if localStorage has data to migrate
-      const localData = loadState();
+      // no Supabase profile — check localStorage
+      const saved = localStorage.getItem(STORAGE_KEY);
+      const localData = saved ? JSON.parse(saved) : null;
+
       if (localData && localData.parent) {
         // migrate localStorage to Supabase
         S.parent = localData.parent;
@@ -358,12 +360,19 @@ async function loadFromSupabase() {
         S.logs = localData.logs || [];
         S.analyses = localData.analyses || [];
         S.lang = localData.lang || 'en';
-        await saveToSupabase();
         S.view = 'home';
+        await saveToSupabase();
+        console.log('Migrated localStorage to Supabase');
+      } else if (S.parent) {
+        // S already has data (set during this session)
+        S.view = 'home';
+        await saveToSupabase();
       }
     }
   } catch(e) {
     console.log('Supabase load failed:', e);
+    // fallback — if S already has data, go to home
+    if (S.parent) S.view = 'home';
   }
 }
 

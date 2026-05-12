@@ -157,12 +157,13 @@ async function initSupabase() {
                      window.location.search.includes('token=');
 
     if (hasToken) {
+      document.body.style.cssText = 'font-family:"DM Sans",sans-serif;background:#1a1a1a;min-height:100dvh;display:flex;align-items:center;justify-content:center;margin:0;padding:0;';
       document.body.innerHTML = `
-        <div style="font-family:'DM Sans',sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#F8F6F2;gap:16px;">
-          <div style="font-size:40px;">🌿</div>
-          <p style="font-size:18px;color:#2D5A3D;font-weight:500;">Signed in successfully!</p>
-          <p style="font-size:14px;color:#909090;">Go back to your previous tab to continue.</p>
-          <a href="https://therapybuddy.org" style="margin-top:8px;padding:12px 24px;background:#2D5A3D;color:#fff;border:none;border-radius:12px;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none;">Go to Therapy Buddy →</a>
+        <div style="width:100%;max-width:390px;height:100dvh;background:#F8F6F2;border-radius:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 32px;box-shadow:0 40px 120px rgba(0,0,0,.5);">
+          <div style="width:80px;height:80px;border-radius:62% 38% 70% 30%/45% 65% 35% 55%;background:linear-gradient(140deg,#4A8C60,#2D5A3D);display:flex;align-items:center;justify-content:center;font-size:36px;margin-bottom:24px;">🌿</div>
+          <p style="font-family:'Fraunces',serif;font-size:22px;font-weight:400;color:#2D5A3D;margin-bottom:8px;text-align:center;">Signed in successfully!</p>
+          <p style="font-size:14px;color:#909090;margin-bottom:32px;text-align:center;line-height:1.6;">Your data is ready.<br>Tap below to continue.</p>
+          <a href="https://therapybuddy.org" style="display:block;width:100%;padding:14px;background:#2D5A3D;color:#fff;border-radius:14px;font-size:15px;font-weight:500;text-align:center;text-decoration:none;font-family:'DM Sans',sans-serif;">Go to Therapy Buddy →</a>
         </div>`;
       setTimeout(async () => {
         const { data } = await supabase.auth.getSession();

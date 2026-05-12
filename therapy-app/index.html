@@ -1376,6 +1376,22 @@ function renderLog() {
     S.logs.push(newLog);
     S.tempLog={};
     saveState();
+    // save to Supabase
+    if (currentUser) {
+      saveLogToSupabase({
+        goalName: S.goals[S.logGoalIdx]?.name || '',
+        date,
+        caregiver: 'You',
+        before: newLog.before,
+        attempted: newLog.attempted,
+        technique: newLog.technique,
+        worked: newLog.worked,
+        didnt_work: newLog.didnt_work,
+        reaction: newLog.reaction,
+        outcome: newLog.outcome,
+        next: newLog.next,
+      }, S.goals[S.logGoalIdx]?.goal_id || '');
+    }
     // send to Google Sheet
     sendToSheet({
       user_id: USER_ID,

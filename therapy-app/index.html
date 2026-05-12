@@ -690,21 +690,43 @@ function saveWithRestoreCode() {
   } catch(e) {}
 }
 
-function restoreFromCode(code) {
+async function restoreFromCode(code) {
   try {
     const key = 'tb_restore_' + code.toUpperCase().trim();
+    // try localStorage first
     const saved = localStorage.getItem(key);
-    if (!saved) return false;
-    const data = JSON.parse(saved);
-    S.parent = data.parent || '';
-    S.child = data.child || '';
-    S.age = data.age || '';
-    S.goals = data.goals || [];
-    S.logs = data.logs || [];
-    S.view = 'home';
-    if (data.uid) localStorage.setItem('therapy_buddy_uid', data.uid);
-    saveState();
-    return true;
+    if (saved) {
+      const data = JSON.parse(saved);
+      S.parent = data.parent || '';
+      S.child = data.child || '';
+      S.age = data.age || '';
+      S.goals = data.goals || [];
+      S.logs = data.logs || [];
+      S.analyses = data.analyses || [];
+      S.lang = data.lang || 'en';
+      S.view = 'home';
+      if (data.uid) localStorage.setItem('therapy_buddy_uid', data.uid);
+      saveState();
+      return true;
+    }
+    // fallback — fetch from Google Sheets
+    const res = await fetch(WEBHOOK_URL + '?type=restore&code=' + code.toUpperCase().trim());
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.parent) {
+        S.parent = data.parent || '';
+        S.child = data.child || '';
+        S.age = data.age || '';
+        S.goals = data.goals || [];
+        S.logs = data.logs || [];
+        S.analyses = data.analyses || [];
+        S.lang = data.lang || 'en';
+        S.view = 'home';
+        saveState();
+        return true;
+      }
+    }
+    return false;
   } catch(e) { return false; }
 }
 
@@ -859,10 +881,10 @@ function renderOnboard() {
     demoBtn.onclick=loadDemo;
     const restoreBtn = document.createElement('button');
     restoreBtn.className='btn btn-ghost'; restoreBtn.style.marginBottom='10px'; restoreBtn.textContent=L('restore');
-    restoreBtn.onclick=()=>{
+    restoreBtn.onclick= async ()=>{
       const code = prompt(L('restorePrompt'));
       if (code) {
-        const ok = restoreFromCode(code);
+        const ok = await restoreFromCode(code);
         if (ok) { render(); }
         else { alert(L('restoreNotFound')); }
       }

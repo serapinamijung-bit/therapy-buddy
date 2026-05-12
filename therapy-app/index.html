@@ -160,7 +160,7 @@ async function initSupabase() {
           <div style="font-size:40px;">🌿</div>
           <p style="font-size:18px;color:#2D5A3D;font-weight:500;">Signed in successfully!</p>
           <p style="font-size:14px;color:#909090;">Go back to your previous tab to continue.</p>
-          <button onclick="window.close()" style="margin-top:8px;padding:12px 24px;background:#2D5A3D;color:#fff;border:none;border-radius:12px;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;">Close this tab →</button>
+          <a href="https://therapybuddy.org" style="margin-top:8px;padding:12px 24px;background:#2D5A3D;color:#fff;border:none;border-radius:12px;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none;">Go to Therapy Buddy →</a>
         </div>`;
       setTimeout(async () => {
         const { data } = await supabase.auth.getSession();

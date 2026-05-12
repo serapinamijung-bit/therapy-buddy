@@ -165,11 +165,26 @@ async function initSupabase() {
     if (hasToken) {
       document.body.style.cssText = 'font-family:"DM Sans",sans-serif;background:#1a1a1a;min-height:100dvh;display:flex;align-items:center;justify-content:center;margin:0;padding:0;';
       document.body.innerHTML = `
-        <div style="width:100%;max-width:390px;height:100dvh;background:#F8F6F2;border-radius:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 32px;box-shadow:0 40px 120px rgba(0,0,0,.5);">
+        <div style="width:100%;max-width:390px;height:100dvh;background:#F8F6F2;border-radius:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 32px;box-shadow:0 40px 120px rgba(0,0,0,.5);overflow-y:auto;">
           <div style="width:80px;height:80px;border-radius:62% 38% 70% 30%/45% 65% 35% 55%;background:linear-gradient(140deg,#4A8C60,#2D5A3D);display:flex;align-items:center;justify-content:center;font-size:36px;margin-bottom:24px;">🌿</div>
-          <p style="font-family:'Fraunces',serif;font-size:22px;font-weight:400;color:#2D5A3D;margin-bottom:8px;text-align:center;">Signed in successfully!</p>
-          <p style="font-size:14px;color:#909090;margin-bottom:32px;text-align:center;line-height:1.6;">Your data is ready.<br>Tap below to continue.</p>
-          <a href="https://therapybuddy.org" style="display:block;width:100%;padding:14px;background:#2D5A3D;color:#fff;border-radius:14px;font-size:15px;font-weight:500;text-align:center;text-decoration:none;font-family:'DM Sans',sans-serif;">Go to Therapy Buddy →</a>
+          <p style="font-family:'Fraunces',serif;font-size:22px;font-weight:400;color:#2D5A3D;margin-bottom:8px;text-align:center;">로그인 성공! Signed in!</p>
+          <p style="font-size:14px;color:#909090;margin-bottom:28px;text-align:center;line-height:1.6;">데이터가 준비됐어요.<br>Your data is ready.</p>
+
+          <div style="background:#fff;border-radius:16px;border:1px solid #EAE6DE;padding:16px 18px;width:100%;margin-bottom:20px;">
+            <p style="font-size:12px;font-weight:500;color:#1A1A1A;margin-bottom:10px;">📱 홈 화면에 추가하면 더 편해요</p>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="background:#F8F6F2;border-radius:10px;padding:10px 12px;">
+                <p style="font-size:12px;font-weight:500;color:#2D5A3D;margin-bottom:3px;">🍎 아이폰</p>
+                <p style="font-size:12px;color:#4A4A4A;line-height:1.5;">Safari에서 therapybuddy.org 열기 → 공유(□↑) → 홈 화면에 추가</p>
+              </div>
+              <div style="background:#F8F6F2;border-radius:10px;padding:10px 12px;">
+                <p style="font-size:12px;font-weight:500;color:#2D5A3D;margin-bottom:3px;">🤖 안드로이드</p>
+                <p style="font-size:12px;color:#4A4A4A;line-height:1.5;">Chrome에서 therapybuddy.org 열기 → ⋮ → 홈 화면에 추가</p>
+              </div>
+            </div>
+          </div>
+
+          <a href="https://therapybuddy.org" style="display:block;width:100%;padding:14px;background:#2D5A3D;color:#fff;border-radius:14px;font-size:15px;font-weight:500;text-align:center;text-decoration:none;font-family:'DM Sans',sans-serif;">앱으로 이동 · Go to App →</a>
         </div>`;
       setTimeout(async () => {
         const { data } = await supabase.auth.getSession();
@@ -948,7 +963,11 @@ function renderOnboard() {
     googleSignInBtn.innerHTML=`<svg width="16" height="16" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A353" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/><path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.31z"/></svg>${S.lang==='ko'?'Google 로 로그인':'Sign in with Google'}`;
     googleSignInBtn.onclick = signInWithGoogle;
 
-    wrap.appendChild(blob); wrap.appendChild(langRow); wrap.appendChild(title); wrap.appendChild(desc); wrap.appendChild(demoBtn); wrap.appendChild(restoreBtn); wrap.appendChild(startBtn); wrap.appendChild(dividerEl); wrap.appendChild(googleSignInBtn);
+    const browserNote = p(`font-size:11px;color:${T.muted};text-align:center;margin-top:8px;line-height:1.6;`,
+      S.lang==='ko'
+        ? '카카오톡 등 메신저에서 열었다면 외부 브라우저(Safari/Chrome)로 열어주세요'
+        : 'If opened from KakaoTalk or a messenger app, please open in Safari or Chrome');
+    wrap.appendChild(blob); wrap.appendChild(langRow); wrap.appendChild(title); wrap.appendChild(desc); wrap.appendChild(demoBtn); wrap.appendChild(restoreBtn); wrap.appendChild(startBtn); wrap.appendChild(dividerEl); wrap.appendChild(googleSignInBtn); wrap.appendChild(browserNote);
 
     if (currentUser) {
       const dividerEl = div('display:flex;align-items:center;gap:10px;margin:16px 0;');
@@ -1217,6 +1236,7 @@ if(S.goals.length<maxGoals){
     googleBtn.style.cssText=`width:100%;padding:12px;background:#fff;color:#1A1A1A;border:1.5px solid ${T.border};border-radius:12px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;`;
     googleBtn.innerHTML=`<svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A353" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/><path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.31z"/></svg>${S.lang==='ko'?'Google 로 계속하기':'Continue with Google'}`;
     googleBtn.onclick = signInWithGoogle;
+    const bn1=document.createElement("p");bn1.style.cssText="font-size:11px;color:#909090;text-align:center;margin-bottom:8px;line-height:1.6;";bn1.textContent=S.lang==="ko"?"카카오톡 등 메신저에서 열었다면 외부 브라우저로 열어주세요":"If opened from a messenger app, please open in Safari or Chrome";wrap.appendChild(bn1);
     wrap.appendChild(googleBtn);
 
     // divider
@@ -2090,6 +2110,21 @@ if(S.goals.length<maxGoals){
   }
 
   // restore code display — only show if not logged in
+  // language toggle
+  const langWrap = div('margin-top:16px;');
+  const langLabel = p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;`, S.lang==='ko'?'언어 설정':'Language');
+  const langRow = div('display:flex;gap:8px;');
+  ['en','ko'].forEach(l => {
+    const lb = document.createElement('button');
+    lb.style.cssText=`flex:1;padding:10px;border-radius:12px;border:1.5px solid ${S.lang===l?T.green:T.border};background:${S.lang===l?T.gl:'#fff'};color:${S.lang===l?T.green:T.tm};font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+    lb.textContent = l==='ko'?'한국어':'English';
+    lb.onclick=()=>{ S.lang=l; localStorage.setItem('tb_lang',l); saveState(); render(); };
+    langRow.appendChild(lb);
+  });
+  langWrap.appendChild(langLabel);
+  langWrap.appendChild(langRow);
+  wrap.appendChild(langWrap);
+
   if (!currentUser) {
     const rcWrap = div(`background:${T.gl};border-radius:14px;padding:14px 18px;margin-top:16px;`);
     rcWrap.innerHTML = `
@@ -2165,6 +2200,7 @@ if(S.goals.length<maxGoals){
     googleBtn.style.cssText=`width:100%;padding:10px;background:#fff;color:#1A1A1A;border:1.5px solid ${T.border};border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;`;
     googleBtn.innerHTML=`<svg width="16" height="16" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A353" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/><path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.31z"/></svg>Sign in with Google`;
     googleBtn.onclick = signInWithGoogle;
+    const bn2=document.createElement("p");bn2.style.cssText="font-size:11px;color:#909090;text-align:center;margin-bottom:8px;line-height:1.6;";bn2.textContent=S.lang==="ko"?"카카오톡 등 메신저에서 열었다면 외부 브라우저로 열어주세요":"If opened from a messenger app, please open in Safari or Chrome";wrap.appendChild(bn2);
 
     const orDiv = div('display:flex;align-items:center;gap:8px;margin-bottom:8px;');
     orDiv.innerHTML=`<div style="flex:1;height:1px;background:${T.border}"></div><p style="font-size:11px;color:${T.muted}">or</p><div style="flex:1;height:1px;background:${T.border}"></div>`;

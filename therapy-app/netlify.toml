@@ -3,3 +3,7 @@
   functions = "therapy-app/netlify/functions"
 [functions]
   timeout = 26
+[[redirects]]
+  from = "/auth/callback"
+  to = "/index.html"
+  status = 200

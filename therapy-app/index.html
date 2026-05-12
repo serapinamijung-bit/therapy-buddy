@@ -790,7 +790,8 @@ function clearState() {
   try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
 }
 
-const saved = loadState();
+const wasLoggedIn = localStorage.getItem('tb_was_logged_in');
+const saved = wasLoggedIn ? null : loadState();
 let S = saved ? {
   view: saved.view || 'home',
   step: 0,

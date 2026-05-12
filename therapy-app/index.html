@@ -799,7 +799,7 @@ let S = saved ? {
   view: 'onboard', step: 0,
   lang: localStorage.getItem('tb_lang') || 'en',
   parent: '', child: '', age: '',
-  goals: [], editIdx: null,
+  goals: [], editIdx: null, goalStep: 1,
   logGoalIdx: 0, logs: [],
   analyses: [],
   isDemo: false,
@@ -1010,70 +1010,158 @@ function renderOnboard() {
 
   if (step===3.5) {
     const idx=S.editIdx; const g=S.goals[idx];
-    const icons=['🎯','💬','👋','🤝','⭐','🌟','🧩','📚','🎮','🌊','🔔','🏃'];
-    const back=document.createElement('button'); back.style.cssText=`background:none;border:none;cursor:pointer;color:${T.tm};font-size:14px;margin-bottom:16px;padding:0;font-family:'DM Sans',sans-serif;`; back.textContent=L('backToGoals'); back.onclick=()=>{S.step=3;render();};
+    const goalStep = S.goalStep || 1;
+    const isEdit = g._saved;
+    const totalSteps = 4;
+
+    // progress indicator
+    const prog = div('display:flex;gap:6px;margin-bottom:24px;');
+    for(let i=1;i<=totalSteps;i++){
+      const dot=div(`height:3px;flex:1;border-radius:2px;background:${i<=goalStep?T.green:T.border};`);
+      prog.appendChild(dot);
+    }
+    wrap.appendChild(prog);
+
+    // back button
+    const back=document.createElement('button');
+    back.style.cssText=`background:none;border:none;cursor:pointer;color:${T.tm};font-size:14px;margin-bottom:20px;padding:0;font-family:'DM Sans',sans-serif;`;
+    back.textContent = goalStep > 1 ? '← ' + (S.lang==='ko'?'이전':'Back') : L('backToGoals');
+    back.onclick=()=>{
+      if(goalStep > 1) { S.goalStep = goalStep - 1; render(); }
+      else { S.goalStep = 1; S.step=3; render(); }
+    };
     wrap.appendChild(back);
-    wrap.appendChild(h('h1',"font-family:'Fraunces',serif;font-size:24px;font-weight:400;color:#1A1A1A;margin-bottom:6px;", g.name ? `${L('editGoal')}: ${g.name}` : L('setupGoal')));
-    wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:18px;`, S.lang==='ko' ? '이 목표가 액션 카드가 됩니다.' : 'This becomes your action card.'));
 
-    const ir=div('display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;');
+    // icon picker (always visible at top)
+    const icons=['🎯','💬','👋','🤝','⭐','🌟','🧩','📚','🎮','🌊','🔔','🏃'];
+    const ir=div('display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px;');
     icons.forEach(ic=>{const b=document.createElement('button');b.textContent=ic;b.style.cssText=`width:36px;height:36px;border-radius:10px;border:1.5px solid ${g.icon===ic?T.green:T.border};background:${g.icon===ic?T.gl:'#fff'};font-size:17px;cursor:pointer;`;b.onclick=()=>{g.icon=ic;render();};ir.appendChild(b);});
-    wrap.appendChild(ir);
 
-    const lbl=(t)=>{const e=p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;`,t);return e;};
+    if(goalStep === 1) {
+      wrap.appendChild(h('h1',"font-family:'Fraunces',serif;font-size:24px;font-weight:400;color:#1A1A1A;line-height:1.3;margin-bottom:6px;",
+        S.lang==='ko' ? '어떤 행동을 개선하고 싶으세요?' : 'What behavior would you like to work on?'));
+      wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:16px;line-height:1.6;`,
+        S.lang==='ko' ? '예: 장난감 공유하기, 이름 부르면 반응하기' : 'e.g. Sharing toys with siblings, responding to name'));
+      wrap.appendChild(ir);
+      const ni=document.createElement('input'); ni.type='text'; ni.value=g.name;
+      ni.placeholder=S.lang==='ko'?'예: 장난감 공유하기':'e.g. Sharing toys with siblings';
+      ni.style.cssText=`width:100%;padding:12px 14px;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:16px;`;
+      ni.oninput=e=>{g.name=e.target.value;};
+      wrap.appendChild(ni);
+      wrap.appendChild(spacer);
 
-    wrap.appendChild(lbl(L('goalName')));
-    const ni=document.createElement('input'); ni.type='text'; ni.value=g.name; ni.placeholder=S.lang==='ko'?'예: 장난감 공유하기':'e.g. Sharing toys with siblings'; ni.oninput=e=>{g.name=e.target.value;updateBtn()};
-    wrap.appendChild(ni);
+      const nextBtn=document.createElement('button'); nextBtn.className='btn btn-primary'; nextBtn.textContent=S.lang==='ko'?'다음 →':'Next →';
+      nextBtn.onclick=()=>{ if(g.name.trim()){ S.goalStep=2; render(); } };
+      if(!g.name.trim()) nextBtn.style.cssText='background:'+T.border+';color:'+T.muted+';cursor:default;width:100%;padding:15px;border:none;border-radius:15px;font-size:15px;font-weight:500;font-family:DM Sans,sans-serif;';
+      wrap.appendChild(nextBtn);
+      setTimeout(()=>ni.focus(),50);
+    }
 
-    wrap.appendChild(lbl(L('whenToUse')));
-    const ti=document.createElement('input'); ti.type='text'; ti.value=g.trigger; ti.placeholder=L('whenToUsePlaceholder'); ti.oninput=e=>{g.trigger=e.target.value;};
-    wrap.appendChild(ti);
+    if(goalStep === 2) {
+      wrap.appendChild(h('h1',"font-family:'Fraunces',serif;font-size:24px;font-weight:400;color:#1A1A1A;line-height:1.3;margin-bottom:6px;",
+        S.lang==='ko' ? '이 행동이 언제 나타나나요?' : 'When does this behavior usually happen?'));
+      wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:16px;line-height:1.6;`,
+        S.lang==='ko' ? '예: 형제가 장난감을 갖고 있을 때' : 'e.g. When sibling has a toy and child tries to grab it'));
+      const ti=document.createElement('input'); ti.type='text'; ti.value=g.trigger;
+      ti.placeholder=L('whenToUsePlaceholder');
+      ti.style.cssText=`width:100%;padding:12px 14px;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:16px;`;
+      ti.oninput=e=>{g.trigger=e.target.value;};
+      wrap.appendChild(ti);
+      wrap.appendChild(spacer);
 
-    const stepsHeader = div('display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;');
-    stepsHeader.appendChild(lbl(L('steps')));
-    const optNote = p(`font-size:11px;color:${T.muted};font-style:italic;`, L('stepsOptional'));
-    stepsHeader.appendChild(optNote);
-    wrap.appendChild(stepsHeader);
-    const aw=div();
-    const renderActs=()=>{
-      aw.innerHTML='';
-      g.actions.forEach((a,ai)=>{
-        const row=div('display:flex;gap:8px;align-items:center;margin-bottom:8px;');
-        const num=div(`width:22px;height:22px;min-width:22px;border-radius:50%;background:${T.gl};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:${T.green};`,(ai+1).toString());
-        const ai2=document.createElement('input'); ai2.type='text'; ai2.value=a; ai2.placeholder=S.lang==='ko'?`예: 먼저 아이 상태 확인하기`:`e.g. Check child's state first`; ai2.style.cssText=`flex:1;padding:10px 12px;font-size:13px;border:1.5px solid ${a?T.green:T.border};border-radius:10px;background:#fff;outline:none;font-family:'DM Sans',sans-serif;color:${T.text};`; ai2.oninput=e=>{g.actions[ai]=e.target.value;ai2.style.borderColor=e.target.value?T.green:T.border;};
-        row.appendChild(num); row.appendChild(ai2);
-        if(g.actions.length>1){const del=document.createElement('button');del.textContent='✕';del.style.cssText='background:none;border:none;font-size:14px;color:#aaa;cursor:pointer;padding:0 4px;';del.onclick=()=>{g.actions.splice(ai,1);renderActs();};row.appendChild(del);}
-        aw.appendChild(row);
-      });
-    };
-    renderActs(); wrap.appendChild(aw);
-    if(g.actions.length<4){const add=document.createElement('button');add.style.cssText=`background:none;border:none;font-size:13px;color:${T.gm};cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:12px;padding:0;`;add.textContent=L('addStep');add.onclick=()=>{g.actions.push('');renderActs();};wrap.appendChild(add);}
+      const row = div('display:flex;gap:8px;');
+      const skipBtn=document.createElement('button'); skipBtn.style.cssText=`flex:1;padding:14px;background:none;border:1.5px solid ${T.border};border-radius:14px;font-size:14px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;`;
+      skipBtn.textContent=S.lang==='ko'?'건너뛰기':'Skip';
+      skipBtn.onclick=()=>{ S.goalStep=3; render(); };
+      const nextBtn=document.createElement('button'); nextBtn.style.cssText=`flex:2;padding:14px;background:${T.green};color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+      nextBtn.textContent=S.lang==='ko'?'다음 →':'Next →';
+      nextBtn.onclick=()=>{ S.goalStep=3; render(); };
+      row.appendChild(skipBtn); row.appendChild(nextBtn);
+      wrap.appendChild(row);
+      setTimeout(()=>ti.focus(),50);
+    }
 
-    wrap.appendChild(lbl(L('whatToAvoid')));
-    const av=document.createElement('input'); av.type='text'; av.value=g.avoid; av.placeholder=L('avoidPlaceholder'); av.oninput=e=>{g.avoid=e.target.value;};
-    wrap.appendChild(av);
+    if(goalStep === 3) {
+      wrap.appendChild(h('h1',"font-family:'Fraunces',serif;font-size:24px;font-weight:400;color:#1A1A1A;line-height:1.3;margin-bottom:6px;",
+        S.lang==='ko' ? '지금 어떻게 대응하고 계세요?' : 'What have you tried so far?'));
+      wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:16px;line-height:1.6;`,
+        S.lang==='ko' ? '알고 있는 것만 입력하세요 — 나중에 추가할 수 있어요.' : 'Add what you know — you can always add more later.'));
 
-    const btn=document.createElement('button'); btn.id='cont-btn'; btn.className='btn btn-primary'; btn.disabled=!g.name.trim(); btn.textContent=L('saveGoal');
-    if(!g.name.trim()) btn.style.cssText='background:'+T.border+';color:'+T.muted+';cursor:default;width:100%;padding:15px;border:none;border-radius:15px;font-size:15px;font-weight:500;font-family:DM Sans,sans-serif;';
-    btn.onclick=()=>{
-      if(g.name.trim()){
-        if(g.goal_id && g._saved) {
-          // existing saved goal — bump version
-          g.goal_version = (g.goal_version || 1) + 1;
-        } else {
-          // new goal — set version to 1
-          g.goal_id = g.goal_id || 'g_' + Math.random().toString(36).substr(2,9) + '_' + Date.now();
-          g.goal_version = 1;
-          g.goal_number = g.goal_number || (S.editIdx + 1);
-          g._saved = true;
-        }
-        saveState();
-        S.step=3;
-        render();
+      const aw=div();
+      const renderActs=()=>{
+        aw.innerHTML='';
+        g.actions.forEach((a,ai)=>{
+          const row2=div('display:flex;gap:8px;align-items:center;margin-bottom:8px;');
+          const num=div(`width:22px;height:22px;min-width:22px;border-radius:50%;background:${T.gl};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:${T.green};`,(ai+1).toString());
+          const ai2=document.createElement('input'); ai2.type='text'; ai2.value=a;
+          ai2.placeholder=S.lang==='ko'?'예: 먼저 아이 상태 확인하기':`e.g. Check child's state first`;
+          ai2.style.cssText=`flex:1;padding:10px 12px;font-size:13px;border:1.5px solid ${T.border};border-radius:10px;background:#fff;outline:none;font-family:'DM Sans',sans-serif;color:${T.text};`;
+          ai2.oninput=e=>{g.actions[ai]=e.target.value;};
+          row2.appendChild(num); row2.appendChild(ai2);
+          if(g.actions.length>1){const del=document.createElement('button');del.textContent='✕';del.style.cssText='background:none;border:none;font-size:14px;color:#aaa;cursor:pointer;padding:0 4px;';del.onclick=()=>{g.actions.splice(ai,1);renderActs();};row2.appendChild(del);}
+          aw.appendChild(row2);
+        });
+      };
+      renderActs(); wrap.appendChild(aw);
+      if(g.actions.length<4){
+        const add=document.createElement('button');
+        add.style.cssText=`background:none;border:none;font-size:13px;color:${T.gm};cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:12px;padding:0;`;
+        add.textContent=L('addStep');
+        add.onclick=()=>{g.actions.push('');renderActs();};
+        wrap.appendChild(add);
       }
-    };
-    wrap.appendChild(btn);
+      wrap.appendChild(spacer);
+
+      const row = div('display:flex;gap:8px;');
+      const skipBtn=document.createElement('button'); skipBtn.style.cssText=`flex:1;padding:14px;background:none;border:1.5px solid ${T.border};border-radius:14px;font-size:14px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;`;
+      skipBtn.textContent=S.lang==='ko'?'건너뛰기':'Skip';
+      skipBtn.onclick=()=>{ S.goalStep=4; render(); };
+      const nextBtn=document.createElement('button'); nextBtn.style.cssText=`flex:2;padding:14px;background:${T.green};color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+      nextBtn.textContent=S.lang==='ko'?'다음 →':'Next →';
+      nextBtn.onclick=()=>{ S.goalStep=4; render(); };
+      row.appendChild(skipBtn); row.appendChild(nextBtn);
+      wrap.appendChild(row);
+    }
+
+    if(goalStep === 4) {
+      wrap.appendChild(h('h1',"font-family:'Fraunces',serif;font-size:24px;font-weight:400;color:#1A1A1A;line-height:1.3;margin-bottom:6px;",
+        S.lang==='ko' ? '피하고 싶은 것 또는 다른 추가사항' : 'Anything to avoid or additional notes?'));
+      wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:16px;line-height:1.6;`,
+        S.lang==='ko' ? '예: 이름을 여러 번 반복하기, 강요하기' : 'e.g. Repeating the question, forcing a response'));
+      const av=document.createElement('input'); av.type='text'; av.value=g.avoid;
+      av.placeholder=L('avoidPlaceholder');
+      av.style.cssText=`width:100%;padding:12px 14px;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:16px;`;
+      av.oninput=e=>{g.avoid=e.target.value;};
+      wrap.appendChild(av);
+      wrap.appendChild(spacer);
+
+      const row = div('display:flex;gap:8px;');
+      const skipBtn=document.createElement('button'); skipBtn.style.cssText=`flex:1;padding:14px;background:none;border:1.5px solid ${T.border};border-radius:14px;font-size:14px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;`;
+      skipBtn.textContent=S.lang==='ko'?'건너뛰기':'Skip';
+      skipBtn.onclick=()=>{
+        g.goal_id = g.goal_id || 'g_' + Math.random().toString(36).substr(2,9) + '_' + Date.now();
+        g.goal_version = g._saved ? (g.goal_version||1)+1 : 1;
+        g.goal_number = g.goal_number || (S.editIdx+1);
+        g._saved = true;
+        S.goalStep = 1;
+        saveState();
+        S.step=3; render();
+      };
+      const saveBtn=document.createElement('button'); saveBtn.style.cssText=`flex:2;padding:14px;background:${T.green};color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+      saveBtn.textContent=S.lang==='ko'?'저장하기 ✓':'Save ✓';
+      saveBtn.onclick=()=>{
+        g.goal_id = g.goal_id || 'g_' + Math.random().toString(36).substr(2,9) + '_' + Date.now();
+        g.goal_version = g._saved ? (g.goal_version||1)+1 : 1;
+        g.goal_number = g.goal_number || (S.editIdx+1);
+        g._saved = true;
+        S.goalStep = 1;
+        saveState();
+        S.step=3; render();
+      };
+      row.appendChild(skipBtn); row.appendChild(saveBtn);
+      wrap.appendChild(row);
+      setTimeout(()=>av.focus(),50);
+    }
   }
 
   // ── STEP 3.8 — Account creation ──────────────────────────────────

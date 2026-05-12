@@ -143,6 +143,8 @@ async function initSupabase() {
         detectSessionInUrl: true,
         persistSession: true,
         autoRefreshToken: true,
+        storage: window.localStorage,
+        storageKey: 'tb_supabase_auth',
       }
     });
 
@@ -1670,7 +1672,8 @@ function renderGoals() {
 
   // sign out / account section
   const accountWrap = div('margin-top:12px;');
-  if (currentUser) {
+  const user = currentUser;
+  if (user) {
     const signOutBtn = document.createElement('button');
     signOutBtn.style.cssText=`width:100%;padding:12px;background:none;border:1px solid ${T.border};border-radius:12px;font-size:13px;color:${T.tm};cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:space-between;`;
     signOutBtn.innerHTML=`<span style="font-size:12px;color:${T.muted};">✓ ${currentUser.email}</span><span>Sign out</span>`;

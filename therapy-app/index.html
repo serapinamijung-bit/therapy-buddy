@@ -190,6 +190,15 @@ async function initSupabase() {
     if (session) {
       currentUser = session.user;
       await loadFromSupabase();
+    } else {
+      // no active session — if localStorage has data from a logged-in account, clear it
+      const wasLoggedIn = localStorage.getItem('tb_was_logged_in');
+      if (wasLoggedIn) {
+        S.parent = ''; S.child = ''; S.age = '';
+        S.goals = []; S.logs = []; S.analyses = [];
+        S.view = 'onboard';
+        localStorage.removeItem('tb_was_logged_in');
+      }
     }
 
     // listen for auth changes
@@ -197,6 +206,7 @@ async function initSupabase() {
       console.log('Auth event:', event, session?.user?.email);
       if (event === 'SIGNED_IN' && session) {
         currentUser = session.user;
+        localStorage.setItem('tb_was_logged_in', '1');
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
           const localData = JSON.parse(saved);
@@ -1841,6 +1851,7 @@ function renderGoals() {
     signOutBtn.onclick = async () => {
       if (supabase) await supabase.auth.signOut();
       currentUser = null;
+      localStorage.removeItem('tb_was_logged_in');
       S = {view:'onboard', step:0, lang:S.lang, parent:'', child:'', age:'', goals:[], editIdx:null, goalStep:1, logGoalIdx:0, logs:[], analyses:[], isDemo:false, tempLog:{}};
       render();
     };

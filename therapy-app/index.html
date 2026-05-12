@@ -1787,11 +1787,39 @@ function renderGoals() {
   resetBtn.style.cssText=`width:100%;padding:12px;background:none;border:1px solid #e2e8f0;border-radius:12px;font-size:13px;color:#94a3b8;cursor:pointer;font-family:'DM Sans',sans-serif;`;
   resetBtn.textContent=L('resetAll');
   resetBtn.onclick=()=>{
-    if(confirm(L('resetConfirm'))){
+    // show warning screen
+    const overlay = div('position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:100;display:flex;align-items:flex-end;justify-content:center;');
+    const sheet = div(`background:#fff;border-radius:24px 24px 0 0;padding:28px 24px 40px;width:100%;max-width:390px;`);
+    sheet.innerHTML = `
+      <p style="font-size:22px;text-align:center;margin-bottom:12px;">⚠️</p>
+      <p style="font-family:'Fraunces',serif;font-size:20px;font-weight:400;color:#1A1A1A;text-align:center;margin-bottom:8px;">${S.lang==='ko'?'모든 데이터를 삭제할까요?':'Delete all data?'}</p>
+      <p style="font-size:13px;color:#909090;text-align:center;line-height:1.6;margin-bottom:24px;">${S.lang==='ko'?'목표, 기록, 분석 결과가 모두 삭제돼요. 이 작업은 되돌릴 수 없어요.':'All goals, logs, and analyses will be permanently deleted. This cannot be undone.'}</p>
+    `;
+    const deleteBtn = document.createElement('button');
+    deleteBtn.style.cssText=`width:100%;padding:14px;background:#C84B3A;color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:10px;`;
+    deleteBtn.textContent = S.lang==='ko'?'모두 삭제하기':'Delete everything';
+    deleteBtn.onclick=async()=>{
+      // delete from Supabase if logged in
+      if (supabase && currentUser) {
+        await supabase.from('logs').delete().eq('user_id', currentUser.id);
+        await supabase.from('analyses').delete().eq('user_id', currentUser.id);
+        await supabase.from('goals').delete().eq('user_id', currentUser.id);
+        await supabase.from('profiles').delete().eq('id', currentUser.id);
+      }
       clearState();
-      S={view:'onboard',step:0,lang:S.lang,parent:'',child:'',age:'',goals:[],editIdx:null,logGoalIdx:0,logs:[],analyses:[],isDemo:false,tempLog:{}};
+      S={view:'onboard',step:0,lang:S.lang,parent:'',child:'',age:'',goals:[],editIdx:null,goalStep:1,logGoalIdx:0,logs:[],analyses:[],isDemo:false,tempLog:{}};
+      document.body.removeChild(overlay);
       render();
-    }
+    };
+    const cancelBtn = document.createElement('button');
+    cancelBtn.style.cssText=`width:100%;padding:14px;background:none;border:1.5px solid ${T.border};border-radius:14px;font-size:15px;color:${T.tm};cursor:pointer;font-family:'DM Sans',sans-serif;`;
+    cancelBtn.textContent = S.lang==='ko'?'취소':'Cancel';
+    cancelBtn.onclick=()=>document.body.removeChild(overlay);
+    sheet.appendChild(deleteBtn);
+    sheet.appendChild(cancelBtn);
+    overlay.appendChild(sheet);
+    overlay.onclick=(e)=>{ if(e.target===overlay) document.body.removeChild(overlay); };
+    document.body.appendChild(overlay);
   };
   resetWrap.appendChild(resetBtn);
 
@@ -1805,6 +1833,7 @@ function renderGoals() {
     signOutBtn.onclick = async () => {
       if (supabase) await supabase.auth.signOut();
       currentUser = null;
+      S = {view:'onboard', step:0, lang:S.lang, parent:'', child:'', age:'', goals:[], editIdx:null, goalStep:1, logGoalIdx:0, logs:[], analyses:[], isDemo:false, tempLog:{}};
       render();
     };
     accountWrap.appendChild(signOutBtn);

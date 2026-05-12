@@ -155,12 +155,26 @@ async function initSupabase() {
 
     // listen for auth changes
     supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth event:', event, session?.user?.email);
       if (event === 'SIGNED_IN' && session) {
         currentUser = session.user;
+        // reload S from localStorage first (it may have been cleared on redirect)
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const localData = JSON.parse(saved);
+          S.parent = localData.parent || S.parent;
+          S.child = localData.child || S.child;
+          S.age = localData.age || S.age;
+          S.goals = localData.goals?.length ? localData.goals : S.goals;
+          S.logs = localData.logs?.length ? localData.logs : S.logs;
+          S.analyses = localData.analyses || S.analyses;
+          S.lang = localData.lang || S.lang;
+        }
         await loadFromSupabase();
         render();
       } else if (event === 'SIGNED_OUT') {
         currentUser = null;
+        render();
       }
     });
   } catch(e) {

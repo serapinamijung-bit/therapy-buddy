@@ -1003,7 +1003,8 @@ function renderOnboard() {
       row.appendChild(eb); row.appendChild(db); wrap.appendChild(row);
     });
 
-    if(S.goals.length<5){
+    const maxGoals = currentUser?.id === 'fa3dfb7f-2127-4554-a3e4-e8e80d55b21b' ? 20 : 5;
+if(S.goals.length<maxGoals){
       const ab=document.createElement('button');
       ab.style.cssText=`width:100%;padding:13px;background:none;border:1.5px dashed ${T.border};border-radius:14px;font-size:14px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:14px;`;
       ab.textContent=L('addGoal');
@@ -2075,7 +2076,8 @@ function renderGoals() {
     wrap.appendChild(row);
   });
 
-  if(S.goals.length<5){
+  const maxGoals = currentUser?.id === 'fa3dfb7f-2127-4554-a3e4-e8e80d55b21b' ? 20 : 5;
+if(S.goals.length<maxGoals){
     const ab=document.createElement('button'); ab.style.cssText=`width:100%;padding:14px;background:none;border:1.5px dashed ${T.border};border-radius:14px;font-size:14px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px;`; ab.textContent=L('addGoal'); ab.onclick=()=>{S.goals.push({icon:'🎯',name:'',trigger:'',actions:[''],avoid:''});S.editIdx=S.goals.length-1;S.step=3.5;S.view='onboard';render();};
     wrap.appendChild(ab);
   }

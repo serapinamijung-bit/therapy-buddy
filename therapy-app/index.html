@@ -1616,33 +1616,30 @@ function renderLog() {
         // save options
         const saveRow = div('display:flex;flex-direction:column;gap:8px;margin-top:16px;');
 
-        const saveBtn2 = document.createElement('button');
-        saveBtn2.style.cssText=`width:100%;padding:14px;background:${T.green};color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
-        saveBtn2.textContent = S.lang==='ko'?'기록으로 저장하기 →':'Save as log →';
-        saveBtn2.onclick=()=>{
-          const d=new Date(); const date=`${d.getMonth()+1}/${d.getDate()}`;
-          const newLog={goalIdx:S.logGoalIdx,date,caregiver:'You',before:S.tempLog.before||'',attempted:'Yes',technique:S.tempLog.technique||'',worked:S.tempLog.worked||'',didnt_work:S.tempLog.didnt_work||'',reaction:'',outcome:S.tempLog.outcome||'',next:S.tempLog.next||''};
-          S.logs.push(newLog); S.tempLog={}; saveState();
-          if(currentUser){ saveLogToSupabase({goalName:S.goals[S.logGoalIdx]?.name||'',date,caregiver:'You',before:newLog.before,attempted:newLog.attempted,technique:newLog.technique,worked:newLog.worked,didnt_work:newLog.didnt_work,reaction:newLog.reaction,outcome:newLog.outcome,next:newLog.next},S.goals[S.logGoalIdx]?.goal_id||''); }
-          go('home');
-        };
+        if (!S.tempLog.showEdit) {
+          const saveBtn2 = document.createElement('button');
+          saveBtn2.style.cssText=`width:100%;padding:14px;background:${T.green};color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+          saveBtn2.textContent = S.lang==='ko'?'기록으로 저장하기 →':'Save as log →';
+          saveBtn2.onclick=()=>{
+            const d=new Date(); const date=`${d.getMonth()+1}/${d.getDate()}`;
+            const newLog={goalIdx:S.logGoalIdx,date,caregiver:'You',before:S.tempLog.before||'',attempted:'Yes',technique:S.tempLog.technique||'',worked:S.tempLog.worked||'',didnt_work:S.tempLog.didnt_work||'',reaction:'',outcome:S.tempLog.outcome||'',next:S.tempLog.next||''};
+            S.logs.push(newLog); S.tempLog={}; saveState();
+            if(currentUser){ saveLogToSupabase({goalName:S.goals[S.logGoalIdx]?.name||'',date,caregiver:'You',before:newLog.before,attempted:newLog.attempted,technique:newLog.technique,worked:newLog.worked,didnt_work:newLog.didnt_work,reaction:newLog.reaction,outcome:newLog.outcome,next:newLog.next},S.goals[S.logGoalIdx]?.goal_id||''); }
+            go('home');
+          };
+          saveRow.appendChild(saveBtn2);
 
-        const editBtn = document.createElement('button');
-        editBtn.style.cssText=`width:100%;padding:12px;background:#fff;color:${T.tm};border:1.5px solid ${T.border};border-radius:14px;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;`;
-        editBtn.textContent = S.lang==='ko'?'수정하고 저장하기':'Review & edit before saving';
-        editBtn.onclick = () => {
-          // show parsed fields for editing
-          S.tempLog.showEdit = true;
-          render();
-        };
+          const editBtn = document.createElement('button');
+          editBtn.style.cssText=`width:100%;padding:12px;background:#fff;color:${T.tm};border:1.5px solid ${T.border};border-radius:14px;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+          editBtn.textContent = S.lang==='ko'?'내용 확인 후 저장하기':'Review & save';
+          editBtn.onclick = () => { S.tempLog.showEdit = true; render(); };
+          saveRow.appendChild(editBtn);
+        }
 
         const skipBtn = document.createElement('button');
         skipBtn.style.cssText=`width:100%;padding:12px;background:none;border:none;font-size:13px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;`;
         skipBtn.textContent = S.lang==='ko'?'저장 안 해도 괜찮아요':'Just needed to vent — don\'t save';
         skipBtn.onclick = () => { S.tempLog={}; go('home'); };
-
-        saveRow.appendChild(saveBtn2);
-        saveRow.appendChild(editBtn);
         saveRow.appendChild(skipBtn);
         wrap.appendChild(saveRow);
 
@@ -1671,6 +1668,18 @@ function renderLog() {
             editBox.appendChild(row);
           });
 
+          // save button at bottom of edit fields
+          const saveAfterEdit = document.createElement('button');
+          saveAfterEdit.style.cssText=`width:100%;padding:14px;background:${T.green};color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:12px;`;
+          saveAfterEdit.textContent = S.lang==='ko'?'기록으로 저장하기 →':'Save as log →';
+          saveAfterEdit.onclick=()=>{
+            const d=new Date(); const date=`${d.getMonth()+1}/${d.getDate()}`;
+            const newLog={goalIdx:S.logGoalIdx,date,caregiver:'You',before:S.tempLog.before||'',attempted:'Yes',technique:S.tempLog.technique||'',worked:S.tempLog.worked||'',didnt_work:S.tempLog.didnt_work||'',reaction:'',outcome:S.tempLog.outcome||'',next:S.tempLog.next||''};
+            S.logs.push(newLog); S.tempLog={}; saveState();
+            if(currentUser){ saveLogToSupabase({goalName:S.goals[S.logGoalIdx]?.name||'',date,caregiver:'You',before:newLog.before,attempted:newLog.attempted,technique:newLog.technique,worked:newLog.worked,didnt_work:newLog.didnt_work,reaction:newLog.reaction,outcome:newLog.outcome,next:newLog.next},S.goals[S.logGoalIdx]?.goal_id||''); }
+            go('home');
+          };
+          editBox.appendChild(saveAfterEdit);
           wrap.appendChild(editBox);
         }
 

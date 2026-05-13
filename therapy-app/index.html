@@ -2045,18 +2045,18 @@ function renderWeek() {
   wrap.appendChild(sr);
 
   // section label
-  wrap.appendChild(p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;`, S.lang==='ko'?'목표별':'By Goal'));
+  wrap.appendChild(p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;`, S.lang==='ko'?'목표별 인사이트':'Insights by Goal'));
 
   // per-goal accordion cards
   if (!S.expandedGoals) S.expandedGoals = {};
 
   S.goals.forEach((g,i)=>{
     const st=stats(i); const sc=statusCfg(st.status);
-    const isExpanded = S.expandedGoals[i] !== false; // default expanded
+    const isExpanded = S.expandedGoals[i] === true; // default collapsed
 
-    // accordion header — always visible
+    // accordion header
     const gc=div(`background:${T.card};border-radius:18px;border:1px solid ${T.border};margin-bottom:10px;overflow:hidden;`);
-    const hdr=div(`display:flex;justify-content:space-between;align-items:center;padding:14px 16px;cursor:pointer;`);
+    const hdr=div(`display:flex;justify-content:space-between;align-items:center;padding:14px 16px;cursor:pointer;background:${isExpanded?T.gl:'#fff'};transition:background .2s;`);
     hdr.innerHTML=`
       <div style="display:flex;align-items:center;gap:10px;flex:1;">
         <span style="font-size:18px;">${g.icon}</span>
@@ -2068,7 +2068,11 @@ function renderWeek() {
           </div>
         </div>
       </div>
-      <span style="font-size:14px;color:${T.muted};margin-left:8px;">${isExpanded?'▲':'▼'}</span>
+      <div style="display:flex;align-items:center;gap:4px;color:${T.green};font-size:12px;font-weight:500;flex-shrink:0;">
+        ${isExpanded
+          ? `<span>${S.lang==='ko'?'접기':'See less'}</span><span style="font-size:16px;">−</span>`
+          : `<span>${S.lang==='ko'?'더 보기':'See more'}</span><span style="font-size:16px;">+</span>`}
+      </div>
     `;
     hdr.onclick = () => {
       S.expandedGoals[i] = !isExpanded;

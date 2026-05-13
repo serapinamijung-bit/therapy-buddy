@@ -1947,6 +1947,7 @@ function renderWeek() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+              type: 'analyze',
               user_id: USER_ID,
               child: S.child,
               childAge: S.age,

@@ -1509,8 +1509,8 @@ function renderLog() {
             <p style="font-size:12px;color:${T.tm};line-height:1.5;margin-bottom:12px;">📍 ${sg.trigger || ''}</p>
           `;
           const createGoalBtn = document.createElement('button');
-          createGoalBtn.style.cssText=`width:100%;padding:10px;background:${T.orange};color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
-          createGoalBtn.textContent = S.lang==='ko'?`"${sg.name}" 목표 만들기`:`Create goal: "${sg.name}"`;
+          createGoalBtn.style.cssText=`width:100%;padding:12px;background:${T.orange};color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+          createGoalBtn.textContent = S.lang==='ko'?`"${sg.name}" 목표 만들고 저장하기`:`Create goal "${sg.name}" & save note`;
           createGoalBtn.onclick = () => {
             // pre-fill new goal with suggested data
             const newGoal = {
@@ -1543,8 +1543,10 @@ function renderLog() {
 
         const saveRow = div('display:flex;flex-direction:column;gap:8px;margin-top:12px;');
         const saveBtn = document.createElement('button');
-        saveBtn.style.cssText=`width:100%;padding:14px;background:${T.green};color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
-        saveBtn.textContent = S.lang==='ko'?'기록으로 저장하기 →':'Save as note →';
+        saveBtn.style.cssText=`width:100%;padding:14px;background:${S.tempLog.suggestedGoal && goalIdx < 0 ? '#fff' : T.green};color:${S.tempLog.suggestedGoal && goalIdx < 0 ? T.tm : '#fff'};border:${S.tempLog.suggestedGoal && goalIdx < 0 ? `1.5px solid ${T.border}` : 'none'};border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+        saveBtn.textContent = S.tempLog.suggestedGoal && goalIdx < 0
+          ? (S.lang==='ko'?'새 목표 없이 일반 노트로 저장':'Save as a general note without creating a goal')
+          : (S.lang==='ko'?'기록으로 저장하기 →':'Save as note →');
         saveBtn.onclick = () => {
           const d=new Date(); const date=`${d.getMonth()+1}/${d.getDate()}`;
           const finalGoalIdx = goalIdx >= 0 ? goalIdx : 0;

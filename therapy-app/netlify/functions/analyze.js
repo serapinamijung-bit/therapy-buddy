@@ -22,25 +22,37 @@ exports.handler = async function(event, context) {
     // DIARY PARSE MODE
     if (data.type === 'parse_diary') {
       const isKo = data.lang === 'ko';
-      const prompt = `A parent is logging their experience with their child's behavioral goal. They wrote this freely:
+      const prompt = `A parent shared this about their day with their child:
 
 "${data.diary}"
 
 Child: ${data.child}
 Goal they were working on: ${data.goal}
 
-Extract the following from their note. If something isn't mentioned, leave it as an empty string. Respond ONLY with JSON:
+Do two things:
 
+1. Write a warm, empathetic response (2-3 sentences) — like a supportive friend who truly gets how hard parenting is. Acknowledge what they went through. If something worked, celebrate it. If it was hard, validate that. Be warm and human, not clinical. End with gentle encouragement.
+
+2. Extract structured data from their note:
+- before: child's state before (one short phrase, or empty)
+- technique: what the parent tried (one short sentence, or empty)
+- worked: what worked (one short sentence, or empty)
+- didnt_work: what didn't work (one short sentence, or empty)
+- outcome: exactly one of: Success / Partial success / No success (or empty if unclear)
+- next: what to try next time (one short sentence, or empty)
+
+Respond in ${isKo ? 'Korean' : 'English'}. Keep each data field SHORT (under 15 words).
+
+Respond ONLY with this JSON, nothing else:
 {
-  "before": "child's state before (e.g. calm, resistant, focused, distracted) — one short phrase",
-  "technique": "what the parent tried — one short sentence",
-  "worked": "what worked, even a little — one short sentence or empty string",
-  "didnt_work": "what didn't work — one short sentence or empty string",
-  "outcome": "one of exactly: Success, Partial success, No success",
-  "next": "what to try next time — one short sentence or empty string"
-}
-
-Respond in ${isKo ? 'Korean' : 'English'}. Keep each field SHORT (under 15 words). Do not add anything outside the JSON.`;
+  "empathy": "your warm response here",
+  "before": "",
+  "technique": "",
+  "worked": "",
+  "didnt_work": "",
+  "outcome": "",
+  "next": ""
+}`;
 
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',

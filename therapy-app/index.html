@@ -1425,6 +1425,49 @@ function renderHome() {
 
 // ── LOG ────────────────────────────────────────────────────────────
 function renderLog() {
+  // voice input helper
+  function addVoiceBtn(input, onResult) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return null;
+
+    const btn = document.createElement('button');
+    btn.style.cssText=`background:none;border:1.5px solid ${T.border};border-radius:10px;padding:8px 10px;font-size:16px;cursor:pointer;flex-shrink:0;`;
+    btn.textContent = '🎤';
+    btn.title = S.lang==='ko'?'음성 입력':'Voice input';
+
+    btn.onclick = () => {
+      const rec = new SpeechRecognition();
+      rec.lang = S.lang==='ko'?'ko-KR':'en-US';
+      rec.continuous = false;
+      rec.interimResults = false;
+      btn.textContent = '🔴';
+      btn.style.borderColor = T.red;
+      rec.onresult = (e) => {
+        const transcript = e.results[0][0].transcript;
+        const current = input.value || input.textContent || '';
+        const newVal = current ? current + ' ' + transcript : transcript;
+        if (input.tagName === 'TEXTAREA') input.value = newVal;
+        else input.value = newVal;
+        onResult(newVal);
+        btn.textContent = '🎤';
+        btn.style.borderColor = T.border;
+      };
+      rec.onerror = () => { btn.textContent = '🎤'; btn.style.borderColor = T.border; };
+      rec.onend = () => { btn.textContent = '🎤'; btn.style.borderColor = T.border; };
+      rec.start();
+    };
+    return btn;
+  }
+
+  function voiceRow(input, onResult) {
+    const voiceBtn = addVoiceBtn(input, onResult);
+    if (!voiceBtn) return input;
+    const row = div('display:flex;gap:8px;align-items:flex-start;');
+    input.style.flex = '1';
+    row.appendChild(input);
+    row.appendChild(voiceBtn);
+    return row;
+  }
   const goal = S.goals[S.logGoalIdx];
   const wrap = div('flex:1;overflow-y:auto;padding:20px 22px 32px;');
   if(!goal){wrap.innerHTML=`<p style="color:${T.muted};font-size:14px;text-align:center;margin-top:40px">No goals yet.</p>`;return wrap;}
@@ -1476,15 +1519,17 @@ function renderLog() {
   const tl=p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;`, S.lang==='ko'?'무엇을 시도했나요?':'What did you try?');
   wrap.appendChild(tl);
   const ti=document.createElement('input'); ti.type='text'; ti.value=S.tempLog.technique||''; ti.placeholder=S.lang==='ko'?'예: 멜로디 + 별명 불러주기':'e.g. Melody + nickname, bedtime recap...'; ti.oninput=e=>{S.tempLog.technique=e.target.value; S.tempLog.attempted='Yes';};
-  wrap.appendChild(ti);
+  wrap.appendChild(voiceRow(ti, v=>{ S.tempLog.technique=v; S.tempLog.attempted='Yes'; }));
+
   const wl=p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;`,L('whatWorked'));
   wrap.appendChild(wl);
   const wta=document.createElement('textarea'); wta.value=S.tempLog.worked||''; wta.placeholder=S.lang==='ko'?'예: 멜로디로 불렀더니 웃으면서 내려왔어요':'e.g. Dooli-doo melody — Ian giggled and came downstairs'; wta.oninput=e=>S.tempLog.worked=e.target.value;
-  wrap.appendChild(wta);
+  wrap.appendChild(voiceRow(wta, v=>S.tempLog.worked=v));
+
   const wdl=p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;`,L('whatDidntWork'));
   wrap.appendChild(wdl);
   const wdta=document.createElement('textarea'); wdta.value=S.tempLog.didnt_work||''; wdta.placeholder=S.lang==='ko'?'예: 이름 3번 불렀는데 완전 무시':'e.g. Calling name 3 times — Ian ignored completely'; wdta.oninput=e=>S.tempLog.didnt_work=e.target.value;
-  wrap.appendChild(wdta);
+  wrap.appendChild(voiceRow(wdta, v=>S.tempLog.didnt_work=v));
 
   // AFTER
   wrap.appendChild(sectionTitle(L('afterResults')));
@@ -1495,7 +1540,8 @@ function renderLog() {
   wrap.appendChild(oc);
 
   wrap.appendChild(p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;`,L('changeNext')));
-  const nta=document.createElement('textarea'); nta.value=S.tempLog.next||''; nta.placeholder='e.g. Try joining play first before calling'; nta.oninput=e=>S.tempLog.next=e.target.value; nta.style.marginBottom='20px;';
+  const nta=document.createElement('textarea'); nta.value=S.tempLog.next||''; nta.placeholder='e.g. Try joining play first before calling'; nta.oninput=e=>S.tempLog.next=e.target.value; nta.style.marginBottom='20px';
+  wrap.appendChild(voiceRow(nta, v=>S.tempLog.next=v));
   wrap.appendChild(nta);
 
   const hasResult=S.tempLog.technique||S.tempLog.outcome;

@@ -230,6 +230,10 @@ async function initSupabase() {
       if (event === 'SIGNED_IN' && session) {
         currentUser = session.user;
         localStorage.setItem('tb_was_logged_in', '1');
+        // reset state before loading from Supabase
+        S.parent = ''; S.child = ''; S.age = '';
+        S.goals = []; S.logs = []; S.analyses = [];
+        S.view = 'onboard'; S.step = 0;
         await loadFromSupabase();
         render();
       } else if (event === 'SIGNED_OUT') {

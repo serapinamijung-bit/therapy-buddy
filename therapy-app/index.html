@@ -1473,34 +1473,21 @@ function renderLog() {
 
   // TREATMENT
   wrap.appendChild(sectionTitle(L('treatment')));
-  const attemptChips=[L('attemptedYes'),L('attemptedNo')];
-  const atc=div('display:flex;gap:8px;margin-bottom:12px;');
-  attemptChips.forEach(opt=>{const b=document.createElement('button');const on=S.tempLog.attempted===(opt===L('attemptedYes')?'Yes':'No');b.style.cssText=`padding:8px 14px;border-radius:20px;border:1.5px solid ${on?T.green:T.border};background:${on?T.gl:'#fff'};color:${on?T.green:T.tm};font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;`;b.textContent=opt;b.onclick=()=>{S.tempLog.attempted=(opt===L('attemptedYes')?'Yes':'No');render();};atc.appendChild(b);});
-  wrap.appendChild(atc);
-
-  if(S.tempLog.attempted==='Yes'){
-    const tl=p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;`,L('techniqueUsed'));
-    wrap.appendChild(tl);
-    const ti=document.createElement('input'); ti.type='text'; ti.value=S.tempLog.technique||''; ti.placeholder='e.g. Melody + nickname, bedtime recap...'; ti.oninput=e=>S.tempLog.technique=e.target.value;
-    wrap.appendChild(ti);
-    const wl=p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;`,L('whatWorked'));
-    wrap.appendChild(wl);
-    const wta=document.createElement('textarea'); wta.value=S.tempLog.worked||''; wta.placeholder='e.g. Dooli-doo melody — Ian giggled and came downstairs'; wta.oninput=e=>S.tempLog.worked=e.target.value;
-    wrap.appendChild(wta);
-    const wdl=p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;`,L('whatDidntWork'));
-    wrap.appendChild(wdl);
-    const wdta=document.createElement('textarea'); wdta.value=S.tempLog.didnt_work||''; wdta.placeholder='e.g. Calling name 3 times — Ian ignored completely'; wdta.oninput=e=>S.tempLog.didnt_work=e.target.value;
-    wrap.appendChild(wdta);
-  }
+  const tl=p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;`, S.lang==='ko'?'무엇을 시도했나요?':'What did you try?');
+  wrap.appendChild(tl);
+  const ti=document.createElement('input'); ti.type='text'; ti.value=S.tempLog.technique||''; ti.placeholder=S.lang==='ko'?'예: 멜로디 + 별명 불러주기':'e.g. Melody + nickname, bedtime recap...'; ti.oninput=e=>{S.tempLog.technique=e.target.value; S.tempLog.attempted='Yes';};
+  wrap.appendChild(ti);
+  const wl=p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;`,L('whatWorked'));
+  wrap.appendChild(wl);
+  const wta=document.createElement('textarea'); wta.value=S.tempLog.worked||''; wta.placeholder=S.lang==='ko'?'예: 멜로디로 불렀더니 웃으면서 내려왔어요':'e.g. Dooli-doo melody — Ian giggled and came downstairs'; wta.oninput=e=>S.tempLog.worked=e.target.value;
+  wrap.appendChild(wta);
+  const wdl=p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;`,L('whatDidntWork'));
+  wrap.appendChild(wdl);
+  const wdta=document.createElement('textarea'); wdta.value=S.tempLog.didnt_work||''; wdta.placeholder=S.lang==='ko'?'예: 이름 3번 불렀는데 완전 무시':'e.g. Calling name 3 times — Ian ignored completely'; wdta.oninput=e=>S.tempLog.didnt_work=e.target.value;
+  wrap.appendChild(wdta);
 
   // AFTER
   wrap.appendChild(sectionTitle(L('afterResults')));
-  const reactionOpts=[L('positive'),L('neutral'),L('negative')];
-  wrap.appendChild(p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;`,L('reaction')));
-  const rc=div('display:flex;gap:8px;margin-bottom:12px;');
-  reactionOpts.forEach(opt=>{const b=document.createElement('button');const on=S.tempLog.reaction===opt;b.style.cssText=`padding:8px 14px;border-radius:20px;border:1.5px solid ${on?T.green:T.border};background:${on?T.gl:'#fff'};color:${on?T.green:T.tm};font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;`;b.textContent=opt;b.onclick=()=>{S.tempLog.reaction=opt;render();};rc.appendChild(b);});
-  wrap.appendChild(rc);
-
   const outcomeOpts=[L('success'),L('partial'),L('noSuccess')];
   wrap.appendChild(p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;`,L('outcome')));
   const oc=div('display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;');
@@ -1511,7 +1498,7 @@ function renderLog() {
   const nta=document.createElement('textarea'); nta.value=S.tempLog.next||''; nta.placeholder='e.g. Try joining play first before calling'; nta.oninput=e=>S.tempLog.next=e.target.value; nta.style.marginBottom='20px;';
   wrap.appendChild(nta);
 
-  const hasResult=S.tempLog.attempted||S.tempLog.reaction||S.tempLog.outcome;
+  const hasResult=S.tempLog.technique||S.tempLog.outcome;
   const saveBtn=document.createElement('button'); saveBtn.className='btn btn-primary'; saveBtn.disabled=!hasResult; saveBtn.textContent=L('saveEntry');
   if(!hasResult) saveBtn.style.cssText='background:'+T.border+';color:'+T.muted+';cursor:default;width:100%;padding:15px;border:none;border-radius:15px;font-size:15px;font-weight:500;font-family:DM Sans,sans-serif;';
   saveBtn.onclick=()=>{

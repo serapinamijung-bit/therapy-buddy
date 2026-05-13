@@ -1,0 +1,19 @@
+{
+  "name": "Therapy Buddy",
+  "short_name": "Therapy Buddy",
+  "description": "The companion that helps your child's goals work at home.",
+  "start_url": "https://therapybuddy.org/?source=pwa",
+  "scope": "https://therapybuddy.org/",
+  "display": "standalone",
+  "background_color": "#2D5A3D",
+  "theme_color": "#2D5A3D",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

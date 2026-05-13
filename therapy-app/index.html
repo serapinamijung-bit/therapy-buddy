@@ -1326,7 +1326,7 @@ function renderHome() {
         }
       }
 
-      card.onclick=()=>{S.logGoalIdx=i;S.tempLog={noteMode:'goal'};go('log');};
+      card.onclick=()=>{S.logGoalIdx=i;S.tempLog={noteMode:'goal', fromHome:true};go('log');};
       wrap.appendChild(card);
     });
   }
@@ -1633,7 +1633,7 @@ function renderLog() {
   // ── GOAL LOG MODE ────────────────────────────────────────────────
   if(!goal){wrap.innerHTML=`<p style="color:${T.muted};font-size:14px;text-align:center;margin-top:40px">No goals yet.</p>`;return wrap;}
 
-  const back=document.createElement('button'); back.style.cssText=`background:none;border:none;cursor:pointer;color:${T.tm};font-size:14px;margin-bottom:18px;padding:0;font-family:'DM Sans',sans-serif;`; back.textContent=L('back'); back.onclick=()=>{ S.tempLog={}; render(); }; wrap.appendChild(back);
+  const back=document.createElement('button'); back.style.cssText=`background:none;border:none;cursor:pointer;color:${T.tm};font-size:14px;margin-bottom:18px;padding:0;font-family:'DM Sans',sans-serif;`; back.textContent=L('back'); back.onclick=()=>{ if(S.tempLog.fromHome){ S.tempLog={}; go('home'); } else { S.tempLog={}; render(); } }; wrap.appendChild(back);
 
   if(S.goals.length>1){
     const tabs=div('display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;');

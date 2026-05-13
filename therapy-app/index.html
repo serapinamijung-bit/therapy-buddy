@@ -1564,12 +1564,12 @@ function renderLog() {
       } else {
         const analyzeBtn = document.createElement('button');
         analyzeBtn.style.cssText=`width:100%;padding:13px;background:${T.green};color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:12px;`;
-        analyzeBtn.textContent = S.lang==='ko'?'✨ AI 로 정리하기':'✨ Let AI organize this';
+        analyzeBtn.textContent = S.lang==='ko'?'✨ 정리해드릴게요':'✨ Let us organize this for you';
         analyzeBtn.onclick = async () => {
-          analyzeBtn.textContent = S.lang==='ko'?'✨ 정리 중...':'✨ Organizing...';
+          analyzeBtn.textContent = S.lang==='ko'?'✨ 정리 중...':'✨ Organizing for you...';
           analyzeBtn.disabled = true;
           let dots = 0;
-          const interval = setInterval(() => { dots=(dots+1)%4; analyzeBtn.textContent=(S.lang==='ko'?'✨ 정리 중':'✨ Organizing')+'.'.repeat(dots); }, 500);
+          const interval = setInterval(() => { dots=(dots+1)%4; analyzeBtn.textContent=(S.lang==='ko'?'✨ 정리 중':'✨ Organizing for you')+'.'.repeat(dots); }, 500);
           try {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 30000);
@@ -1598,7 +1598,7 @@ function renderLog() {
             }
           } catch(e) {
             clearInterval(interval);
-            analyzeBtn.textContent = S.lang==='ko'?'✨ AI 로 정리하기':'✨ Let AI organize this';
+            analyzeBtn.textContent = S.lang==='ko'?'✨ 정리해드릴게요':'✨ Let us organize this for you';
             analyzeBtn.disabled = false;
           }
         };
@@ -1826,7 +1826,7 @@ function renderLog() {
         // analyze button
         const analyzeBtn = document.createElement('button');
         analyzeBtn.style.cssText=`width:100%;padding:13px;background:${T.green};color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:12px;`;
-        analyzeBtn.textContent = S.lang==='ko'?'✨ AI 로 정리하기':'✨ Let AI fill this in';
+        analyzeBtn.textContent = S.lang==='ko'?'✨ 정리해드릴게요':'✨ Let us organize this for you';
         analyzeBtn.onclick = async () => {
           analyzeBtn.textContent = S.lang==='ko'?'✨ 분석 중... (10-20초)':'✨ Analyzing... (10-20 sec)';
           analyzeBtn.disabled = true;
@@ -1866,7 +1866,7 @@ function renderLog() {
             }
           } catch(e) {
             clearInterval(interval);
-            analyzeBtn.textContent = S.lang==='ko'?'✨ AI 로 정리하기':'✨ Let AI fill this in';
+            analyzeBtn.textContent = S.lang==='ko'?'✨ 정리해드릴게요':'✨ Let us organize this for you';
             analyzeBtn.disabled = false;
             if (e.name === 'AbortError') {
               alert(S.lang==='ko'?'시간이 초과됐어요. 다시 시도해주세요.':'Timed out. Please try again.');

@@ -1984,57 +1984,115 @@ function renderWeek() {
     ? new Date().toLocaleDateString('ko-KR', {month:'long', day:'numeric'})
     : new Date().toLocaleDateString('en-US', {month:'long', day:'numeric'});
 
-  wrap.innerHTML=`<p style="font-size:12px;color:${T.muted};margin-bottom:4px">${dateStr}</p><h2 style="font-family:'Fraunces',serif;font-size:26px;font-weight:400;color:${T.text};margin-bottom:6px">${L('weekTitle',S.child)}</h2><p style="font-size:14px;color:${T.tm};margin-bottom:20px;line-height:1.6">${L('weekSubtitle',totalAtt)}</p>`;
+  wrap.innerHTML=`<p style="font-size:12px;color:${T.muted};margin-bottom:4px">${dateStr}</p><h2 style="font-family:'Fraunces',serif;font-size:26px;font-weight:400;color:${T.text};margin-bottom:6px">${L('weekTitle',S.child)}</h2>`;
+
+  // warm one-liner summary
+  const topGoal = S.goals.reduce((best, g, i) => {
+    const st = stats(i);
+    return st.total > (best.total||0) ? {name:g.name, total:st.total, rate:st.rate, i} : best;
+  }, {});
+  const summaryText = S.lang==='ko'
+    ? totalAtt === 0
+      ? `${S.child}와 함께 할 목표들이 준비됐어요. 첫 번째 기록을 남겨보세요 🌿`
+      : topGoal.total > 0
+        ? `${totalAtt}번의 시도 중 ${totalSucc}번 성공했어요. ${topGoal.name} 목표에서 가장 활발하게 작업하고 있어요 🌿`
+        : `${S.child}를 위해 열심히 하고 계시네요. 기록이 쌓일수록 더 좋은 인사이트를 드릴게요 🌿`
+    : totalAtt === 0
+      ? `Goals are set for ${S.child}. Start logging to see insights here 🌿`
+      : topGoal.total > 0
+        ? `${totalSucc} successes out of ${totalAtt} attempts. Most active on "${topGoal.name}" 🌿`
+        : `You're putting in the work for ${S.child}. Keep logging to unlock insights 🌿`;
+
+  const summaryBox = div(`background:${T.gl};border-radius:14px;padding:14px 16px;margin-bottom:16px;border-left:3px solid ${T.green};`);
+  summaryBox.innerHTML = `<p style="font-size:14px;color:#2D5A3D;line-height:1.7;font-family:'Fraunces',serif;font-weight:400;">${summaryText}</p>`;
+  wrap.appendChild(summaryBox);
+
+  // report button — top
+  if (totalAtt > 0) {
+    const reportBtn = document.createElement('button');
+    reportBtn.style.cssText=`width:100%;padding:12px;background:#fff;border:1.5px solid ${T.green};border-radius:14px;font-size:13px;font-weight:500;color:${T.green};cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:16px;`;
+    reportBtn.innerHTML=`<span>📋</span> ${S.lang==='ko'?'미팅 준비 리포트 생성':'Generate meeting prep report'}`;
+    reportBtn.onclick=()=>go('report');
+    wrap.appendChild(reportBtn);
+  }
 
   if(totalAtt===0){
-    const empty=div(`background:${T.gl};border-radius:18px;padding:24px;text-align:center;`);
+    const empty=div(`background:${T.card};border-radius:18px;border:1px solid ${T.border};padding:24px;text-align:center;`);
     empty.innerHTML=`<p style="font-size:32px;margin-bottom:12px">📊</p><p style="font-family:'Fraunces',serif;font-size:18px;color:${T.green};margin-bottom:8px">${L('noLogsTitle')}</p><p style="font-size:13px;color:${T.gm};line-height:1.6">${L('noLogsDesc')}</p>`;
     const lb=document.createElement('button'); lb.className='btn btn-primary'; lb.style.marginTop='14px'; lb.textContent=L('startLogging'); lb.onclick=()=>go('home');
     empty.appendChild(lb); wrap.appendChild(empty); return wrap;
   }
 
-  // summary
+  // stats row
   const sr=div('display:flex;gap:10px;margin-bottom:20px;');
   [{v:`${totalAtt}`,l:L('attempts'),click:null},{v:`${overall}%`,l:L('overallSuccess'),click:null},{v:`${S.goals.length}`,l:L('goals'),click:()=>go('goals')}].forEach(s=>{const sc=div(`flex:1;background:${T.card};border-radius:14px;border:1px solid ${T.border};padding:12px;text-align:center;${s.click?'cursor:pointer;':''}`);sc.innerHTML=`<p style="font-family:'Fraunces',serif;font-size:22px;font-weight:400;color:${T.text}">${s.v}</p><p style="font-size:11px;color:${s.click?T.green:T.muted};margin-top:3px">${s.l}${s.click?' →':''}</p>`;if(s.click)sc.onclick=s.click;sr.appendChild(sc);});
   wrap.appendChild(sr);
 
-  // per-goal breakdown
+  // section label
+  wrap.appendChild(p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;`, S.lang==='ko'?'목표별':'By Goal'));
+
+  // per-goal accordion cards
+  if (!S.expandedGoals) S.expandedGoals = {};
+
   S.goals.forEach((g,i)=>{
     const st=stats(i); const sc=statusCfg(st.status);
-    const gc=div(`background:${T.card};border-radius:18px;border:1px solid ${T.border};padding:16px 18px;margin-bottom:12px;`);
-    const hdr=div('display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;');
-    hdr.innerHTML=`<div><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:18px">${g.icon}</span><p style="font-size:14px;font-weight:500;color:${T.text}">${g.name}</p></div><p style="font-size:12px;color:${T.muted}">${L('attemptLabel',st.total)}</p></div><span style="font-size:11px;font-weight:500;background:${sc.bg};color:${sc.color};border-radius:20px;padding:4px 10px;white-space:nowrap">${sc.emoji} ${sc.label}</span>`;
+    const isExpanded = S.expandedGoals[i] !== false; // default expanded
+
+    // accordion header — always visible
+    const gc=div(`background:${T.card};border-radius:18px;border:1px solid ${T.border};margin-bottom:10px;overflow:hidden;`);
+    const hdr=div(`display:flex;justify-content:space-between;align-items:center;padding:14px 16px;cursor:pointer;`);
+    hdr.innerHTML=`
+      <div style="display:flex;align-items:center;gap:10px;flex:1;">
+        <span style="font-size:18px;">${g.icon}</span>
+        <div>
+          <p style="font-size:14px;font-weight:500;color:${T.text};margin-bottom:2px;">${g.name}</p>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:11px;font-weight:500;background:${sc.bg};color:${sc.color};border-radius:20px;padding:3px 8px;">${sc.emoji} ${sc.label}</span>
+            ${st.total>0?`<span style="font-size:11px;color:${T.muted};">${st.rate}% · ${st.total} ${S.lang==='ko'?'번':'tries'}</span>`:''}
+          </div>
+        </div>
+      </div>
+      <span style="font-size:14px;color:${T.muted};margin-left:8px;">${isExpanded?'▲':'▼'}</span>
+    `;
+    hdr.onclick = () => {
+      S.expandedGoals[i] = !isExpanded;
+      render();
+    };
     gc.appendChild(hdr);
 
-    if(st.total>0){
-      const bw=div('margin-bottom:10px;');
-      const bb=div(`height:6px;border-radius:3px;background:${T.border};overflow:hidden;margin-bottom:5px;`);
-      const bf=div(`height:100%;width:${st.rate}%;background:${sc.color};border-radius:3px;transition:width .8s ease;`);
-      bb.appendChild(bf); bw.appendChild(bb);
-      bw.innerHTML+=`<div style="display:flex;justify-content:space-between"><span style="font-size:11px;color:${T.muted}">${S.lang==='ko'?'성공':'Success'} ${st.rate}% · ${S.lang==='ko'?'부분 성공':'Partial'} ${st.partialRate}%</span><span style="font-size:11px;font-weight:500;color:${sc.color}">${st.rate}%</span></div>`;
-      gc.appendChild(bw);
+    // accordion body — only when expanded
+    if (isExpanded) {
+      const body = div('padding:0 16px 16px;border-top:1px solid #EAE6DE;');
 
-      const adv=div(`background:${sc.bg};border-radius:10px;padding:10px 12px;margin-bottom:${st.worked.length||st.next.length?'10px':'0'};`);
-      adv.innerHTML=`<p style="font-size:12px;color:${sc.color};line-height:1.55">${sc.tip}</p>`;
-      gc.appendChild(adv);
+      if(st.total>0){
+        const bw=div('margin-bottom:10px;margin-top:12px;');
+        const bb=div(`height:6px;border-radius:3px;background:${T.border};overflow:hidden;margin-bottom:5px;`);
+        const bf=div(`height:100%;width:${st.rate}%;background:${sc.color};border-radius:3px;`);
+        bb.appendChild(bf); bw.appendChild(bb);
+        bw.innerHTML+=`<span style="font-size:11px;color:${T.muted}">${S.lang==='ko'?'성공':'Success'} ${st.rate}% · ${S.lang==='ko'?'부분 성공':'Partial'} ${st.partialRate}%</span>`;
+        body.appendChild(bw);
 
-      if(st.worked.length){
-        const wn=div('margin-bottom:8px;');
-        wn.appendChild(p(`font-size:10px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px;`,L('whatWorkedLabel')));
-        st.worked.slice(0,2).forEach(note=>{const np=p(`font-size:12px;color:${T.tm};line-height:1.55;padding:5px 0;border-bottom:1px solid ${T.border};`,`✓ ${note}`);wn.appendChild(np);});
-        gc.appendChild(wn);
-      }
-      if(st.next.length){
-        const nn=div('');
-        nn.appendChild(p(`font-size:10px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px;`,L('tryNext')));
-        st.next.slice(0,1).forEach(note=>{const np=p(`font-size:12px;color:${T.tm};line-height:1.55;`,`→ ${note}`);nn.appendChild(np);});
-        gc.appendChild(nn);
-      }
+        const adv=div(`background:${sc.bg};border-radius:10px;padding:10px 12px;margin-bottom:${st.worked.length||st.next.length?'10px':'0'};`);
+        adv.innerHTML=`<p style="font-size:12px;color:${sc.color};line-height:1.55">${sc.tip}</p>`;
+        body.appendChild(adv);
 
-      // Claude analysis section
-      const analysisId = `analysis_${i}`;
-      const analysisWrap = div('margin-top:12px;');
-      analysisWrap.id = analysisId;
+        if(st.worked.length){
+          const wn=div('margin-bottom:8px;');
+          wn.appendChild(p(`font-size:10px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px;`,L('whatWorkedLabel')));
+          st.worked.slice(0,2).forEach(note=>{const np=p(`font-size:12px;color:${T.tm};line-height:1.55;padding:5px 0;border-bottom:1px solid ${T.border};`,`✓ ${note}`);wn.appendChild(np);});
+          body.appendChild(wn);
+        }
+        if(st.next.length){
+          const nn=div('');
+          nn.appendChild(p(`font-size:10px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px;`,L('tryNext')));
+          st.next.slice(0,1).forEach(note=>{const np=p(`font-size:12px;color:${T.tm};line-height:1.55;`,`→ ${note}`);nn.appendChild(np);});
+          body.appendChild(nn);
+        }
+
+        // analysis section
+        const analysisId = `analysis_${i}`;
+        const analysisWrap = div('margin-top:12px;');
+        analysisWrap.id = analysisId;
 
       // show existing analysis if available
       const existingAnalysis = S.analyses && S.analyses[i];
@@ -2190,22 +2248,17 @@ function renderWeek() {
         }
       };
 
-      analysisWrap.appendChild(genBtn);
-      gc.appendChild(analysisWrap);
-    }
+        analysisWrap.appendChild(genBtn);
+        body.appendChild(analysisWrap);
+      }
 
-    const lb=document.createElement('button'); lb.style.cssText=`width:100%;padding:10px;background:none;border:1px solid ${T.border};border-radius:12px;font-size:13px;color:${T.tm};cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:10px;`; lb.textContent=L('logToday',g.name); lb.onclick=()=>{S.logGoalIdx=i;S.tempLog={};go('log');};
-    gc.appendChild(lb); wrap.appendChild(gc);
+      const lb=document.createElement('button'); lb.style.cssText=`width:100%;padding:10px;background:none;border:1px solid ${T.border};border-radius:12px;font-size:13px;color:${T.tm};cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:10px;`; lb.textContent=L('logToday',g.name); lb.onclick=()=>{S.logGoalIdx=i;S.tempLog={};go('log');};
+      body.appendChild(lb);
+      gc.appendChild(body);
+    } // end expanded
+
+    wrap.appendChild(gc);
   });
-
-  // report button
-  if (S.logs.length > 0) {
-    const reportBtn = document.createElement('button');
-    reportBtn.style.cssText=`width:100%;padding:14px;background:#fff;border:1.5px solid ${T.green};border-radius:14px;font-size:14px;font-weight:500;color:${T.green};cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:16px;display:flex;align-items:center;justify-content:center;gap:8px;`;
-    reportBtn.innerHTML=`<span>📋</span> ${S.lang==='ko'?'리포트 생성하기':'Generate Report'}`;
-    reportBtn.onclick=()=>go('report');
-    wrap.appendChild(reportBtn);
-  }
 
   return wrap;
 }

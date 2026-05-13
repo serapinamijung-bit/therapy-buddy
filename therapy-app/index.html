@@ -1504,10 +1504,186 @@ function renderLog() {
   }
   wrap.appendChild(actCard);
 
+  // input mode selector
+  if (!S.tempLog.mode) S.tempLog.mode = 'fields';
+  const modeRow = div('display:flex;gap:8px;margin-bottom:20px;');
+  [
+    ['fields', S.lang==='ko'?'📝 직접 입력':'📝 Fill in fields'],
+    ['diary', S.lang==='ko'?'🎤 대화로 입력':'🎤 Talk it out']
+  ].forEach(([mode, label]) => {
+    const b = document.createElement('button');
+    const on = S.tempLog.mode === mode;
+    b.style.cssText=`flex:1;padding:10px;border-radius:12px;border:1.5px solid ${on?T.green:T.border};background:${on?T.gl:'#fff'};color:${on?T.green:T.tm};font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+    b.textContent = label;
+    b.onclick = () => { S.tempLog.mode = mode; render(); };
+    modeRow.appendChild(b);
+  });
+  wrap.appendChild(modeRow);
+
   // ABC sections
   const sectionTitle=(t)=>{const e=div(`font-size:11px;font-weight:600;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid ${T.border};`);e.textContent=t;return e;};
 
-  // BEFORE
+  // ── DIARY MODE ──────────────────────────────────────────────────
+  if (S.tempLog.mode === 'diary') {
+    // guidance box
+    const guideBox = div(`background:${T.gl};border-radius:14px;padding:14px 16px;margin-bottom:16px;`);
+    guideBox.innerHTML = `
+      <p style="font-size:12px;font-weight:500;color:${T.green};margin-bottom:8px;">${S.lang==='ko'?'💬 이런 내용을 자유롭게 말해보세요:':'💬 Just talk — mention any of these:'}</p>
+      <p style="font-size:12px;color:${T.tm};line-height:1.8;">
+        ${S.lang==='ko'
+          ? '• 어떤 상황이었나요? (언제, 어디서)<br>• 무엇을 시도했나요?<br>• 효과가 있었나요? 없었나요?<br>• 아이가 어떻게 반응했나요?'
+          : '• What was the situation? (when, where)<br>• What did you try?<br>• What worked? What didn\'t?<br>• How did your child react?'}
+      </p>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid ${T.border};">
+        <p style="font-size:11px;color:${T.muted};margin-bottom:4px;">${S.lang==='ko'?'예시:':'Example:'}</p>
+        <p style="font-size:12px;color:${T.tm};line-height:1.6;font-style:italic;">${S.lang==='ko'
+          ? '"오늘 저녁에 이안이가 주안이 장난감 빼앗으려 해서 2분만 기다리라고 했는데 울어버렸어. 근데 다른 장난감 줬더니 금방 괜찮아졌어."'
+          : '"Tonight Ian tried to grab John\'s toy. I said wait 2 minutes but he cried. Then I offered a different toy and he calmed right down."'}</p>
+      </div>`;
+    wrap.appendChild(guideBox);
+
+    // diary input
+    const diaryTA = document.createElement('textarea');
+    diaryTA.value = S.tempLog.diary || '';
+    diaryTA.placeholder = S.lang==='ko'
+      ? '오늘 있었던 일을 편하게 적어주세요...'
+      : 'Write or speak freely about what happened today...';
+    diaryTA.style.cssText = `width:100%;min-height:120px;padding:12px 14px;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;resize:vertical;line-height:1.6;`;
+    diaryTA.oninput = e => S.tempLog.diary = e.target.value;
+
+    // voice button for diary
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const voiceBtn = document.createElement('button');
+      voiceBtn.style.cssText=`width:100%;padding:12px;background:#fff;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px;`;
+      voiceBtn.innerHTML = `<span style="font-size:20px;">🎤</span> ${S.lang==='ko'?'말하기 시작':'Start speaking'}`;
+
+      voiceBtn.onclick = () => {
+        const rec = new SpeechRecognition();
+        rec.lang = S.lang==='ko'?'ko-KR':'en-US';
+        rec.continuous = true;
+        rec.interimResults = true;
+        voiceBtn.innerHTML = `<span style="font-size:20px;">🔴</span> ${S.lang==='ko'?'듣는 중... (탭해서 중지)':'Listening... (tap to stop)'}`;
+        voiceBtn.style.borderColor = T.red;
+        voiceBtn.style.color = T.red;
+        let final = S.tempLog.diary || '';
+
+        rec.onresult = (e) => {
+          let interim = '';
+          for (let i = e.resultIndex; i < e.results.length; i++) {
+            if (e.results[i].isFinal) final += e.results[i][0].transcript + ' ';
+            else interim = e.results[i][0].transcript;
+          }
+          diaryTA.value = final + interim;
+          S.tempLog.diary = final + interim;
+        };
+
+        let stopped = false;
+        const stopRec = () => {
+          if (stopped) return;
+          stopped = true;
+          rec.stop();
+          voiceBtn.innerHTML = `<span style="font-size:20px;">🎤</span> ${S.lang==='ko'?'말하기 시작':'Start speaking'}`;
+          voiceBtn.style.borderColor = T.border;
+          voiceBtn.style.color = T.text;
+        };
+
+        rec.onend = stopRec;
+        voiceBtn.onclick = stopRec;
+        rec.start();
+      };
+
+      const dRow = div('display:flex;flex-direction:column;gap:0;');
+      dRow.appendChild(diaryTA);
+      dRow.appendChild(voiceBtn);
+      wrap.appendChild(dRow);
+    } else {
+      wrap.appendChild(diaryTA);
+    }
+
+    // AI parse button
+    if (S.tempLog.diary && S.tempLog.diary.trim().length > 10) {
+      if (S.tempLog.diaryParsed) {
+        // show parsed result
+        const parsedBox = div(`background:#fff;border-radius:14px;border:1px solid ${T.border};padding:16px;margin-top:16px;`);
+        parsedBox.innerHTML = `<p style="font-size:12px;font-weight:500;color:${T.green};margin-bottom:12px;">✓ ${S.lang==='ko'?'AI 가 정리했어요 — 수정하실 수 있어요':'AI filled this in — feel free to edit'}</p>`;
+
+        const fields = [
+          ['before', S.lang==='ko'?'시도 전 상태':'Before', S.tempLog.before],
+          ['technique', S.lang==='ko'?'무엇을 시도했나요':'What you tried', S.tempLog.technique],
+          ['worked', S.lang==='ko'?'효과 있었던 것':'What worked', S.tempLog.worked],
+          ['didnt_work', S.lang==='ko'?'효과 없었던 것':'What didn\'t work', S.tempLog.didnt_work],
+          ['outcome', S.lang==='ko'?'결과':'Outcome', S.tempLog.outcome],
+        ];
+
+        fields.forEach(([key, label, val]) => {
+          if (!val) return;
+          const row = div('margin-bottom:10px;');
+          row.innerHTML = `<p style="font-size:10px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px;">${label}</p>`;
+          const inp = document.createElement('input');
+          inp.type = 'text'; inp.value = val;
+          inp.style.cssText = `width:100%;padding:8px 12px;border:1.5px solid ${T.border};border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;`;
+          inp.oninput = e => S.tempLog[key] = e.target.value;
+          row.appendChild(inp);
+          parsedBox.appendChild(row);
+        });
+
+        const reBtn = document.createElement('button');
+        reBtn.style.cssText=`background:none;border:none;font-size:12px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px;`;
+        reBtn.textContent = S.lang==='ko'?'다시 분석하기':'Re-analyze';
+        reBtn.onclick = () => { S.tempLog.diaryParsed = false; render(); };
+        parsedBox.appendChild(reBtn);
+        wrap.appendChild(parsedBox);
+
+        // save button
+        const saveBtn2=document.createElement('button'); saveBtn2.className='btn btn-primary'; saveBtn2.textContent=L('saveEntry'); saveBtn2.style.marginTop='16px';
+        saveBtn2.onclick=()=>{
+          const d=new Date(); const date=`${d.getMonth()+1}/${d.getDate()}`;
+          const newLog={goalIdx:S.logGoalIdx,date,caregiver:'You',before:S.tempLog.before||'',attempted:'Yes',technique:S.tempLog.technique||'',worked:S.tempLog.worked||'',didnt_work:S.tempLog.didnt_work||'',reaction:'',outcome:S.tempLog.outcome||'',next:S.tempLog.next||''};
+          S.logs.push(newLog); S.tempLog={}; saveState();
+          if(currentUser){ saveLogToSupabase({goalName:S.goals[S.logGoalIdx]?.name||'',date,caregiver:'You',before:newLog.before,attempted:newLog.attempted,technique:newLog.technique,worked:newLog.worked,didnt_work:newLog.didnt_work,reaction:newLog.reaction,outcome:newLog.outcome,next:newLog.next},S.goals[S.logGoalIdx]?.goal_id||''); }
+          go('home');
+        };
+        wrap.appendChild(saveBtn2);
+
+      } else {
+        // analyze button
+        const analyzeBtn = document.createElement('button');
+        analyzeBtn.style.cssText=`width:100%;padding:13px;background:${T.green};color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:12px;`;
+        analyzeBtn.textContent = S.lang==='ko'?'✨ AI 로 정리하기':'✨ Let AI fill this in';
+        analyzeBtn.onclick = async () => {
+          analyzeBtn.textContent = S.lang==='ko'?'분석 중...':'Analyzing...';
+          analyzeBtn.disabled = true;
+          try {
+            const res = await fetch('/.netlify/functions/analyze', {
+              method: 'POST',
+              headers: {'Content-Type':'application/json'},
+              body: JSON.stringify({
+                type: 'parse_diary',
+                diary: S.tempLog.diary,
+                child: S.child,
+                goal: S.goals[S.logGoalIdx]?.name,
+                lang: S.lang
+              })
+            });
+            const data = await res.json();
+            if (data.parsed) {
+              Object.assign(S.tempLog, data.parsed);
+              S.tempLog.diaryParsed = true;
+              render();
+            }
+          } catch(e) {
+            analyzeBtn.textContent = S.lang==='ko'?'✨ AI 로 정리하기':'✨ Let AI fill this in';
+            analyzeBtn.disabled = false;
+          }
+        };
+        wrap.appendChild(analyzeBtn);
+      }
+    }
+    return wrap;
+  }
+
+  // ── FIELDS MODE ─────────────────────────────────────────────────
   wrap.appendChild(sectionTitle(L('beforeState', S.child)));
   const stateChips=[L('calm'),L('focused'),L('resistant'),L('transition')];
   const sc=div('display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;');

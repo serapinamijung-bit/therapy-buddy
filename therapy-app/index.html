@@ -1239,7 +1239,7 @@ function renderHome() {
     `;
     ventBtn.onmouseenter = () => ventBtn.style.borderColor = T.green;
     ventBtn.onmouseleave = () => ventBtn.style.borderColor = T.border;
-    ventBtn.onclick = () => { S.tempLog = {noteMode:'drop', mode:'diary'}; go('log'); };
+    ventBtn.onclick = () => { S.tempLog = {noteMode:'drop', mode:'diary', fromHome:true}; go('log'); };
     wrap.appendChild(ventBtn);
 
     const tl=p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;`,L('todayCards'));
@@ -1427,7 +1427,10 @@ function renderLog() {
     const backBtn = document.createElement('button');
     backBtn.style.cssText=`background:none;border:none;cursor:pointer;color:${T.tm};font-size:14px;margin-bottom:20px;padding:0;font-family:'DM Sans',sans-serif;`;
     backBtn.textContent = '← ' + (S.lang==='ko'?'뒤로':'Back');
-    backBtn.onclick = () => { S.tempLog = {}; render(); };
+    backBtn.onclick = () => {
+      if (S.tempLog.fromHome) { S.tempLog = {}; go('home'); }
+      else { S.tempLog = {}; render(); }
+    };
     wrap.appendChild(backBtn);
 
     wrap.appendChild(h('h2', `font-family:'Fraunces',serif;font-size:22px;font-weight:400;color:${T.text};margin-bottom:6px;`,

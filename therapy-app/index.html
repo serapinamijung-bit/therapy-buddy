@@ -1372,13 +1372,189 @@ function renderLog() {
   const dateStr = S.lang === 'ko'
     ? new Date().toLocaleDateString('ko-KR', {month:'long', day:'numeric'})
     : new Date().toLocaleDateString('en-US', {month:'long', day:'numeric'});
-  const warmHead = div('margin-bottom:20px;');
+  const warmHead = div('margin-bottom:24px;');
   warmHead.innerHTML = `
     <p style="font-size:12px;color:${T.muted};margin-bottom:4px;">${dateStr}</p>
     <h2 style="font-family:'Fraunces',serif;font-size:24px;font-weight:400;color:${T.text};line-height:1.3;">${S.lang==='ko'?'오늘 무슨 일이 있었나요?':'What\'s on your mind?'}</h2>
   `;
   wrap.appendChild(warmHead);
 
+  // mode selector — only show if no mode chosen yet
+  if (!S.tempLog.noteMode) {
+    const opt1 = div(`background:#fff;border-radius:18px;border:1.5px solid ${T.border};padding:18px 20px;margin-bottom:12px;cursor:pointer;`);
+    opt1.innerHTML = `
+      <p style="font-size:16px;margin-bottom:6px;">🗒️</p>
+      <p style="font-size:15px;font-weight:500;color:${T.text};margin-bottom:4px;">${S.lang==='ko'?'노트 남기기':'Drop a note'}</p>
+      <p style="font-size:12px;color:${T.muted};line-height:1.5;">${S.lang==='ko'?'뭐든 자유롭게 — 정리는 AI가 해드릴게요. 문자나 이메일을 붙여넣어도 좋아요.':'Anything on your mind — we\'ll organize it. You can copy & paste from a text or email.'}</p>
+    `;
+    opt1.onclick = () => { S.tempLog.noteMode = 'drop'; S.tempLog.mode = 'diary'; render(); };
+
+    const opt2 = div(`background:#fff;border-radius:18px;border:1.5px solid ${T.border};padding:18px 20px;margin-bottom:12px;cursor:pointer;`);
+    opt2.innerHTML = `
+      <p style="font-size:16px;margin-bottom:6px;">🎯</p>
+      <p style="font-size:15px;font-weight:500;color:${T.text};margin-bottom:4px;">${S.lang==='ko'?'목표 관련 기록하기':'Log what happened'}</p>
+      <p style="font-size:12px;color:${T.muted};line-height:1.5;">${S.lang==='ko'?'목표 중 하나와 관련된 일을 기록해요.':'Related to one of your goals.'}</p>
+    `;
+    opt2.onclick = () => { S.tempLog.noteMode = 'goal'; render(); };
+
+    // hover effect
+    [opt1, opt2].forEach(opt => {
+      opt.onmouseenter = () => opt.style.borderColor = T.green;
+      opt.onmouseleave = () => opt.style.borderColor = T.border;
+    });
+
+    wrap.appendChild(opt1);
+    wrap.appendChild(opt2);
+    return wrap;
+  }
+
+  // ── DROP A NOTE MODE ─────────────────────────────────────────────
+  if (S.tempLog.noteMode === 'drop') {
+    const backBtn = document.createElement('button');
+    backBtn.style.cssText=`background:none;border:none;cursor:pointer;color:${T.tm};font-size:14px;margin-bottom:20px;padding:0;font-family:'DM Sans',sans-serif;`;
+    backBtn.textContent = '← ' + (S.lang==='ko'?'뒤로':'Back');
+    backBtn.onclick = () => { S.tempLog = {}; render(); };
+    wrap.appendChild(backBtn);
+
+    wrap.appendChild(h('h2', `font-family:'Fraunces',serif;font-size:22px;font-weight:400;color:${T.text};margin-bottom:6px;`,
+      S.lang==='ko'?'자유롭게 남겨주세요':'Drop a note'));
+    wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:16px;line-height:1.6;`,
+      S.lang==='ko'
+        ? '뭐든 괜찮아요 — 문자, 이메일, 오늘 있었던 일 모두. AI 가 정리해드릴게요.'
+        : 'Anything goes — a text, an email, something that happened. AI will organize it for you.'));
+
+    const guideBox = div(`background:${T.gl};border-radius:12px;padding:12px 14px;margin-bottom:14px;`);
+    guideBox.innerHTML = `<p style="font-size:12px;color:${T.green};line-height:1.7;">${S.lang==='ko'
+      ? '💡 선생님 문자, 치료사 이메일, 오늘 있었던 일을 그대로 붙여넣어도 좋아요.'
+      : '💡 Paste a text from your teacher, an email from your therapist, or just tell us what happened.'}</p>`;
+    wrap.appendChild(guideBox);
+
+    const diaryTA = document.createElement('textarea');
+    diaryTA.value = S.tempLog.diary || '';
+    diaryTA.placeholder = S.lang==='ko'
+      ? '여기에 붙여넣거나 직접 입력하세요...'
+      : 'Paste or type anything here...';
+    diaryTA.style.cssText = `width:100%;min-height:180px;padding:12px 14px;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;resize:vertical;line-height:1.7;`;
+    diaryTA.oninput = e => { S.tempLog.diary = e.target.value; if (e.target.value.length === 11) render(); };
+
+    // voice button
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const voiceBtn = document.createElement('button');
+      voiceBtn.style.cssText=`width:100%;padding:12px;background:#fff;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px;`;
+      voiceBtn.innerHTML = `<span style="font-size:20px;">🎤</span> ${S.lang==='ko'?'말하기':'Speak instead'}`;
+      voiceBtn.onclick = () => {
+        const rec = new SpeechRecognition();
+        rec.lang = S.lang==='ko'?'ko-KR':'en-US';
+        rec.continuous = true;
+        rec.interimResults = true;
+        voiceBtn.innerHTML = `<span style="font-size:20px;">🔴</span> ${S.lang==='ko'?'듣는 중... (탭해서 중지)':'Listening... (tap to stop)'}`;
+        voiceBtn.style.borderColor = T.red;
+        let final = S.tempLog.diary || '';
+        rec.onresult = (e) => {
+          let interim = '';
+          for (let i = e.resultIndex; i < e.results.length; i++) {
+            if (e.results[i].isFinal) final += e.results[i][0].transcript + ' ';
+            else interim = e.results[i][0].transcript;
+          }
+          diaryTA.value = final + interim;
+          S.tempLog.diary = final + interim;
+        };
+        let stopped = false;
+        const stopRec = () => {
+          if (stopped) return; stopped = true; rec.stop();
+          voiceBtn.innerHTML = `<span style="font-size:20px;">🎤</span> ${S.lang==='ko'?'말하기':'Speak instead'}`;
+          voiceBtn.style.borderColor = T.border;
+          setTimeout(() => render(), 300);
+        };
+        rec.onend = stopRec;
+        voiceBtn.onclick = stopRec;
+        rec.start();
+      };
+      const dRow = div('display:flex;flex-direction:column;gap:0;');
+      dRow.appendChild(diaryTA);
+      dRow.appendChild(voiceBtn);
+      wrap.appendChild(dRow);
+    } else {
+      wrap.appendChild(diaryTA);
+    }
+
+    // AI analyze button
+    if (S.tempLog.diary && S.tempLog.diary.trim().length > 10) {
+      if (S.tempLog.diaryParsed) {
+        // empathy + save options
+        if (S.tempLog.empathy) {
+          const empathyBox = div(`background:${T.gl};border-radius:16px;padding:18px 20px;margin-top:16px;border-left:3px solid ${T.green};`);
+          empathyBox.innerHTML = `<p style="font-size:15px;color:#2D5A3D;line-height:1.8;font-family:'Fraunces',serif;font-weight:400;">${S.tempLog.empathy}</p>`;
+          wrap.appendChild(empathyBox);
+        }
+
+        const saveRow = div('display:flex;flex-direction:column;gap:8px;margin-top:16px;');
+        const saveBtn = document.createElement('button');
+        saveBtn.style.cssText=`width:100%;padding:14px;background:${T.green};color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+        saveBtn.textContent = S.lang==='ko'?'기록으로 저장하기 →':'Save as note →';
+        saveBtn.onclick = () => {
+          const d=new Date(); const date=`${d.getMonth()+1}/${d.getDate()}`;
+          // find best matching goal
+          const goalIdx = S.tempLog.goalIdx !== undefined ? S.tempLog.goalIdx : 0;
+          const newLog={goalIdx,date,caregiver:'You',before:S.tempLog.before||'',attempted:'Yes',technique:S.tempLog.technique||S.tempLog.diary||'',worked:S.tempLog.worked||'',didnt_work:S.tempLog.didnt_work||'',reaction:'',outcome:S.tempLog.outcome||'',next:S.tempLog.next||''};
+          S.logs.push(newLog); S.tempLog={}; saveState();
+          if(currentUser){ saveLogToSupabase({goalName:S.goals[goalIdx]?.name||'',date,caregiver:'You',before:newLog.before,attempted:newLog.attempted,technique:newLog.technique,worked:newLog.worked,didnt_work:newLog.didnt_work,reaction:newLog.reaction,outcome:newLog.outcome,next:newLog.next},S.goals[goalIdx]?.goal_id||''); }
+          go('home');
+        };
+        const skipBtn = document.createElement('button');
+        skipBtn.style.cssText=`width:100%;padding:12px;background:none;border:none;font-size:13px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;`;
+        skipBtn.textContent = S.lang==='ko'?'저장 안 해도 괜찮아요':'Just needed to vent — don\'t save';
+        skipBtn.onclick = () => { S.tempLog={}; go('home'); };
+        saveRow.appendChild(saveBtn);
+        saveRow.appendChild(skipBtn);
+        wrap.appendChild(saveRow);
+
+      } else {
+        const analyzeBtn = document.createElement('button');
+        analyzeBtn.style.cssText=`width:100%;padding:13px;background:${T.green};color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:12px;`;
+        analyzeBtn.textContent = S.lang==='ko'?'✨ AI 로 정리하기':'✨ Let AI organize this';
+        analyzeBtn.onclick = async () => {
+          analyzeBtn.textContent = S.lang==='ko'?'✨ 정리 중...':'✨ Organizing...';
+          analyzeBtn.disabled = true;
+          let dots = 0;
+          const interval = setInterval(() => { dots=(dots+1)%4; analyzeBtn.textContent=(S.lang==='ko'?'✨ 정리 중':'✨ Organizing')+'.'.repeat(dots); }, 500);
+          try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 30000);
+            const res = await fetch('/.netlify/functions/analyze', {
+              method: 'POST',
+              headers: {'Content-Type':'application/json'},
+              signal: controller.signal,
+              body: JSON.stringify({
+                type: 'parse_diary',
+                diary: S.tempLog.diary,
+                child: S.child,
+                goal: S.goals.map(g=>g.name).join(', '),
+                lang: S.lang
+              })
+            });
+            clearTimeout(timeout); clearInterval(interval);
+            const data = await res.json();
+            if (data.parsed) {
+              Object.assign(S.tempLog, data.parsed);
+              S.tempLog.empathy = data.parsed.empathy || '';
+              S.tempLog.diaryParsed = true;
+              render();
+            }
+          } catch(e) {
+            clearInterval(interval);
+            analyzeBtn.textContent = S.lang==='ko'?'✨ AI 로 정리하기':'✨ Let AI organize this';
+            analyzeBtn.disabled = false;
+          }
+        };
+        wrap.appendChild(analyzeBtn);
+      }
+    }
+    return wrap;
+  }
+
+  // ── GOAL LOG MODE ────────────────────────────────────────────────
   if(!goal){wrap.innerHTML=`<p style="color:${T.muted};font-size:14px;text-align:center;margin-top:40px">No goals yet.</p>`;return wrap;}
 
   const back=document.createElement('button'); back.style.cssText=`background:none;border:none;cursor:pointer;color:${T.tm};font-size:14px;margin-bottom:18px;padding:0;font-family:'DM Sans',sans-serif;`; back.textContent=L('back'); back.onclick=()=>go('home'); wrap.appendChild(back);

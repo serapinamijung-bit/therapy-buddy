@@ -1421,7 +1421,7 @@ function renderLog() {
     wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:16px;line-height:1.6;`,
       S.lang==='ko'
         ? '뭐든 괜찮아요 — 문자, 이메일, 오늘 있었던 일 모두. AI 가 정리해드릴게요.'
-        : 'Anything goes — a text, an email, something that happened. AI will organize it for you.'));
+        : 'Anything goes — a text, an email, something that happened. We will organize it for you.'));
 
     const guideBox = div(`background:${T.gl};border-radius:12px;padding:12px 14px;margin-bottom:14px;`);
     guideBox.innerHTML = `
@@ -1437,7 +1437,8 @@ function renderLog() {
       ? '여기에 붙여넣거나 직접 입력하세요...'
       : 'Paste or type anything here...';
     diaryTA.style.cssText = `width:100%;min-height:180px;padding:12px 14px;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;resize:vertical;line-height:1.7;`;
-    diaryTA.oninput = e => { S.tempLog.diary = e.target.value; if (e.target.value.length === 11) render(); };
+    diaryTA.oninput = e => { S.tempLog.diary = e.target.value; if (e.target.value.length >= 10) render(); };
+    diaryTA.onpaste = () => { setTimeout(() => { S.tempLog.diary = diaryTA.value; render(); }, 100); };
 
     // voice button
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;

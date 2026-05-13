@@ -91,7 +91,7 @@ Respond ONLY with this JSON, nothing else:
     }
 
     // CYCLE ANALYSIS MODE
-    const prompt = `You are a helpful assistant supporting parents who are working on behavioral or developmental goals with their child at home.
+    console.log('Running cycle analysis for:', data.goalName);    const prompt = `You are a helpful assistant supporting parents who are working on behavioral or developmental goals with their child at home.
 
 Child: ${data.child} (age ${data.childAge})
 Goal: ${data.goalName}

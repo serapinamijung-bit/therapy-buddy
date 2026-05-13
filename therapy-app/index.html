@@ -744,92 +744,21 @@ function getRestoreCode() {
 const RESTORE_CODE = getRestoreCode();
 
 // Store full state under restore code key so it can be found later
-function saveWithRestoreCode() {
-  try {
-    const toSave = { parent:S.parent, child:S.child, age:S.age, goals:S.goals, logs:S.logs, view:S.view, uid: USER_ID };
-    localStorage.setItem('tb_restore_' + RESTORE_CODE, JSON.stringify(toSave));
-  } catch(e) {}
-}
-
-async function restoreFromCode(code) {
-  try {
-    const key = 'tb_restore_' + code.toUpperCase().trim();
-    // try localStorage first
-    const saved = localStorage.getItem(key);
-    if (saved) {
-      const data = JSON.parse(saved);
-      S.parent = data.parent || '';
-      S.child = data.child || '';
-      S.age = data.age || '';
-      S.goals = data.goals || [];
-      S.logs = data.logs || [];
-      S.analyses = data.analyses || [];
-      S.lang = data.lang || 'en';
-      S.view = 'home';
-      if (data.uid) localStorage.setItem('therapy_buddy_uid', data.uid);
-      saveState();
-      return true;
-    }
-    // fallback — fetch from Google Sheets
-    const res = await fetch(WEBHOOK_URL + '?type=restore&code=' + code.toUpperCase().trim());
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.parent) {
-        S.parent = data.parent || '';
-        S.child = data.child || '';
-        S.age = data.age || '';
-        S.goals = data.goals || [];
-        S.logs = data.logs || [];
-        S.analyses = data.analyses || [];
-        S.lang = data.lang || 'en';
-        S.view = 'home';
-        saveState();
-        return true;
-      }
-    }
-    return false;
-  } catch(e) { return false; }
-}
-
 function saveState() {
   try {
-    const toSave = { parent:S.parent, child:S.child, age:S.age, goals:S.goals, logs:S.logs, view:S.view, analyses:S.analyses, isDemo:S.isDemo, lang:S.lang };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+    // save lang preference only
     localStorage.setItem('tb_lang', S.lang);
-    saveWithRestoreCode();
+    // save to Supabase if logged in
     if (currentUser) saveToSupabase();
   } catch(e) { console.log('Save failed:', e); }
 }
 
-function loadState() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) return null;
-    return JSON.parse(saved);
-  } catch(e) { return null; }
-}
-
 function clearState() {
-  try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+  localStorage.removeItem('tb_lang');
+  localStorage.removeItem('tb_was_logged_in');
 }
 
-const wasLoggedIn = localStorage.getItem('tb_was_logged_in');
-const saved = wasLoggedIn ? null : loadState();
-let S = saved ? {
-  view: saved.view || 'home',
-  step: 0,
-  lang: saved.lang || localStorage.getItem('tb_lang') || 'en',
-  parent: saved.parent || '',
-  child: saved.child || '',
-  age: saved.age || '',
-  goals: saved.goals || [],
-  editIdx: null,
-  logGoalIdx: 0,
-  logs: saved.logs || [],
-  analyses: saved.analyses || [],
-  isDemo: saved.isDemo || false,
-  tempLog: {}
-} : {
+let S = {
   view: 'onboard', step: 0,
   lang: localStorage.getItem('tb_lang') || 'en',
   parent: '', child: '', age: '',
@@ -2387,13 +2316,9 @@ if(S.goals.length<maxGoals){
   wrap.appendChild(langWrap);
 
   if (!currentUser) {
-    const rcWrap = div(`background:${T.gl};border-radius:14px;padding:14px 18px;margin-top:16px;`);
-    rcWrap.innerHTML = `
-      <p style="font-size:11px;font-weight:500;color:${T.green};letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;">${L('restoreCode')}</p>
-      <p style="font-family:'Fraunces',serif;font-size:28px;font-weight:400;color:${T.green};letter-spacing:.15em;margin-bottom:6px;">${RESTORE_CODE}</p>
-      <p style="font-size:12px;color:${T.gm};line-height:1.6;">${L('restoreCodeDesc')}</p>
-    `;
-    wrap.appendChild(rcWrap);
+    const warn = div(`background:${T.ol};border-radius:14px;padding:12px 16px;margin-top:16px;display:flex;gap:10px;align-items:flex-start;`);
+    warn.innerHTML=`<span style="font-size:16px;">⚠️</span><div><p style="font-size:13px;font-weight:500;color:${T.orange};margin-bottom:2px;">${S.lang==='ko'?'데이터가 저장되지 않아요':'Your data is not being saved'}</p><p style="font-size:12px;color:${T.tm};line-height:1.5;">${S.lang==='ko'?'로그인하면 어느 기기에서나 데이터에 접근할 수 있어요.':'Sign in to save your data and access it from any device.'}</p></div>`;
+    wrap.appendChild(warn);
   }
 
   // reset

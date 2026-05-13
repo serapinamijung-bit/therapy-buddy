@@ -22,36 +22,49 @@ exports.handler = async function(event, context) {
     // DIARY PARSE MODE
     if (data.type === 'parse_diary') {
       const isKo = data.lang === 'ko';
-      const prompt = `A parent shared this about their day with their child:
+      const goalsStr = data.goals && data.goals.length
+        ? data.goals.map((g, i) => `${i}: ${g}`).join(', ')
+        : 'none';
+
+      const prompt = `A parent shared this note about their child:
 
 "${data.diary}"
 
 Child: ${data.child}
-Goal they were working on: ${data.goal}
+Existing goals: ${goalsStr}
 
-Do two things:
+Do three things:
 
-1. Write a warm, empathetic response (2-3 sentences) — like a supportive friend who truly gets how hard parenting is. Acknowledge what they went through. If something worked, celebrate it. If it was hard, validate that. Be warm and human, not clinical. End with gentle encouragement.
+1. Write a warm, empathetic response (2-3 sentences) — like a supportive friend. Acknowledge what they went through. Be warm and human, not clinical.
 
-2. Extract structured data from their note:
+2. Extract structured data:
 - before: child's state before (one short phrase, or empty)
 - technique: what the parent tried (one short sentence, or empty)
 - worked: what worked (one short sentence, or empty)
 - didnt_work: what didn't work (one short sentence, or empty)
-- outcome: exactly one of: Success / Partial success / No success (or empty if unclear)
+- outcome: exactly one of: Success / Partial success / No success (or empty)
 - next: what to try next time (one short sentence, or empty)
 
-Respond in ${isKo ? 'Korean' : 'English'}. Keep each data field SHORT (under 15 words).
+3. Goal matching:
+- goalIdx: which existing goal index (0, 1, 2...) this note is most related to. Return -1 if none match well.
+- suggestedGoal: if goalIdx is -1, suggest a new goal based on this note:
+  - name: short goal name (e.g. "Sharing toys", "Morning routine")
+  - trigger: when this behavior happens (one sentence)
+  - actions: array of 2-3 specific action steps
 
-Respond ONLY with this JSON, nothing else:
+Respond in ${isKo ? 'Korean' : 'English'}. Keep fields SHORT (under 15 words each).
+
+Respond ONLY with this JSON:
 {
-  "empathy": "your warm response here",
+  "empathy": "...",
   "before": "",
   "technique": "",
   "worked": "",
   "didnt_work": "",
   "outcome": "",
-  "next": ""
+  "next": "",
+  "goalIdx": 0,
+  "suggestedGoal": null
 }`;
 
       const response = await fetch('https://api.anthropic.com/v1/messages', {

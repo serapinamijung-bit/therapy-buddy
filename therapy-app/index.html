@@ -1437,9 +1437,9 @@ function renderLog() {
       ? '여기에 붙여넣거나 직접 입력하세요...'
       : 'Paste or type anything here...';
     diaryTA.style.cssText = `width:100%;min-height:180px;padding:12px 14px;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;resize:vertical;line-height:1.7;`;
-    diaryTA.oninput = e => { S.tempLog.diary = e.target.value; if (e.target.value.length >= 10) render(); };
-    diaryTA.onpaste = () => { setTimeout(() => { S.tempLog.diary = diaryTA.value; render(); }, 100); };
-
+    diaryTA.oninput = e => { S.tempLog.diary = e.target.value; };
+    diaryTA.onblur = () => { if (S.tempLog.diary && S.tempLog.diary.length >= 10) render(); };
+    diaryTA.onpaste = () => { setTimeout(() => { S.tempLog.diary = diaryTA.value; render(); }, 300); };
     // voice button
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
@@ -1688,9 +1688,9 @@ function renderLog() {
       ? '오늘 있었던 일을 편하게 적어주세요...'
       : 'Write or speak freely about what happened today...';
     diaryTA.style.cssText = `width:100%;min-height:180px;padding:12px 14px;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;resize:vertical;line-height:1.7;`;
-    diaryTA.oninput = e => { S.tempLog.diary = e.target.value; if (e.target.value.length === 11) render(); };
-
-    // voice button for diary
+    diaryTA.oninput = e => { S.tempLog.diary = e.target.value; };
+    diaryTA.onblur = () => { if (S.tempLog.diary && S.tempLog.diary.length >= 10) render(); };
+    diaryTA.onpaste = () => { setTimeout(() => { S.tempLog.diary = diaryTA.value; render(); }, 300); };
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
       const voiceBtn = document.createElement('button');

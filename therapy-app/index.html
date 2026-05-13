@@ -1228,6 +1228,20 @@ function renderHome() {
     const gb=document.createElement('button'); gb.className='btn btn-primary'; gb.style.marginTop='14px'; gb.textContent=L('setUpGoals'); gb.onclick=()=>go('goals');
     empty.appendChild(gb); wrap.appendChild(empty);
   } else {
+    // vent button
+    const ventBtn = div(`background:#fff;border-radius:16px;border:1.5px solid ${T.border};padding:14px 16px;margin-bottom:16px;cursor:pointer;display:flex;align-items:center;gap:12px;`);
+    ventBtn.innerHTML=`
+      <span style="font-size:22px;">💭</span>
+      <div>
+        <p style="font-size:14px;font-weight:500;color:${T.text};margin-bottom:2px;">${S.lang==='ko'?'오늘 힘든 일이 있었나요?':'Need to get something off your chest?'}</p>
+        <p style="font-size:12px;color:${T.muted};">${S.lang==='ko'?'자유롭게 털어놓으세요 →':'Drop a note — we\'ll help you make sense of it →'}</p>
+      </div>
+    `;
+    ventBtn.onmouseenter = () => ventBtn.style.borderColor = T.green;
+    ventBtn.onmouseleave = () => ventBtn.style.borderColor = T.border;
+    ventBtn.onclick = () => { S.tempLog = {noteMode:'drop', mode:'diary'}; go('log'); };
+    wrap.appendChild(ventBtn);
+
     const tl=p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;`,L('todayCards'));
     wrap.appendChild(tl);
     S.goals.forEach((g,i)=>{
@@ -1312,7 +1326,7 @@ function renderHome() {
         }
       }
 
-      card.onclick=()=>{S.logGoalIdx=i;S.tempLog={};go('log');};
+      card.onclick=()=>{S.logGoalIdx=i;S.tempLog={noteMode:'goal'};go('log');};
       wrap.appendChild(card);
     });
   }

@@ -923,7 +923,7 @@ function renderOnboard() {
       const eb=document.createElement('button'); eb.textContent=L('editGoal'); eb.style.cssText=`background:none;border:1px solid ${T.gm};border-radius:8px;padding:4px 10px;font-size:11px;color:${T.green};cursor:pointer;font-family:'DM Sans',sans-serif;`;
       eb.onclick=()=>{S.editIdx=i;S.step=3.5;render();};
       const db=document.createElement('button'); db.textContent='✕'; db.style.cssText='background:none;border:none;font-size:14px;color:#aaa;cursor:pointer;padding:0 4px;';
-      db.onclick=()=>{S.goals.splice(i,1);render();};
+      db.onclick=async()=>{ const g=S.goals[i]; S.goals.splice(i,1); saveState(); if(currentUser&&supabase&&g?.goal_id){ await supabase.from('goals').delete().eq('id',g.goal_id); await supabase.from('logs').delete().eq('goal_id',g.goal_id); } render(); };
       row.appendChild(eb); row.appendChild(db); wrap.appendChild(row);
     });
 
@@ -2075,20 +2075,22 @@ function renderWeek() {
     const gc=div(`background:${T.card};border-radius:18px;border:1px solid ${T.border};margin-bottom:10px;overflow:hidden;`);
     const hdr=div(`display:flex;justify-content:space-between;align-items:center;padding:14px 16px;cursor:pointer;background:${isExpanded?T.gl:'#fff'};transition:background .2s;`);
     hdr.innerHTML=`
-      <div style="display:flex;align-items:center;gap:10px;flex:1;">
-        <span style="font-size:18px;">${g.icon}</span>
-        <div>
-          <p style="font-size:14px;font-weight:500;color:${T.text};margin-bottom:2px;">${g.name}</p>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:11px;font-weight:500;background:${sc.bg};color:${sc.color};border-radius:20px;padding:3px 8px;">${sc.emoji} ${sc.label}</span>
-            ${st.total>0?`<span style="font-size:11px;color:${T.muted};">${st.rate}% · ${st.total} ${S.lang==='ko'?'번':'tries'}</span>`:''}
+      <div style="display:flex;flex-direction:column;gap:8px;width:100%;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:18px;">${g.icon}</span>
+          <div>
+            <p style="font-size:14px;font-weight:500;color:${T.text};margin-bottom:2px;">${g.name}</p>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:11px;font-weight:500;background:${sc.bg};color:${sc.color};border-radius:20px;padding:3px 8px;">${sc.emoji} ${sc.label}</span>
+              ${st.total>0?`<span style="font-size:11px;color:${T.muted};">${st.rate}% · ${st.total} ${S.lang==='ko'?'번':'tries'}</span>`:''}
+            </div>
           </div>
         </div>
-      </div>
-      <div style="display:flex;align-items:center;gap:4px;color:${T.green};font-size:12px;font-weight:500;flex-shrink:0;">
-        ${isExpanded
-          ? `<span>${S.lang==='ko'?'접기':'See less'}</span><span style="font-size:16px;">−</span>`
-          : `<span>${S.lang==='ko'?'더 보기':'See more'}</span><span style="font-size:16px;">+</span>`}
+        <div style="display:flex;align-items:center;gap:4px;color:${T.green};font-size:12px;font-weight:500;">
+          ${isExpanded
+            ? `<span>${S.lang==='ko'?'접기':'See less'}</span><span style="font-size:16px;">−</span>`
+            : `<span>${S.lang==='ko'?'더 보기':'See more'}</span><span style="font-size:16px;">+</span>`}
+        </div>
       </div>
     `;
     hdr.onclick = () => {
@@ -2596,7 +2598,7 @@ function renderGoals() {
     const btns=div('display:flex;gap:6px;align-items:center;');
     if(st.total>0){const badge=document.createElement('span');badge.style.cssText=`font-size:10px;background:${sc.bg};color:${sc.color};border-radius:20px;padding:3px 8px;`;badge.textContent=`${st.rate}%`;btns.appendChild(badge);}
     const eb=document.createElement('button'); eb.textContent=L('editGoal'); eb.style.cssText=`background:none;border:1px solid ${T.border};border-radius:8px;padding:4px 10px;font-size:11px;color:${T.tm};cursor:pointer;font-family:'DM Sans',sans-serif;`; eb.onclick=()=>{S.editIdx=i;S.step=3.5;S.view='onboard';render();};
-    const db=document.createElement('button'); db.textContent='✕'; db.style.cssText='background:none;border:none;font-size:14px;color:#aaa;cursor:pointer;padding:0 4px;'; db.onclick=()=>{S.goals.splice(i,1);render();};
+    const db=document.createElement('button'); db.textContent='✕'; db.style.cssText='background:none;border:none;font-size:14px;color:#aaa;cursor:pointer;padding:0 4px;'; db.onclick=async()=>{ const g=S.goals[i]; S.goals.splice(i,1); saveState(); if(currentUser&&supabase&&g?.goal_id){ await supabase.from('goals').delete().eq('id',g.goal_id); await supabase.from('logs').delete().eq('goal_id',g.goal_id); } render(); };
     btns.appendChild(eb); btns.appendChild(db); top.appendChild(left); top.appendChild(btns); row.appendChild(top);
     if(g.trigger) row.appendChild(p(`font-size:12px;color:${T.muted};`,`📍 ${g.trigger}`));
     wrap.appendChild(row);

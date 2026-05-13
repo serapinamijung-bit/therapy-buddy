@@ -1606,39 +1606,19 @@ function renderLog() {
     // AI parse button
     if (S.tempLog.diary && S.tempLog.diary.trim().length > 10) {
       if (S.tempLog.diaryParsed) {
-        // show parsed result
-        const parsedBox = div(`background:#fff;border-radius:14px;border:1px solid ${T.border};padding:16px;margin-top:16px;`);
-        parsedBox.innerHTML = `<p style="font-size:12px;font-weight:500;color:${T.green};margin-bottom:12px;">✓ ${S.lang==='ko'?'AI 가 정리했어요 — 수정하실 수 있어요':'AI filled this in — feel free to edit'}</p>`;
+        // empathy message first
+        if (S.tempLog.empathy) {
+          const empathyBox = div(`background:${T.gl};border-radius:16px;padding:18px 20px;margin-top:16px;border-left:3px solid ${T.green};`);
+          empathyBox.innerHTML = `<p style="font-size:15px;color:#2D5A3D;line-height:1.8;font-family:'Fraunces',serif;font-weight:400;">${S.tempLog.empathy}</p>`;
+          wrap.appendChild(empathyBox);
+        }
 
-        const fields = [
-          ['before', S.lang==='ko'?'시도 전 상태':'Before', S.tempLog.before],
-          ['technique', S.lang==='ko'?'무엇을 시도했나요':'What you tried', S.tempLog.technique],
-          ['worked', S.lang==='ko'?'효과 있었던 것':'What worked', S.tempLog.worked],
-          ['didnt_work', S.lang==='ko'?'효과 없었던 것':'What didn\'t work', S.tempLog.didnt_work],
-          ['outcome', S.lang==='ko'?'결과':'Outcome', S.tempLog.outcome],
-        ];
+        // save options
+        const saveRow = div('display:flex;flex-direction:column;gap:8px;margin-top:16px;');
 
-        fields.forEach(([key, label, val]) => {
-          if (!val) return;
-          const row = div('margin-bottom:10px;');
-          row.innerHTML = `<p style="font-size:10px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px;">${label}</p>`;
-          const inp = document.createElement('input');
-          inp.type = 'text'; inp.value = val;
-          inp.style.cssText = `width:100%;padding:8px 12px;border:1.5px solid ${T.border};border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;`;
-          inp.oninput = e => S.tempLog[key] = e.target.value;
-          row.appendChild(inp);
-          parsedBox.appendChild(row);
-        });
-
-        const reBtn = document.createElement('button');
-        reBtn.style.cssText=`background:none;border:none;font-size:12px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px;`;
-        reBtn.textContent = S.lang==='ko'?'다시 분석하기':'Re-analyze';
-        reBtn.onclick = () => { S.tempLog.diaryParsed = false; render(); };
-        parsedBox.appendChild(reBtn);
-        wrap.appendChild(parsedBox);
-
-        // save button
-        const saveBtn2=document.createElement('button'); saveBtn2.className='btn btn-primary'; saveBtn2.textContent=L('saveEntry'); saveBtn2.style.marginTop='16px';
+        const saveBtn2 = document.createElement('button');
+        saveBtn2.style.cssText=`width:100%;padding:14px;background:${T.green};color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+        saveBtn2.textContent = S.lang==='ko'?'기록으로 저장하기 →':'Save as log →';
         saveBtn2.onclick=()=>{
           const d=new Date(); const date=`${d.getMonth()+1}/${d.getDate()}`;
           const newLog={goalIdx:S.logGoalIdx,date,caregiver:'You',before:S.tempLog.before||'',attempted:'Yes',technique:S.tempLog.technique||'',worked:S.tempLog.worked||'',didnt_work:S.tempLog.didnt_work||'',reaction:'',outcome:S.tempLog.outcome||'',next:S.tempLog.next||''};
@@ -1646,7 +1626,53 @@ function renderLog() {
           if(currentUser){ saveLogToSupabase({goalName:S.goals[S.logGoalIdx]?.name||'',date,caregiver:'You',before:newLog.before,attempted:newLog.attempted,technique:newLog.technique,worked:newLog.worked,didnt_work:newLog.didnt_work,reaction:newLog.reaction,outcome:newLog.outcome,next:newLog.next},S.goals[S.logGoalIdx]?.goal_id||''); }
           go('home');
         };
-        wrap.appendChild(saveBtn2);
+
+        const editBtn = document.createElement('button');
+        editBtn.style.cssText=`width:100%;padding:12px;background:#fff;color:${T.tm};border:1.5px solid ${T.border};border-radius:14px;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+        editBtn.textContent = S.lang==='ko'?'수정하고 저장하기':'Review & edit before saving';
+        editBtn.onclick = () => {
+          // show parsed fields for editing
+          S.tempLog.showEdit = true;
+          render();
+        };
+
+        const skipBtn = document.createElement('button');
+        skipBtn.style.cssText=`width:100%;padding:12px;background:none;border:none;font-size:13px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;`;
+        skipBtn.textContent = S.lang==='ko'?'저장 안 해도 괜찮아요':'Just needed to vent — don\'t save';
+        skipBtn.onclick = () => { S.tempLog={}; go('home'); };
+
+        saveRow.appendChild(saveBtn2);
+        saveRow.appendChild(editBtn);
+        saveRow.appendChild(skipBtn);
+        wrap.appendChild(saveRow);
+
+        // show editable fields if requested
+        if (S.tempLog.showEdit) {
+          const editBox = div(`background:#fff;border-radius:14px;border:1px solid ${T.border};padding:16px;margin-top:12px;`);
+          editBox.innerHTML = `<p style="font-size:12px;font-weight:500;color:${T.muted};margin-bottom:12px;">${S.lang==='ko'?'AI 가 정리한 내용이에요 — 수정하실 수 있어요':'AI filled this in — feel free to edit'}</p>`;
+
+          const fields = [
+            ['before', S.lang==='ko'?'시도 전 상태':'Before', S.tempLog.before],
+            ['technique', S.lang==='ko'?'무엇을 시도했나요':'What you tried', S.tempLog.technique],
+            ['worked', S.lang==='ko'?'효과 있었던 것':'What worked', S.tempLog.worked],
+            ['didnt_work', S.lang==='ko'?'효과 없었던 것':'What didn\'t work', S.tempLog.didnt_work],
+            ['outcome', S.lang==='ko'?'결과':'Outcome', S.tempLog.outcome],
+          ];
+
+          fields.forEach(([key, label, val]) => {
+            if (!val) return;
+            const row = div('margin-bottom:10px;');
+            row.innerHTML = `<p style="font-size:10px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px;">${label}</p>`;
+            const inp = document.createElement('input');
+            inp.type = 'text'; inp.value = val;
+            inp.style.cssText = `width:100%;padding:8px 12px;border:1.5px solid ${T.border};border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;`;
+            inp.oninput = e => S.tempLog[key] = e.target.value;
+            row.appendChild(inp);
+            editBox.appendChild(row);
+          });
+
+          wrap.appendChild(editBox);
+        }
 
       } else {
         // analyze button
@@ -1686,6 +1712,7 @@ function renderLog() {
             const data = await res.json();
             if (data.parsed) {
               Object.assign(S.tempLog, data.parsed);
+              S.tempLog.empathy = data.parsed.empathy || '';
               S.tempLog.diaryParsed = true;
               render();
             }

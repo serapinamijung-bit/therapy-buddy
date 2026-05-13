@@ -103,8 +103,50 @@ Respond ONLY with this JSON:
       };
     }
 
-    // CYCLE ANALYSIS MODE
-    console.log('Running cycle analysis for:', data.goalName);    const prompt = `You are a helpful assistant supporting parents who are working on behavioral or developmental goals with their child at home.
+    // INSIGHTS SUMMARY MODE
+    if (data.type === 'insights_summary') {
+      const isKo = data.lang === 'ko';
+      const prompt = `You are a warm, supportive companion for a parent working on goals with their child.
+
+Parent: ${data.parent}
+Child: ${data.child}
+Recent logs summary:
+${JSON.stringify(data.summary, null, 2)}
+
+Write a short, warm, personalized message (2-3 sentences max) for the parent. 
+- Acknowledge something specific that's working or improving
+- Be genuinely encouraging, not generic
+- Sound like a caring friend who's been watching their journey, not a report
+- If success rate is high, celebrate something specific
+- If success rate is low, validate the effort and find something positive
+- Never mention numbers or percentages
+- End with gentle encouragement
+
+Respond in ${isKo ? 'Korean' : 'English'}. Plain text only, no JSON.`;
+
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-5-20250929',
+          max_tokens: 200,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+
+      const result = await response.json();
+      const message = result.content?.[0]?.text || '';
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ status: 'ok', message })
+      };
+    }    const prompt = `You are a helpful assistant supporting parents who are working on behavioral or developmental goals with their child at home.
 
 Child: ${data.child} (age ${data.childAge})
 Goal: ${data.goalName}

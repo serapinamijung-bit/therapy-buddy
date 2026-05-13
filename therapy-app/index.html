@@ -230,17 +230,6 @@ async function initSupabase() {
       if (event === 'SIGNED_IN' && session) {
         currentUser = session.user;
         localStorage.setItem('tb_was_logged_in', '1');
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-          const localData = JSON.parse(saved);
-          S.parent = localData.parent || S.parent;
-          S.child = localData.child || S.child;
-          S.age = localData.age || S.age;
-          S.goals = localData.goals?.length ? localData.goals : S.goals;
-          S.logs = localData.logs?.length ? localData.logs : S.logs;
-          S.analyses = localData.analyses || S.analyses;
-          S.lang = localData.lang || S.lang;
-        }
         await loadFromSupabase();
         render();
       } else if (event === 'SIGNED_OUT') {
@@ -442,27 +431,9 @@ async function loadFromSupabase() {
       S.view = 'home';
 
     } else {
-      // no Supabase profile — check localStorage
-      const saved = localStorage.getItem(STORAGE_KEY);
-      const localData = saved ? JSON.parse(saved) : null;
-
-      if (localData && localData.parent) {
-        // migrate localStorage to Supabase
-        S.parent = localData.parent;
-        S.child = localData.child;
-        S.age = localData.age;
-        S.goals = localData.goals || [];
-        S.logs = localData.logs || [];
-        S.analyses = localData.analyses || [];
-        S.lang = localData.lang || 'en';
-        S.view = 'home';
-        await saveToSupabase();
-        console.log('Migrated localStorage to Supabase');
-      } else if (S.parent) {
-        // S already has data (set during this session)
-        S.view = 'home';
-        await saveToSupabase();
-      }
+      // no Supabase profile — new user, go to onboarding
+      S.view = 'onboard';
+      S.step = 1; // skip step 0, already logged in
     }
   } catch(e) {
     console.log('Supabase load failed:', e);

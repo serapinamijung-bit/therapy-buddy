@@ -1511,7 +1511,7 @@ function renderLog() {
           const createGoalBtn = document.createElement('button');
           createGoalBtn.style.cssText=`width:100%;padding:12px;background:${T.orange};color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
           createGoalBtn.textContent = S.lang==='ko'?`"${sg.name}" 목표 만들고 저장하기`:`Create goal "${sg.name}" & save note`;
-          createGoalBtn.onclick = () => {
+          createGoalBtn.onclick = async () => {
             // pre-fill new goal with suggested data
             const newGoal = {
               goal_id: 'g_' + Math.random().toString(36).substr(2,9) + '_' + Date.now(),
@@ -1522,18 +1522,21 @@ function renderLog() {
               trigger: sg.trigger || '',
               actions: sg.actions || [],
               avoid: '',
-              _saved: false
+              _saved: true
             };
             S.goals.push(newGoal);
-            S.editIdx = S.goals.length - 1;
-            S.logGoalIdx = S.goals.length - 1;
-            S.tempLog.goalIdx = S.goals.length - 1;
-            // save the note with new goal
+            const newGoalIdx = S.goals.length - 1;
+            S.logGoalIdx = newGoalIdx;
+
+            // save goal + log together
             const d=new Date(); const date=`${d.getMonth()+1}/${d.getDate()}`;
-            const newLog={goalIdx:S.logGoalIdx,date,caregiver:'You',before:S.tempLog.before||'',attempted:'Yes',technique:S.tempLog.technique||S.tempLog.diary||'',worked:S.tempLog.worked||'',didnt_work:S.tempLog.didnt_work||'',reaction:'',outcome:S.tempLog.outcome||'',next:S.tempLog.next||''};
+            const newLog={goalIdx:newGoalIdx,date,caregiver:'You',before:S.tempLog.before||'',attempted:'Yes',technique:S.tempLog.technique||S.tempLog.diary||'',worked:S.tempLog.worked||'',didnt_work:S.tempLog.didnt_work||'',reaction:'',outcome:S.tempLog.outcome||'',next:S.tempLog.next||''};
             S.logs.push(newLog);
             saveState();
-            if(currentUser){ saveLogToSupabase({goalName:newGoal.name,date,caregiver:'You',before:newLog.before,attempted:newLog.attempted,technique:newLog.technique,worked:newLog.worked,didnt_work:newLog.didnt_work,reaction:newLog.reaction,outcome:newLog.outcome,next:newLog.next}, newGoal.goal_id); }
+            if (currentUser) {
+              await saveToSupabase();
+              saveLogToSupabase({goalName:newGoal.name,date,caregiver:'You',before:newLog.before,attempted:newLog.attempted,technique:newLog.technique,worked:newLog.worked,didnt_work:newLog.didnt_work,reaction:newLog.reaction,outcome:newLog.outcome,next:newLog.next}, newGoal.goal_id);
+            }
             S.tempLog = {};
             go('home');
           };
@@ -1986,25 +1989,38 @@ function renderWeek() {
 
   wrap.innerHTML=`<p style="font-size:12px;color:${T.muted};margin-bottom:4px">${dateStr}</p><h2 style="font-family:'Fraunces',serif;font-size:26px;font-weight:400;color:${T.text};margin-bottom:6px">${L('weekTitle',S.child)}</h2>`;
 
-  // warm one-liner summary
-  const topGoal = S.goals.reduce((best, g, i) => {
-    const st = stats(i);
-    return st.total > (best.total||0) ? {name:g.name, total:st.total, rate:st.rate, i} : best;
-  }, {});
-  const summaryText = S.lang==='ko'
-    ? totalAtt === 0
-      ? `${S.child}와 함께 할 목표들이 준비됐어요. 첫 번째 기록을 남겨보세요 🌿`
-      : topGoal.total > 0
-        ? `${totalAtt}번의 시도 중 ${totalSucc}번 성공했어요. ${topGoal.name} 목표에서 가장 활발하게 작업하고 있어요 🌿`
-        : `${S.child}를 위해 열심히 하고 계시네요. 기록이 쌓일수록 더 좋은 인사이트를 드릴게요 🌿`
-    : totalAtt === 0
-      ? `Goals are set for ${S.child}. Start logging to see insights here 🌿`
-      : topGoal.total > 0
-        ? `${totalSucc} successes out of ${totalAtt} attempts. Most active on "${topGoal.name}" 🌿`
-        : `You're putting in the work for ${S.child}. Keep logging to unlock insights 🌿`;
-
+  // warm summary — AI personalized
   const summaryBox = div(`background:${T.gl};border-radius:14px;padding:14px 16px;margin-bottom:16px;border-left:3px solid ${T.green};`);
-  summaryBox.innerHTML = `<p style="font-size:14px;color:#2D5A3D;line-height:1.7;font-family:'Fraunces',serif;font-weight:400;">${summaryText}</p>`;
+
+  if (S.insightsSummary && S.insightsSummaryLang === S.lang) {
+    summaryBox.innerHTML = `<p style="font-size:14px;color:#2D5A3D;line-height:1.8;font-family:'Fraunces',serif;font-weight:400;">${S.insightsSummary}</p>`;
+  } else {
+    const fallback = totalAtt === 0
+      ? (S.lang==='ko' ? `${S.child}를 위한 목표들이 준비됐어요. 첫 번째 기록을 남겨보세요 🌿` : `Goals are set for ${S.child}. Start logging to see insights here 🌿`)
+      : (S.lang==='ko' ? `${S.child}를 위해 매일 노력하고 계시네요 🌿` : `You're showing up for ${S.child} every day 🌿`);
+    summaryBox.innerHTML = `<p style="font-size:14px;color:#2D5A3D;line-height:1.8;font-family:'Fraunces',serif;font-weight:400;">${fallback}</p>`;
+
+    if (totalAtt > 0 && !S.insightsSummaryLoading) {
+      S.insightsSummaryLoading = true;
+      const summary = S.goals.map((g, i) => {
+        const st = stats(i);
+        const worked = S.logs.filter(l=>l.goalIdx===i&&l.worked).map(l=>l.worked).slice(0,2);
+        return { goal: g.name, attempts: st.total, successRate: st.rate, worked };
+      });
+      fetch('/.netlify/functions/analyze', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ type: 'insights_summary', parent: S.parent, child: S.child, lang: S.lang, summary })
+      }).then(r=>r.json()).then(data => {
+        if (data.message) {
+          S.insightsSummary = data.message;
+          S.insightsSummaryLang = S.lang;
+          S.insightsSummaryLoading = false;
+          render();
+        }
+      }).catch(() => { S.insightsSummaryLoading = false; });
+    }
+  }
   wrap.appendChild(summaryBox);
 
   // report button — top

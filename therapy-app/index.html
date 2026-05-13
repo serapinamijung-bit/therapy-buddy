@@ -1548,8 +1548,8 @@ function renderLog() {
     diaryTA.placeholder = S.lang==='ko'
       ? '오늘 있었던 일을 편하게 적어주세요...'
       : 'Write or speak freely about what happened today...';
-    diaryTA.style.cssText = `width:100%;min-height:120px;padding:12px 14px;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;resize:vertical;line-height:1.6;`;
-    diaryTA.oninput = e => S.tempLog.diary = e.target.value;
+    diaryTA.style.cssText = `width:100%;min-height:180px;padding:12px 14px;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;resize:vertical;line-height:1.7;`;
+    diaryTA.oninput = e => { S.tempLog.diary = e.target.value; if (e.target.value.length === 11) render(); };
 
     // voice button for diary
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1586,6 +1586,8 @@ function renderLog() {
           voiceBtn.innerHTML = `<span style="font-size:20px;">🎤</span> ${S.lang==='ko'?'말하기 시작':'Start speaking'}`;
           voiceBtn.style.borderColor = T.border;
           voiceBtn.style.color = T.text;
+          // re-render to show analyze button
+          setTimeout(() => render(), 300);
         };
 
         rec.onend = stopRec;
@@ -1652,12 +1654,24 @@ function renderLog() {
         analyzeBtn.style.cssText=`width:100%;padding:13px;background:${T.green};color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:12px;`;
         analyzeBtn.textContent = S.lang==='ko'?'✨ AI 로 정리하기':'✨ Let AI fill this in';
         analyzeBtn.onclick = async () => {
-          analyzeBtn.textContent = S.lang==='ko'?'분석 중...':'Analyzing...';
+          analyzeBtn.textContent = S.lang==='ko'?'✨ 분석 중... (10-20초)':'✨ Analyzing... (10-20 sec)';
           analyzeBtn.disabled = true;
+
+          // animated dots
+          let dots = 0;
+          const interval = setInterval(() => {
+            dots = (dots + 1) % 4;
+            analyzeBtn.textContent = (S.lang==='ko'?'✨ 분석 중':'✨ Analyzing') + '.'.repeat(dots);
+          }, 500);
+
           try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 30000);
+
             const res = await fetch('/.netlify/functions/analyze', {
               method: 'POST',
               headers: {'Content-Type':'application/json'},
+              signal: controller.signal,
               body: JSON.stringify({
                 type: 'parse_diary',
                 diary: S.tempLog.diary,
@@ -1666,6 +1680,9 @@ function renderLog() {
                 lang: S.lang
               })
             });
+            clearTimeout(timeout);
+            clearInterval(interval);
+
             const data = await res.json();
             if (data.parsed) {
               Object.assign(S.tempLog, data.parsed);
@@ -1673,8 +1690,12 @@ function renderLog() {
               render();
             }
           } catch(e) {
+            clearInterval(interval);
             analyzeBtn.textContent = S.lang==='ko'?'✨ AI 로 정리하기':'✨ Let AI fill this in';
             analyzeBtn.disabled = false;
+            if (e.name === 'AbortError') {
+              alert(S.lang==='ko'?'시간이 초과됐어요. 다시 시도해주세요.':'Timed out. Please try again.');
+            }
           }
         };
         wrap.appendChild(analyzeBtn);

@@ -445,6 +445,28 @@ async function loadFromSupabase(retries = 3) {
 
       S.view = 'home';
 
+      // pre-fetch parent care message in background
+      if (S.logs.length > 0 && !S.insightsParentCare && !S.homeParentCareLoading) {
+        S.homeParentCareLoading = true;
+        const _summary = S.goals.map((g, i) => {
+          const _logs = S.logs.filter(l=>l.goalIdx===i);
+          const _att = _logs.filter(l=>l.attempted==='Yes').length;
+          const _succ = _logs.filter(l=>l.outcome==='Success'||l.outcome==='성공').length;
+          const _worked = _logs.filter(l=>l.worked).map(l=>l.worked).slice(0,2);
+          return { goal: g.name, attempts: _att, successRate: _att>0?Math.round(_succ/_att*100):0, worked: _worked };
+        });
+        fetch('/.netlify/functions/analyze', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ type: 'insights_summary', parent: S.parent, child: S.child, lang: S.lang, summary: _summary })
+        }).then(r=>r.json()).then(data => {
+          if (data.message) S.insightsSummary = data.message;
+          if (data.parent_care) S.insightsParentCare = data.parent_care;
+          S.insightsSummaryLang = S.lang;
+          S.homeParentCareLoading = false;
+        }).catch(() => { S.homeParentCareLoading = false; });
+      }
+
     } else {
       // no Supabase profile — new user, go to onboarding
       S.view = 'onboard';
@@ -2308,7 +2330,7 @@ function renderWeek() {
   if (totalAtt > 0) {
     const reportBtn = document.createElement('button');
     reportBtn.style.cssText=`width:100%;padding:12px;background:#fff;border:1.5px solid ${T.green};border-radius:14px;font-size:13px;font-weight:500;color:${T.green};cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:16px;`;
-    reportBtn.innerHTML=`<span>📋</span> ${S.lang==='ko'?'미팅 준비 리포트 생성':'Generate meeting prep report'}`;
+    reportBtn.innerHTML=`<span>📋</span> ${S.lang==='ko'?'리포트 생성 & 공유':'Generate a report to share'}`;
     reportBtn.onclick=()=>go('report');
     wrap.appendChild(reportBtn);
   }
@@ -3183,7 +3205,16 @@ function renderReport() {
       </div>
       <p style="font-size:11px;font-weight:bold;color:#909090;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">By Goal</p>
       ${goalsHtml}
-      <p style="font-size:12px;color:#909090;margin-top:20px;text-align:center;">Sent via Therapy Buddy · therapybuddy.org</p>
+      <div style="margin-top:24px;padding-top:16px;border-top:1px solid #EAE6DE;text-align:center;">
+        <a href="https://therapybuddy.org" style="text-decoration:none;display:inline-block;">
+          <div style="display:inline-flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <div style="width:28px;height:28px;border-radius:50%;background:#2D5A3D;display:inline-flex;align-items:center;justify-content:center;font-size:14px;">🌿</div>
+            <span style="font-family:Georgia,serif;font-size:16px;color:#2D5A3D;font-weight:400;">Therapy Buddy</span>
+          </div>
+        </a>
+        <p style="font-size:12px;color:#909090;margin:0 0 6px;">Helping families bridge the gap between therapy sessions.</p>
+        <a href="https://therapybuddy.org" style="font-size:12px;color:#2D5A3D;text-decoration:none;font-weight:500;">therapybuddy.org →</a>
+      </div>
     </div>`;
 
     try {

@@ -2735,13 +2735,61 @@ function renderReport() {
 
     const row=div('display:flex;gap:8px;');
     const backBtn=document.createElement('button'); backBtn.style.cssText=`flex:1;padding:14px;background:none;border:1.5px solid ${T.border};border-radius:14px;font-size:14px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;`; backBtn.textContent=S.lang==='ko'?'이전':'Back'; backBtn.onclick=()=>{S.reportStep=2;render();};
-    const nextBtn=document.createElement('button'); nextBtn.style.cssText=`flex:2;padding:14px;background:${S.reportGoals?.length>0?T.green:T.border};color:${S.reportGoals?.length>0?'#fff':T.muted};border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`; nextBtn.textContent=S.lang==='ko'?'리포트 생성 →':'Generate Report →'; nextBtn.onclick=()=>{if(S.reportGoals?.length>0){S.reportStep=4;render();}};
+    const nextBtn=document.createElement('button'); nextBtn.style.cssText=`flex:2;padding:14px;background:${S.reportGoals?.length>0?T.green:T.border};color:${S.reportGoals?.length>0?'#fff':T.muted};border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`; nextBtn.textContent=S.lang==='ko'?'다음 →':'Next →'; nextBtn.onclick=()=>{if(S.reportGoals?.length>0){S.reportStep=3.5;render();}};
     row.appendChild(backBtn); row.appendChild(nextBtn);
     wrap.appendChild(row);
     return wrap;
   }
 
-  // ── STEP 4: Preview & Share ──────────────────────────────────────
+  // ── STEP 3.5: Content Selection ─────────────────────────────────
+  if (S.reportStep === 3.5) {
+    wrap.appendChild(h('h2',"font-family:'Fraunces',serif;font-size:24px;font-weight:400;color:#1A1A1A;margin-bottom:6px;", S.lang==='ko'?'포함할 내용':'What to include'));
+    wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:20px;`, S.lang==='ko'?'리포트에 포함할 항목을 선택하세요':'Choose what to include in this report'));
+
+    if (!S.reportSections) S.reportSections = {
+      summary: true,
+      byGoal: true,
+      recentLogs: true,
+      worked: true,
+      techniques: false,
+      notWorked: false,
+    };
+
+    const sections = S.lang==='ko'
+      ? [
+          ['summary', '📊', '전체 요약', '시도 횟수, 성공률, 목표 수'],
+          ['byGoal', '🎯', '목표별 진행 상황', '각 목표의 성공률'],
+          ['worked', '✅', '효과 있었던 것', '가정에서 효과가 있었던 방법'],
+          ['recentLogs', '📅', '최근 기록 (날짜별)', '날짜별 시도 기록'],
+          ['techniques', '🔧', '구체적인 시도 방법', '각 시도에서 사용한 기법'],
+          ['notWorked', '⚠️', '효과 없었던 것', '민감할 수 있음 — 대상에 따라 선택'],
+        ]
+      : [
+          ['summary', '📊', 'Overall summary', 'Attempts, success rate, goal count'],
+          ['byGoal', '🎯', 'Progress by goal', 'Success rate per goal'],
+          ['worked', '✅', 'What worked', 'Methods that were effective at home'],
+          ['recentLogs', '📅', 'Recent logs (by date)', 'Dated record of attempts'],
+          ['techniques', '🔧', 'Specific techniques tried', 'Methods used in each attempt'],
+          ['notWorked', '⚠️', "What didn't work", 'May be sensitive — select based on audience'],
+        ];
+
+    const secGrid = div('display:flex;flex-direction:column;gap:8px;margin-bottom:24px;');
+    sections.forEach(([key, icon, title, sub]) => {
+      const selected = S.reportSections[key];
+      const card = div(`background:#fff;border-radius:14px;border:1.5px solid ${selected?T.green:T.border};padding:12px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;`);
+      card.innerHTML=`<div style="width:20px;height:20px;border-radius:6px;border:1.5px solid ${selected?T.green:T.border};background:${selected?T.green:'#fff'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">${selected?'<span style="color:#fff;font-size:12px;">✓</span>':''}</div><span style="font-size:18px;">${icon}</span><div><p style="font-size:14px;font-weight:500;color:${T.text};margin-bottom:2px;">${title}</p><p style="font-size:11px;color:${T.muted};">${sub}</p></div>`;
+      card.onclick=()=>{ S.reportSections[key]=!selected; render(); };
+      secGrid.appendChild(card);
+    });
+    wrap.appendChild(secGrid);
+
+    const row=div('display:flex;gap:8px;');
+    const backBtn=document.createElement('button'); backBtn.style.cssText=`flex:1;padding:14px;background:none;border:1.5px solid ${T.border};border-radius:14px;font-size:14px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;`; backBtn.textContent=S.lang==='ko'?'이전':'Back'; backBtn.onclick=()=>{S.reportStep=3;render();};
+    const nextBtn=document.createElement('button'); nextBtn.style.cssText=`flex:2;padding:14px;background:${T.green};color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`; nextBtn.textContent=S.lang==='ko'?'리포트 생성 →':'Generate Report →'; nextBtn.onclick=()=>{S.reportStep=4;render();};
+    row.appendChild(backBtn); row.appendChild(nextBtn);
+    wrap.appendChild(row);
+    return wrap;
+  }
   const purposeLabels = {
     iep: S.lang==='ko'?'IEP 미팅':'IEP Meeting',
     therapist: S.lang==='ko'?'치료사 미팅':'Therapist Meeting',
@@ -2757,7 +2805,7 @@ function renderReport() {
   const editBtn = document.createElement('button');
   editBtn.style.cssText=`background:none;border:none;font-size:14px;color:${T.tm};cursor:pointer;font-family:'DM Sans',sans-serif;padding:0;margin-bottom:20px;`;
   editBtn.textContent = '← ' + (S.lang==='ko'?'목표 선택으로':'Back to goal selection');
-  editBtn.onclick = () => { S.reportStep=3; render(); };
+  editBtn.onclick = () => { S.reportStep=3.5; render(); };
   wrap.appendChild(editBtn);
 
   // editable field helper
@@ -2902,10 +2950,12 @@ function renderReport() {
     gc.appendChild(pb);
 
     // show different detail based on purpose
-    const showTechniques = ['therapist','evaluation','notes'].includes(S.reportPurpose);
-    const showNotWorked = ['therapist','evaluation','notes'].includes(S.reportPurpose);
-    const showRecommendations = ['iep','therapist','evaluation'].includes(S.reportPurpose);
-    const showLogs = ['evaluation','notes'].includes(S.reportPurpose);
+  const rs = S.reportSections || {summary:true, byGoal:true, recentLogs:true, worked:true, techniques:false, notWorked:false};
+  const showWorked = rs.worked !== false;
+  const showTechniques = rs.techniques || ['therapist','evaluation','notes'].includes(S.reportPurpose);
+  const showNotWorked = rs.notWorked || ['evaluation'].includes(S.reportPurpose);
+  const showRecommendations = ['iep','therapist','evaluation'].includes(S.reportPurpose);
+  const showLogs = rs.recentLogs;
 
     // evaluation: show advocacy box first
     if (S.reportPurpose === 'evaluation') {
@@ -2931,7 +2981,7 @@ function renderReport() {
       }
     }
 
-    if (worked.length>0 || S.reportEdits[editKey(i,'worked_new')]) {
+    if (showWorked && (worked.length>0 || S.reportEdits[editKey(i,'worked_new_0')]!==undefined)) {
       const ww=div(`background:${T.gl};border-radius:10px;padding:10px 12px;margin-bottom:8px;`);
       ww.innerHTML=`<p style="font-size:10px;font-weight:500;color:${T.green};text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">${S.lang==='ko'?'효과 있었던 것':'What worked'}</p>`;
       worked.slice(0,2).forEach((w,wi)=>{

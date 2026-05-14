@@ -248,6 +248,14 @@ async function initSupabase() {
 }
 
 async function initSupabaseAndRender() {
+  // show loading screen while Supabase initializes
+  const appEl = document.getElementById('screen');
+  if (appEl) {
+    appEl.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;padding:40px;">
+      <div style="width:60px;height:60px;border-radius:62% 38% 70% 30%/45% 65% 35% 55%;background:linear-gradient(140deg,#4A8C60,#2D5A3D);display:flex;align-items:center;justify-content:center;font-size:28px;">🌿</div>
+      <p style="font-family:'Fraunces',serif;font-size:18px;color:#2D5A3D;font-weight:400;">Loading...</p>
+    </div>`;
+  }
   await initSupabase();
   render();
 }
@@ -359,7 +367,7 @@ async function saveLogToSupabase(log, goalId) {
   }
 }
 
-async function loadFromSupabase() {
+async function loadFromSupabase(retries = 3) {
   if (!supabase || !currentUser) return;
   try {
     const { data: profile } = await supabase
@@ -441,8 +449,11 @@ async function loadFromSupabase() {
     }
   } catch(e) {
     console.log('Supabase load failed:', e);
-    // fallback — if S already has data, go to home
-    if (S.parent) S.view = 'home';
+    if (retries > 0) {
+      console.log(`Retrying... (${retries} left)`);
+      await new Promise(r => setTimeout(r, 1000));
+      return loadFromSupabase(retries - 1);
+    }
   }
 }
 
@@ -1463,33 +1474,45 @@ function renderLog() {
       const voiceBtn = document.createElement('button');
       voiceBtn.style.cssText=`width:100%;padding:12px;background:#fff;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px;`;
       voiceBtn.innerHTML = `<span style="font-size:20px;">🎤</span> ${S.lang==='ko'?'말하기':'Speak instead'}`;
+      let isRecording = false;
       voiceBtn.onclick = () => {
-        const rec = new SpeechRecognition();
-        rec.lang = S.lang==='ko'?'ko-KR':'en-US';
-        rec.continuous = true;
-        rec.interimResults = true;
-        voiceBtn.innerHTML = `<span style="font-size:20px;">🔴</span> ${S.lang==='ko'?'듣는 중... (탭해서 중지)':'Listening... (tap to stop)'}`;
-        voiceBtn.style.borderColor = T.red;
-        let final = S.tempLog.diary || '';
-        rec.onresult = (e) => {
-          let interim = '';
-          for (let i = e.resultIndex; i < e.results.length; i++) {
-            if (e.results[i].isFinal) final += e.results[i][0].transcript + ' ';
-            else interim = e.results[i][0].transcript;
-          }
-          diaryTA.value = final + interim;
-          S.tempLog.diary = final + interim;
-        };
-        let stopped = false;
-        const stopRec = () => {
-          if (stopped) return; stopped = true; rec.stop();
+        if (isRecording) {
+          isRecording = false;
           voiceBtn.innerHTML = `<span style="font-size:20px;">🎤</span> ${S.lang==='ko'?'말하기':'Speak instead'}`;
           voiceBtn.style.borderColor = T.border;
+          voiceBtn.style.color = T.text;
           setTimeout(() => render(), 300);
+          return;
+        }
+        const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRec) return;
+        isRecording = true;
+        let final = S.tempLog.diary || '';
+        voiceBtn.innerHTML = `<span style="font-size:20px;">🔴</span> ${S.lang==='ko'?'듣는 중... (탭해서 중지)':'Listening... (tap to stop)'}`;
+        voiceBtn.style.borderColor = T.red;
+        voiceBtn.style.color = T.red;
+
+        const startRec = () => {
+          if (!isRecording) return;
+          const rec = new SpeechRec();
+          rec.lang = S.lang==='ko'?'ko-KR':'en-US';
+          rec.continuous = false; // iOS 안정성을 위해 false
+          rec.interimResults = false;
+          rec.onresult = (e) => {
+            const transcript = e.results[0][0].transcript;
+            final = final ? final + ' ' + transcript : transcript;
+            diaryTA.value = final;
+            S.tempLog.diary = final;
+          };
+          rec.onend = () => {
+            if (isRecording) startRec(); // auto restart
+          };
+          rec.onerror = (e) => {
+            if (e.error === 'no-speech' && isRecording) startRec();
+          };
+          rec.start();
         };
-        rec.onend = stopRec;
-        voiceBtn.onclick = stopRec;
-        rec.start();
+        startRec();
       };
       const dRow = div('display:flex;flex-direction:column;gap:0;');
       dRow.appendChild(diaryTA);
@@ -1719,41 +1742,42 @@ function renderLog() {
       voiceBtn.style.cssText=`width:100%;padding:12px;background:#fff;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px;`;
       voiceBtn.innerHTML = `<span style="font-size:20px;">🎤</span> ${S.lang==='ko'?'말하기 시작':'Start speaking'}`;
 
+      voiceBtn.innerHTML = `<span style="font-size:20px;">🎤</span> ${S.lang==='ko'?'말하기 시작':'Start speaking'}`;
+      let isRecording2 = false;
       voiceBtn.onclick = () => {
-        const rec = new SpeechRecognition();
-        rec.lang = S.lang==='ko'?'ko-KR':'en-US';
-        rec.continuous = true;
-        rec.interimResults = true;
-        voiceBtn.innerHTML = `<span style="font-size:20px;">🔴</span> ${S.lang==='ko'?'듣는 중... (탭해서 중지)':'Listening... (tap to stop)'}`;
-        voiceBtn.style.borderColor = T.red;
-        voiceBtn.style.color = T.red;
-        let final = S.tempLog.diary || '';
-
-        rec.onresult = (e) => {
-          let interim = '';
-          for (let i = e.resultIndex; i < e.results.length; i++) {
-            if (e.results[i].isFinal) final += e.results[i][0].transcript + ' ';
-            else interim = e.results[i][0].transcript;
-          }
-          diaryTA.value = final + interim;
-          S.tempLog.diary = final + interim;
-        };
-
-        let stopped = false;
-        const stopRec = () => {
-          if (stopped) return;
-          stopped = true;
-          rec.stop();
+        if (isRecording2) {
+          isRecording2 = false;
           voiceBtn.innerHTML = `<span style="font-size:20px;">🎤</span> ${S.lang==='ko'?'말하기 시작':'Start speaking'}`;
           voiceBtn.style.borderColor = T.border;
           voiceBtn.style.color = T.text;
-          // re-render to show analyze button
           setTimeout(() => render(), 300);
-        };
+          return;
+        }
+        const SpeechRec2 = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRec2) return;
+        isRecording2 = true;
+        let final = S.tempLog.diary || '';
+        voiceBtn.innerHTML = `<span style="font-size:20px;">🔴</span> ${S.lang==='ko'?'듣는 중... (탭해서 중지)':'Listening... (tap to stop)'}`;
+        voiceBtn.style.borderColor = T.red;
+        voiceBtn.style.color = T.red;
 
-        rec.onend = stopRec;
-        voiceBtn.onclick = stopRec;
-        rec.start();
+        const startRec2 = () => {
+          if (!isRecording2) return;
+          const rec = new SpeechRec2();
+          rec.lang = S.lang==='ko'?'ko-KR':'en-US';
+          rec.continuous = false;
+          rec.interimResults = false;
+          rec.onresult = (e) => {
+            const transcript = e.results[0][0].transcript;
+            final = final ? final + ' ' + transcript : transcript;
+            diaryTA.value = final;
+            S.tempLog.diary = final;
+          };
+          rec.onend = () => { if (isRecording2) startRec2(); };
+          rec.onerror = (e) => { if (e.error === 'no-speech' && isRecording2) startRec2(); };
+          rec.start();
+        };
+        startRec2();
       };
 
       const dRow = div('display:flex;flex-direction:column;gap:0;');

@@ -370,7 +370,27 @@ async function saveLogToSupabase(log, goalId) {
   }
 }
 
-async function loadFromSupabase(retries = 3) {
+async function saveReportTemplate(purpose, edits) {
+  if (currentUser && supabase) {
+    try {
+      const { data } = await supabase.from('profiles').select('report_templates').eq('id', currentUser.id).single();
+      const existing = data?.report_templates || {};
+      existing[purpose] = edits;
+      await supabase.from('profiles').update({ report_templates: existing }).eq('id', currentUser.id);
+    } catch(e) { console.log('Template save error:', e); }
+  }
+  // also save to localStorage as fallback
+  try { localStorage.setItem(`report_template_${purpose}`, JSON.stringify(edits)); } catch(e) {}
+}
+
+function getReportTemplates() {
+  return S.reportTemplates || {};
+}
+
+function getReportTemplate(purpose) {
+  const templates = getReportTemplates();
+  return templates[purpose] || null;
+}
   if (!supabase || !currentUser) return;
   try {
     const { data: profile } = await supabase
@@ -444,8 +464,8 @@ async function loadFromSupabase(retries = 3) {
       }
 
       S.view = 'home';
-
-      // pre-fetch parent care message in background
+      // load report templates
+      if (profile.report_templates) S.reportTemplates = profile.report_templates;
       if (S.logs.length > 0 && !S.insightsParentCare && !S.homeParentCareLoading) {
         S.homeParentCareLoading = true;
         const _summary = S.goals.map((g, i) => {
@@ -464,6 +484,7 @@ async function loadFromSupabase(retries = 3) {
           if (data.parent_care) S.insightsParentCare = data.parent_care;
           S.insightsSummaryLang = S.lang;
           S.homeParentCareLoading = false;
+          if (S.view === 'home') render();
         }).catch(() => { S.homeParentCareLoading = false; });
       }
 
@@ -2680,9 +2701,7 @@ function renderReport() {
       notes: S.lang==='ko'?'내 기록용':'My Own Notes',
     };
     const purposeIcons = {iep:'📋',therapist:'🧑‍⚕️',teacher:'🏫',evaluation:'📊',family:'👨‍👩‍👧',notes:'📝'};
-    const savedTemplates = purposeKeys.filter(k => {
-      try { return !!localStorage.getItem(`report_template_${k}`); } catch(e) { return false; }
-    });
+    const savedTemplates = purposeKeys.filter(k => !!getReportTemplate(k));
 
     if (savedTemplates.length > 0) {
       wrap.appendChild(p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;`, S.lang==='ko'?'저장된 템플릿':'Saved Templates'));
@@ -2703,7 +2722,7 @@ function renderReport() {
           S.reportPurpose=k;
           S.reportPeriod=S.reportPeriod||'4w';
           S.reportGoals=S.goals.map((_,i)=>i);
-          try { S.reportEdits=JSON.parse(localStorage.getItem(`report_template_${k}`)||'{}'); } catch(e) { S.reportEdits={}; }
+          try { S.reportEdits = getReportTemplate(k) || {}; } catch(e) { S.reportEdits={}; }
           S.reportStep=4;
           render();
         };
@@ -2711,9 +2730,14 @@ function renderReport() {
         const delTmpl = document.createElement('button');
         delTmpl.style.cssText=`background:none;border:none;font-size:12px;color:${T.muted};cursor:pointer;padding:0 0 0 8px;`;
         delTmpl.textContent='🗑️';
-        delTmpl.onclick=(e)=>{
+        delTmpl.onclick=async(e)=>{
           e.stopPropagation();
+          if (!S.reportTemplates) S.reportTemplates = {};
+          delete S.reportTemplates[k];
           localStorage.removeItem(`report_template_${k}`);
+          if (currentUser && supabase) {
+            await supabase.from('profiles').update({ report_templates: S.reportTemplates }).eq('id', currentUser.id);
+          }
           render();
         };
         card.appendChild(delTmpl);
@@ -2928,8 +2952,7 @@ function renderReport() {
   };
 
   // template save/load
-  const templateKey = `report_template_${S.reportPurpose}`;
-  const savedTemplate = (() => { try { return JSON.parse(localStorage.getItem(templateKey)||'null'); } catch(e) { return null; } })();
+  const savedTemplate = getReportTemplate(S.reportPurpose);
 
   // template bar
   const tmplBar = div('display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;');
@@ -2937,8 +2960,10 @@ function renderReport() {
   const tmplBtn = document.createElement('button');
   tmplBtn.style.cssText=`background:none;border:1px solid ${T.border};border-radius:8px;padding:5px 10px;font-size:12px;color:${T.tm};cursor:pointer;font-family:'DM Sans',sans-serif;`;
   tmplBtn.textContent = S.lang==='ko'?'💾 템플릿으로 저장':'💾 Save as template';
-  tmplBtn.onclick=()=>{
-    localStorage.setItem(templateKey, JSON.stringify(S.reportEdits));
+  tmplBtn.onclick=async()=>{
+    if (!S.reportTemplates) S.reportTemplates = {};
+    S.reportTemplates[S.reportPurpose] = S.reportEdits;
+    await saveReportTemplate(S.reportPurpose, S.reportEdits);
     tmplBtn.textContent=S.lang==='ko'?'✓ 저장됐어요':'✓ Saved!';
     tmplBtn.style.color=T.green;
     tmplBtn.style.borderColor=T.green;
@@ -2964,7 +2989,7 @@ function renderReport() {
 
   // load saved template edits
   if (savedTemplate && Object.keys(S.reportEdits).length === 0) {
-    S.reportEdits = savedTemplate;
+    S.reportEdits = {...savedTemplate};
   }
   const now = new Date();
   const cutoff = S.reportPeriod==='2w'?14:S.reportPeriod==='4w'?28:999;

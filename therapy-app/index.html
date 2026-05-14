@@ -2853,7 +2853,7 @@ function renderReport() {
       byGoal: true,
       recentLogs: true,
       worked: true,
-      recommendations: true,
+      recommendations: false,
       techniques: false,
       notWorked: false,
     };
@@ -3068,7 +3068,7 @@ function renderReport() {
     gc.appendChild(pb);
 
     // show different detail based on purpose
-  const rs = S.reportSections || {summary:true, byGoal:true, recentLogs:true, worked:true, recommendations:true, techniques:false, notWorked:false};
+  const rs = S.reportSections || {summary:true, byGoal:true, recentLogs:true, worked:true, recommendations:false, techniques:false, notWorked:false};
   const showWorked = rs.worked !== false;
   const showTechniques = rs.techniques || ['therapist','evaluation','notes'].includes(S.reportPurpose);
   const showNotWorked = rs.notWorked || ['evaluation'].includes(S.reportPurpose);
@@ -3209,22 +3209,49 @@ function renderReport() {
       const gr=ga>0?Math.round(gs/ga*100):0;
       const gw=gl.filter(l=>l.worked).map(l=>l.worked).filter(Boolean);
       const gn=gl.filter(l=>l.didnt_work).map(l=>l.didnt_work).filter(Boolean);
+      const gt=gl.filter(l=>l.technique).map(l=>l.technique).filter(Boolean);
       const an=S.analyses?.[i];
+      const showEmailTechniques = rs?.techniques || ['therapist','evaluation','notes'].includes(S.reportPurpose);
+      const showEmailNotWorked = rs?.notWorked || ['evaluation'].includes(S.reportPurpose);
+      const showEmailRec = rs?.recommendations && ['iep','therapist','evaluation'].includes(S.reportPurpose);
       goalsHtml+=`<div style="background:#fff;border:1px solid #EAE6DE;border-radius:12px;padding:16px;margin-bottom:12px;">
         <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:8px;"><tr>
           <td style="font-size:14px;font-weight:500;color:#1A1A1A;">${g.icon} ${g.name}</td>
           <td align="right" style="font-size:12px;font-weight:500;color:${gr>=50?'#2D5A3D':'#D4622A'};white-space:nowrap;">${gr}% success</td>
         </tr></table>
         <div style="height:4px;background:#EAE6DE;border-radius:2px;margin-bottom:10px;"><div style="height:100%;width:${gr}%;background:#2D5A3D;border-radius:2px;"></div></div>
-        <p style="font-size:12px;color:#909090;margin-bottom:8px;">${ga} attempts · ${gs} success</p>
-        ${gw.length?`<p style="font-size:12px;color:#2D5A3D;margin-bottom:4px;">✓ ${gw.slice(0,2).join(' / ')}</p>`:''}
-        ${gn.length&&['therapist','evaluation','notes'].includes(S.reportPurpose)?`<p style="font-size:12px;color:#D4622A;margin-bottom:4px;">✗ ${gn.slice(0,2).join(' / ')}</p>`:''}
-        ${an?.next_actions?.length&&['iep','therapist','evaluation'].includes(S.reportPurpose)?`<p style="font-size:12px;color:#D4622A;">→ ${an.next_actions.slice(0,2).join(' / ')}</p>`:''}
+        <div style="background:#F8F6F2;border-radius:8px;padding:8px 12px;margin-bottom:6px;">
+          <p style="font-size:10px;font-weight:bold;color:#909090;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Home Attempts</p>
+          <p style="font-size:12px;color:#1A1A1A;">${ga} attempts · ${gs} success · ${ga>0?Math.round((gl.filter(l=>l.outcome==='Partial success'||l.outcome===L('partial')).length)/ga*100):0}% partial</p>
+        </div>
+        ${showEmailTechniques&&gt.length?`
+        <div style="background:#F8F6F2;border-radius:8px;padding:8px 12px;margin-bottom:6px;">
+          <p style="font-size:10px;font-weight:bold;color:#909090;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">What was tried</p>
+          ${gt.slice(0,2).map(t=>`<p style="font-size:12px;color:#1A1A1A;margin:0 0 2px;">• ${t}</p>`).join('')}
+        </div>`:''}
+        ${gw.length?`
+        <div style="background:#EAF2EC;border-radius:8px;padding:8px 12px;margin-bottom:6px;">
+          <p style="font-size:10px;font-weight:bold;color:#2D5A3D;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">✓ What worked</p>
+          ${gw.slice(0,2).map(w=>`<p style="font-size:12px;color:#2D5A3D;margin:0 0 2px;">${w}</p>`).join('')}
+        </div>`:''}
+        ${showEmailNotWorked&&gn.length?`
+        <div style="background:#FDF0EA;border-radius:8px;padding:8px 12px;margin-bottom:6px;">
+          <p style="font-size:10px;font-weight:bold;color:#D4622A;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">✗ What didn't work</p>
+          ${gn.slice(0,2).map(w=>`<p style="font-size:12px;color:#D4622A;margin:0 0 2px;">${w}</p>`).join('')}
+        </div>`:''}
+        ${showEmailRec&&an?.next_actions?.length?`
+        <div style="background:#FDF5EA;border-radius:8px;padding:8px 12px;margin-bottom:6px;">
+          <p style="font-size:10px;font-weight:bold;color:#D4622A;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">→ Recommendations</p>
+          ${an.next_actions.slice(0,2).map(a=>`<p style="font-size:12px;color:#D4622A;margin:0 0 2px;">${a}</p>`).join('')}
+        </div>`:''}
       </div>`;
     });
 
     const emailBody=`<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#F8F6F2;">
-      <h1 style="font-size:22px;color:#2D5A3D;margin-bottom:4px;">🌿 Therapy Buddy</h1>
+      <a href="https://therapybuddy.org" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <div style="width:28px;height:28px;border-radius:50%;background:#2D5A3D;display:inline-flex;align-items:center;justify-content:center;font-size:14px;">🌿</div>
+        <span style="font-family:Georgia,serif;font-size:18px;color:#2D5A3D;font-weight:400;">Therapy Buddy</span>
+      </a>
       <h2 style="font-size:20px;font-weight:400;color:#1A1A1A;margin-bottom:4px;">${purposeLabels[S.reportPurpose]} — ${S.child}</h2>
       <p style="font-size:13px;color:#909090;margin-bottom:16px;">Period: ${period} · Prepared by ${S.parent}</p>
       <div style="background:#EAF2EC;border-radius:12px;padding:14px 16px;margin-bottom:20px;">

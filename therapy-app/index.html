@@ -1150,7 +1150,9 @@ if(S.goals.length<maxGoals){
           ai2.placeholder=S.lang==='ko'?'예: 먼저 아이 상태 확인하기':`e.g. Check child's state first`;
           ai2.style.cssText=`flex:1;padding:10px 12px;font-size:13px;border:1.5px solid ${T.border};border-radius:10px;background:#fff;outline:none;font-family:'DM Sans',sans-serif;color:${T.text};`;
           ai2.oninput=e=>{g.actions[ai]=e.target.value;};
-          row2.appendChild(num); row2.appendChild(ai2);
+          const vb=makeVoiceBtn(v=>{g.actions[ai]=v;ai2.value=v;});
+          vb.style.cssText=`background:#fff;border:1.5px solid ${T.border};border-radius:10px;padding:6px 8px;font-size:14px;cursor:pointer;flex-shrink:0;`;
+          row2.appendChild(num); row2.appendChild(ai2); row2.appendChild(vb);
           if(g.actions.length>1){const del=document.createElement('button');del.textContent='✕';del.style.cssText='background:none;border:none;font-size:14px;color:#aaa;cursor:pointer;padding:0 4px;';del.onclick=()=>{g.actions.splice(ai,1);renderActs();};row2.appendChild(del);}
           aw.appendChild(row2);
         });
@@ -1183,9 +1185,12 @@ if(S.goals.length<maxGoals){
         S.lang==='ko' ? '예: 이름을 여러 번 반복하기, 강요하기' : 'e.g. Repeating the question, forcing a response'));
       const av=document.createElement('input'); av.type='text'; av.value=g.avoid;
       av.placeholder=L('avoidPlaceholder');
-      av.style.cssText=`width:100%;padding:12px 14px;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:16px;`;
+      av.style.cssText=`flex:1;padding:12px 14px;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;`;
       av.oninput=e=>{g.avoid=e.target.value;};
-      wrap.appendChild(av);
+      const avRow=div('display:flex;gap:8px;margin-bottom:16px;');
+      avRow.appendChild(av);
+      avRow.appendChild(makeVoiceBtn(v=>{g.avoid=v;av.value=v;}));
+      wrap.appendChild(avRow);
       wrap.appendChild(spacer);
 
       const row = div('display:flex;gap:8px;');

@@ -1381,6 +1381,32 @@ function renderHome() {
     const gb=document.createElement('button'); gb.className='btn btn-primary'; gb.style.marginTop='14px'; gb.textContent=L('setUpGoals'); gb.onclick=()=>go('goals');
     empty.appendChild(gb); wrap.appendChild(empty);
   } else {
+    // parent care message
+    if (S.insightsParentCare) {
+      const careBox = div(`background:${T.gl};border-radius:16px;padding:14px 18px;margin-bottom:14px;border-left:3px solid ${T.green};display:flex;gap:12px;align-items:flex-start;`);
+      careBox.innerHTML = `<span style="font-size:18px;flex-shrink:0;">🌿</span><p style="font-size:13px;color:#2D5A3D;line-height:1.7;font-style:italic;">${S.insightsParentCare}</p>`;
+      wrap.appendChild(careBox);
+    } else if (S.logs.length > 0 && !S.homeParentCareLoading) {
+      // generate in background if we have logs but no message yet
+      S.homeParentCareLoading = true;
+      const summary = S.goals.map((g, i) => {
+        const st = stats(i);
+        const worked = S.logs.filter(l=>l.goalIdx===i&&l.worked).map(l=>l.worked).slice(0,2);
+        return { goal: g.name, attempts: st.total, successRate: st.rate, worked };
+      });
+      fetch('/.netlify/functions/analyze', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ type: 'insights_summary', parent: S.parent, child: S.child, lang: S.lang, summary })
+      }).then(r=>r.json()).then(data => {
+        if (data.parent_care) {
+          S.insightsParentCare = data.parent_care;
+          S.homeParentCareLoading = false;
+          render();
+        }
+      }).catch(() => { S.homeParentCareLoading = false; });
+    }
+
     // vent button
     const ventBtn = div(`background:#fff;border-radius:16px;border:1.5px solid ${T.border};padding:14px 16px;margin-bottom:16px;cursor:pointer;display:flex;align-items:center;gap:12px;`);
     ventBtn.innerHTML=`
@@ -2270,6 +2296,7 @@ function renderWeek() {
           S.insightsSummary = data.message;
           S.insightsSummaryLang = S.lang;
           S.insightsSummaryLoading = false;
+          if (data.parent_care) S.insightsParentCare = data.parent_care;
           render();
         }
       }).catch(() => { S.insightsSummaryLoading = false; });

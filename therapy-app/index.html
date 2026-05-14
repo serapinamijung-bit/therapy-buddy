@@ -1474,18 +1474,28 @@ function renderLog() {
       const voiceBtn = document.createElement('button');
       voiceBtn.style.cssText=`width:100%;padding:12px;background:#fff;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px;`;
       voiceBtn.innerHTML = `<span style="font-size:20px;">🎤</span> ${S.lang==='ko'?'말하기':'Speak instead'}`;
-      let isRecording = false;
-      let currentRec = null;
+      voiceBtn._recording = false;
 
-      voiceBtn.onclick = () => {
-        if (isRecording) {
-          // stop recording
-          isRecording = false;
-          if (currentRec) { try { currentRec.stop(); } catch(e) {} currentRec = null; }
+      const updateVoiceBtn = (recording) => {
+        voiceBtn._recording = recording;
+        if (recording) {
+          voiceBtn.innerHTML = `<span style="font-size:20px;">🔴</span> ${S.lang==='ko'?'듣는 중... (탭해서 중지)':'Listening... (tap to stop)'}`;
+          voiceBtn.style.borderColor = T.red;
+          voiceBtn.style.color = T.red;
+        } else {
           voiceBtn.innerHTML = `<span style="font-size:20px;">🎤</span> ${S.lang==='ko'?'말하기':'Speak instead'}`;
           voiceBtn.style.borderColor = T.border;
           voiceBtn.style.color = T.text;
-          // save diary value before render
+        }
+      };
+
+      voiceBtn.onclick = () => {
+        const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRec) return;
+
+        if (voiceBtn._recording) {
+          // stop
+          updateVoiceBtn(false);
           const savedDiary = diaryTA.value;
           S.tempLog.diary = savedDiary;
           S.tempLog.noteMode = 'drop';
@@ -1494,45 +1504,44 @@ function renderLog() {
           return;
         }
 
-        const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRec) return;
-        isRecording = true;
-        let final = S.tempLog.diary || '';
-        voiceBtn.innerHTML = `<span style="font-size:20px;">🔴</span> ${S.lang==='ko'?'듣는 중... (탭해서 중지)':'Listening... (tap to stop)'}`;
-        voiceBtn.style.borderColor = T.red;
-        voiceBtn.style.color = T.red;
+        // start fresh
+        updateVoiceBtn(true);
+        let accumulated = diaryTA.value || '';
 
-        const startRec = () => {
-          if (!isRecording) return;
-          const rec = new SpeechRec();
-          currentRec = rec;
-          rec.lang = S.lang==='ko'?'ko-KR':'en-US';
-          rec.continuous = false;
-          rec.interimResults = false;
-          rec.onresult = (e) => {
-            if (e.results && e.results[0]) {
-              const transcript = e.results[0][0].transcript;
-              if (transcript && transcript.trim()) {
-                final = final ? final + ' ' + transcript.trim() : transcript.trim();
-                diaryTA.value = final;
-                S.tempLog.diary = final;
-              }
+        const rec = new SpeechRec();
+        rec.lang = S.lang==='ko'?'ko-KR':'en-US';
+        rec.continuous = true;
+        rec.interimResults = false;
+        rec.maxAlternatives = 1;
+
+        rec.onresult = (e) => {
+          for (let i = e.resultIndex; i < e.results.length; i++) {
+            if (e.results[i].isFinal) {
+              const t = e.results[i][0].transcript.trim();
+              if (t) accumulated = accumulated ? accumulated + ' ' + t : t;
             }
-          };
-          rec.onend = () => {
-            if (isRecording) {
-              setTimeout(() => startRec(), 200); // small delay before restart
-            }
-          };
-          rec.onerror = (e) => {
-            console.log('Voice error:', e.error);
-            if (isRecording && e.error !== 'aborted') {
-              setTimeout(() => startRec(), 500);
-            }
-          };
-          try { rec.start(); } catch(e) { console.log('rec.start error:', e); }
+          }
+          diaryTA.value = accumulated;
+          S.tempLog.diary = accumulated;
         };
-        startRec();
+
+        rec.onend = () => {
+          if (voiceBtn._recording) {
+            // Android 에서 자동 종료됨 — 재시작
+            try {
+              setTimeout(() => {
+                if (voiceBtn._recording) rec.start();
+              }, 100);
+            } catch(e) {}
+          }
+        };
+
+        rec.onerror = (e) => {
+          if (e.error === 'no-speech') return; // 무시하고 계속
+          if (e.error !== 'aborted') updateVoiceBtn(false);
+        };
+
+        try { rec.start(); } catch(e) { updateVoiceBtn(false); }
       };
       const dRow = div('display:flex;flex-direction:column;gap:0;');
       dRow.appendChild(diaryTA);

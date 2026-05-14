@@ -2637,7 +2637,7 @@ function renderWeek() {
 // ── REPORT ─────────────────────────────────────────────────────────
 function renderReport() {
   const wrap=div('flex:1;overflow-y:auto;padding:24px 22px 40px;');
-  const back=document.createElement('button'); back.style.cssText=`background:none;border:none;cursor:pointer;color:${T.tm};font-size:14px;margin-bottom:20px;padding:0;font-family:'DM Sans',sans-serif;`; back.textContent='← '+(S.lang==='ko'?'Insights 로':'Back to Insights'); back.onclick=()=>go('week');
+  const back=document.createElement('button'); back.style.cssText=`background:none;border:none;cursor:pointer;color:${T.tm};font-size:14px;margin-bottom:20px;padding:0;font-family:'DM Sans',sans-serif;`; back.textContent='← '+(S.lang==='ko'?'Insights 로':'Back to Insights'); back.onclick=()=>{ S.reportStep=1; S.reportPurpose=null; S.reportGoals=null; S.reportEdits={}; go('week'); };
   if (!S.reportStep || S.reportStep < 4) wrap.appendChild(back);
 
   if (!S.reportStep) S.reportStep = 1;
@@ -2756,7 +2756,7 @@ function renderReport() {
 
   const editBtn = document.createElement('button');
   editBtn.style.cssText=`background:none;border:none;font-size:14px;color:${T.tm};cursor:pointer;font-family:'DM Sans',sans-serif;padding:0;margin-bottom:20px;`;
-  editBtn.textContent = '← ' + (S.lang==='ko'?'뒤로':'Back');
+  editBtn.textContent = '← ' + (S.lang==='ko'?'목표 선택으로':'Back to goal selection');
   editBtn.onclick = () => { S.reportStep=3; render(); };
   wrap.appendChild(editBtn);
 

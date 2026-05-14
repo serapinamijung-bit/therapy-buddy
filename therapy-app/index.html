@@ -2759,8 +2759,67 @@ function renderReport() {
   editBtn.onclick = () => { S.reportStep=1; render(); };
   wrap.appendChild(editBtn);
 
-  // filter logs
-  const now = new Date();
+  // editable field helper
+  if (!S.reportEdits) S.reportEdits = {};
+  const editKey = (goalIdx, field) => `${S.reportPurpose}_${goalIdx}_${field}`;
+  const getEdit = (key, defaultVal) => S.reportEdits[key] !== undefined ? S.reportEdits[key] : defaultVal;
+
+  const makeEditable = (key, defaultVal, style='') => {
+    const val = getEdit(key, defaultVal);
+    const wrap2 = div('display:flex;gap:6px;align-items:flex-start;');
+    const txt = div(`flex:1;font-size:12px;color:${T.tm};line-height:1.6;${style}`);
+    txt.textContent = val;
+    const editBtn2 = document.createElement('button');
+    editBtn2.style.cssText=`background:none;border:none;cursor:pointer;font-size:12px;color:${T.muted};padding:0;flex-shrink:0;opacity:0.5;`;
+    editBtn2.textContent='✏️';
+    editBtn2.title='Edit';
+    editBtn2.onclick=()=>{
+      const ta=document.createElement('textarea');
+      ta.value=val; ta.style.cssText=`width:100%;padding:6px 8px;border:1.5px solid ${T.green};border-radius:8px;font-size:12px;font-family:'DM Sans',sans-serif;resize:none;outline:none;line-height:1.6;`;
+      ta.style.height='auto';
+      txt.replaceWith(ta);
+      editBtn2.textContent='✓';
+      editBtn2.style.color=T.green;
+      editBtn2.style.opacity='1';
+      ta.focus();
+      ta.style.height=ta.scrollHeight+'px';
+      editBtn2.onclick=()=>{
+        S.reportEdits[key]=ta.value;
+        render();
+      };
+    };
+    wrap2.appendChild(txt);
+    wrap2.appendChild(editBtn2);
+    return wrap2;
+  };
+
+  // template save/load
+  const templateKey = `report_template_${S.reportPurpose}`;
+  const savedTemplate = (() => { try { return JSON.parse(localStorage.getItem(templateKey)||'null'); } catch(e) { return null; } })();
+
+  // template bar
+  const tmplBar = div('display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;');
+  const tmplLabel = p(`font-size:12px;color:${T.muted};`, savedTemplate ? (S.lang==='ko'?'저장된 템플릿 불러왔어요':'Loaded from saved template') : '');
+  const tmplBtn = document.createElement('button');
+  tmplBtn.style.cssText=`background:none;border:1px solid ${T.border};border-radius:8px;padding:5px 10px;font-size:12px;color:${T.tm};cursor:pointer;font-family:'DM Sans',sans-serif;`;
+  tmplBtn.textContent = S.lang==='ko'?'💾 템플릿으로 저장':'💾 Save as template';
+  tmplBtn.onclick=()=>{
+    localStorage.setItem(templateKey, JSON.stringify(S.reportEdits));
+    tmplBtn.textContent=S.lang==='ko'?'✓ 저장됐어요':'✓ Saved!';
+    tmplBtn.style.color=T.green;
+    setTimeout(()=>{
+      tmplBtn.textContent=S.lang==='ko'?'💾 템플릿으로 저장':'💾 Save as template';
+      tmplBtn.style.color=T.tm;
+    }, 2000);
+  };
+  tmplBar.appendChild(tmplLabel);
+  tmplBar.appendChild(tmplBtn);
+  wrap.appendChild(tmplBar);
+
+  // load saved template edits
+  if (savedTemplate && Object.keys(S.reportEdits).length === 0) {
+    S.reportEdits = savedTemplate;
+  }
   const cutoff = S.reportPeriod==='2w'?14:S.reportPeriod==='4w'?28:999;
   const filteredLogs = S.logs.filter(l=>{
     if (S.reportPeriod==='all') return true;
@@ -2787,8 +2846,8 @@ function renderReport() {
       ? `가정에서 연습 중인 목표와 현재 효과가 있는 전략을 공유합니다. 학교에서도 일관되게 적용해 주시면 감사하겠습니다.`
       : `A summary of home goals and strategies that are working. Consistent application at school would be greatly appreciated.`,
     evaluation: S.lang==='ko'
-      ? `평가를 위한 가정 관찰 데이터입니다. 날짜별 기록과 목표별 진행 상황을 포함합니다.`
-      : `Home observation data for evaluation purposes, including dated logs and progress by goal.`,
+      ? `이 리포트는 ${S.child}의 지원 필요성을 문서화합니다. 부모가 꾸준히 노력했음에도 어려움이 지속되고 있으며, 이는 ${S.child}가 적절한 교육 지원을 받을 권리가 있음을 보여줍니다.`
+      : `This report documents ${S.child}'s ongoing challenges and support needs. Despite consistent effort from home, difficulties persist — demonstrating the need for appropriate evaluation and access to educational support services.`,
     family: S.lang==='ko'
       ? `${S.child}와 함께 하고 있는 것들을 공유합니다. 일관된 접근이 가장 큰 도움이 돼요.`
       : `A summary of what we're working on with ${S.child}. Consistency across caregivers makes the biggest difference.`,
@@ -2839,6 +2898,30 @@ function renderReport() {
     const showNotWorked = ['therapist','evaluation','notes'].includes(S.reportPurpose);
     const showRecommendations = ['iep','therapist','evaluation'].includes(S.reportPurpose);
     const showLogs = ['evaluation','notes'].includes(S.reportPurpose);
+
+    // evaluation: show advocacy box first
+    if (S.reportPurpose === 'evaluation') {
+      const notWorkedAll = goalLogs.filter(l=>l.didnt_work).map(l=>l.didnt_work).filter(Boolean);
+      if (notWorkedAll.length > 0 || att > 0) {
+        const advBox = div(`background:#FDF0EA;border-radius:10px;padding:12px 14px;margin-bottom:8px;border-left:3px solid ${T.orange};`);
+        advBox.innerHTML=`<p style="font-size:10px;font-weight:500;color:${T.orange};text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">⚠️ ${S.lang==='ko'?'지속적인 어려움':'Persistent Challenges'}</p>`;
+        if (notWorkedAll.length > 0) {
+          notWorkedAll.slice(0,3).forEach(w=>{
+            const r=div('display:flex;gap:6px;margin-bottom:3px;');
+            r.innerHTML=`<span style="color:${T.orange};font-size:11px;">•</span><p style="font-size:12px;color:${T.tm};line-height:1.5;">${w}</p>`;
+            advBox.appendChild(r);
+          });
+        }
+        if (att > 0) {
+          const note = div('margin-top:8px;padding-top:8px;border-top:1px solid #EAE6DE;');
+          note.innerHTML=`<p style="font-size:12px;color:${T.tm};line-height:1.6;font-style:italic;">${S.lang==='ko'
+            ? `가정에서 ${att}번 시도했음에도 어려움이 지속되고 있습니다. 이는 추가적인 전문 지원의 필요성을 나타냅니다.`
+            : `Despite ${att} home intervention attempts, challenges persist — indicating the need for additional professional support and appropriate accommodations.`}</p>`;
+          advBox.appendChild(note);
+        }
+        gc.appendChild(advBox);
+      }
+    }
 
     if (worked.length>0) {
       const ww=div(`background:${T.gl};border-radius:10px;padding:10px 12px;margin-bottom:8px;`);

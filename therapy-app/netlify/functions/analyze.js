@@ -103,7 +103,43 @@ Respond ONLY with this JSON:
       };
     }
 
-    // INSIGHTS SUMMARY MODE
+    // CLEAN GOAL MODE
+    if (data.type === 'clean_goal') {
+      const isKo = data.lang === 'ko';
+      const prompt = `Clean up this voice input from a parent into a concise, clear phrase:
+
+"${data.text}"
+
+Rules:
+- Remove filler words and fix grammar
+- Keep it short (under 10 words)
+- Preserve the core meaning
+- Respond in ${isKo ? 'Korean' : 'English'}
+- Return ONLY the cleaned text, nothing else`;
+
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-5-20250929',
+          max_tokens: 50,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+
+      const result = await response.json();
+      const cleaned = result.content?.[0]?.text?.trim() || data.text;
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ status: 'ok', cleaned })
+      };
+    }
     if (data.type === 'insights_summary') {
       const isKo = data.lang === 'ko';
       const prompt = `You are a warm, supportive companion for a parent working on goals with their child.

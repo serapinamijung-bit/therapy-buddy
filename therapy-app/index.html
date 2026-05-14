@@ -391,6 +391,8 @@ function getReportTemplate(purpose) {
   const templates = getReportTemplates();
   return templates[purpose] || null;
 }
+
+async function loadFromSupabase(retries = 3) {
   if (!supabase || !currentUser) return;
   try {
     const { data: profile } = await supabase

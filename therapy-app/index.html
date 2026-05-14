@@ -2300,14 +2300,24 @@ function renderWeek() {
 
   // ── RECENT ACTIVITY ─────────────────────────────────────────────
   if (S.logs.length > 0) {
-    wrap.appendChild(p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;`, S.lang==='ko'?'최근 기록':'Recent Activity'));
+    const actHeader = div('display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;');
+    const actLabel = p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;`, S.lang==='ko'?'최근 기록':'Recent Activity');
+    const actToggle = document.createElement('button');
+    actToggle.style.cssText=`background:none;border:none;font-size:12px;font-weight:500;color:${T.green};cursor:pointer;font-family:'DM Sans',sans-serif;padding:0;`;
+    const isActExpanded = S.recentActivityExpanded === true;
+    actToggle.textContent = isActExpanded
+      ? (S.lang==='ko'?'접기':'See less')
+      : (S.lang==='ko'?'전체 보기':'See all');
+    actToggle.onclick = () => { S.recentActivityExpanded = !isActExpanded; render(); };
+    actHeader.appendChild(actLabel);
+    actHeader.appendChild(actToggle);
+    wrap.appendChild(actHeader);
 
-    // sort logs by date descending, take last 10
     const recentLogs = [...S.logs]
       .map((l, origIdx) => ({...l, origIdx}))
       .filter(l => l.attempted === 'Yes')
       .reverse()
-      .slice(0, 10);
+      .slice(0, isActExpanded ? 30 : 3);
 
     const actWrap = div('display:flex;flex-direction:column;gap:8px;margin-bottom:24px;');
 
@@ -2317,7 +2327,6 @@ function renderWeek() {
 
       const card = div(`background:#fff;border-radius:14px;border:1px solid ${T.border};padding:14px 16px;`);
 
-      // header
       const hdr = div('display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;');
       hdr.innerHTML = `
         <div style="display:flex;align-items:center;gap:8px;">
@@ -2328,7 +2337,6 @@ function renderWeek() {
       `;
       card.appendChild(hdr);
 
-      // bullets
       const bullets = [];
       if (l.technique) bullets.push(`${S.lang==='ko'?'시도':'Tried'}: ${l.technique}`);
       if (l.worked) bullets.push(`✓ ${l.worked}`);
@@ -2344,7 +2352,6 @@ function renderWeek() {
         card.appendChild(ul);
       }
 
-      // outcome badge
       if (l.outcome) {
         const outcomeColor = l.outcome.includes('Success') && !l.outcome.includes('No') && !l.outcome.includes('Partial')
           ? T.green : l.outcome.includes('Partial') ? '#D4622A' : T.muted;

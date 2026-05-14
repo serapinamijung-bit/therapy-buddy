@@ -2298,7 +2298,68 @@ function renderWeek() {
   [{v:`${totalAtt}`,l:L('attempts'),click:null},{v:`${overall}%`,l:L('overallSuccess'),click:null},{v:`${S.goals.length}`,l:L('goals'),click:()=>go('goals')}].forEach(s=>{const sc=div(`flex:1;background:${T.card};border-radius:14px;border:1px solid ${T.border};padding:12px;text-align:center;${s.click?'cursor:pointer;':''}`);sc.innerHTML=`<p style="font-family:'Fraunces',serif;font-size:22px;font-weight:400;color:${T.text}">${s.v}</p><p style="font-size:11px;color:${s.click?T.green:T.muted};margin-top:3px">${s.l}${s.click?' →':''}</p>`;if(s.click)sc.onclick=s.click;sr.appendChild(sc);});
   wrap.appendChild(sr);
 
-  // section label
+  // ── RECENT ACTIVITY ─────────────────────────────────────────────
+  if (S.logs.length > 0) {
+    wrap.appendChild(p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;`, S.lang==='ko'?'최근 기록':'Recent Activity'));
+
+    // sort logs by date descending, take last 10
+    const recentLogs = [...S.logs]
+      .map((l, origIdx) => ({...l, origIdx}))
+      .filter(l => l.attempted === 'Yes')
+      .reverse()
+      .slice(0, 10);
+
+    const actWrap = div('display:flex;flex-direction:column;gap:8px;margin-bottom:24px;');
+
+    recentLogs.forEach(l => {
+      const g = S.goals[l.goalIdx];
+      if (!g) return;
+
+      const card = div(`background:#fff;border-radius:14px;border:1px solid ${T.border};padding:14px 16px;`);
+
+      // header
+      const hdr = div('display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;');
+      hdr.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:16px;">${g.icon}</span>
+          <p style="font-size:13px;font-weight:500;color:${T.text};">${g.name}</p>
+        </div>
+        <p style="font-size:11px;color:${T.muted};">${l.date}</p>
+      `;
+      card.appendChild(hdr);
+
+      // bullets
+      const bullets = [];
+      if (l.technique) bullets.push(`${S.lang==='ko'?'시도':'Tried'}: ${l.technique}`);
+      if (l.worked) bullets.push(`✓ ${l.worked}`);
+      if (l.didnt_work) bullets.push(`✗ ${l.didnt_work}`);
+
+      if (bullets.length > 0) {
+        const ul = div('display:flex;flex-direction:column;gap:4px;');
+        bullets.forEach(b => {
+          const bp = div(`font-size:12px;color:${T.tm};line-height:1.6;padding-left:4px;`);
+          bp.textContent = b;
+          ul.appendChild(bp);
+        });
+        card.appendChild(ul);
+      }
+
+      // outcome badge
+      if (l.outcome) {
+        const outcomeColor = l.outcome.includes('Success') && !l.outcome.includes('No') && !l.outcome.includes('Partial')
+          ? T.green : l.outcome.includes('Partial') ? '#D4622A' : T.muted;
+        const badge = div('margin-top:8px;');
+        badge.innerHTML = `<span style="font-size:11px;font-weight:500;color:${outcomeColor};background:${outcomeColor}18;border-radius:20px;padding:3px 8px;">${l.outcome}</span>`;
+        card.appendChild(badge);
+      }
+
+      actWrap.appendChild(card);
+    });
+
+    wrap.appendChild(actWrap);
+  }
+
+  // ── INSIGHTS BY GOAL ────────────────────────────────────────────
   wrap.appendChild(p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;`, S.lang==='ko'?'목표별 인사이트':'Insights by Goal'));
 
   // per-goal accordion cards

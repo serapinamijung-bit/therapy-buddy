@@ -1475,15 +1475,25 @@ function renderLog() {
       voiceBtn.style.cssText=`width:100%;padding:12px;background:#fff;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px;`;
       voiceBtn.innerHTML = `<span style="font-size:20px;">🎤</span> ${S.lang==='ko'?'말하기':'Speak instead'}`;
       let isRecording = false;
+      let currentRec = null;
+
       voiceBtn.onclick = () => {
         if (isRecording) {
+          // stop recording
           isRecording = false;
+          if (currentRec) { try { currentRec.stop(); } catch(e) {} currentRec = null; }
           voiceBtn.innerHTML = `<span style="font-size:20px;">🎤</span> ${S.lang==='ko'?'말하기':'Speak instead'}`;
           voiceBtn.style.borderColor = T.border;
           voiceBtn.style.color = T.text;
-          setTimeout(() => render(), 300);
+          // save diary value before render
+          const savedDiary = diaryTA.value;
+          S.tempLog.diary = savedDiary;
+          S.tempLog.noteMode = 'drop';
+          S.tempLog.mode = 'diary';
+          if (savedDiary && savedDiary.trim().length >= 10) render();
           return;
         }
+
         const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRec) return;
         isRecording = true;
@@ -1495,22 +1505,32 @@ function renderLog() {
         const startRec = () => {
           if (!isRecording) return;
           const rec = new SpeechRec();
+          currentRec = rec;
           rec.lang = S.lang==='ko'?'ko-KR':'en-US';
-          rec.continuous = false; // iOS 안정성을 위해 false
+          rec.continuous = false;
           rec.interimResults = false;
           rec.onresult = (e) => {
-            const transcript = e.results[0][0].transcript;
-            final = final ? final + ' ' + transcript : transcript;
-            diaryTA.value = final;
-            S.tempLog.diary = final;
+            if (e.results && e.results[0]) {
+              const transcript = e.results[0][0].transcript;
+              if (transcript && transcript.trim()) {
+                final = final ? final + ' ' + transcript.trim() : transcript.trim();
+                diaryTA.value = final;
+                S.tempLog.diary = final;
+              }
+            }
           };
           rec.onend = () => {
-            if (isRecording) startRec(); // auto restart
+            if (isRecording) {
+              setTimeout(() => startRec(), 200); // small delay before restart
+            }
           };
           rec.onerror = (e) => {
-            if (e.error === 'no-speech' && isRecording) startRec();
+            console.log('Voice error:', e.error);
+            if (isRecording && e.error !== 'aborted') {
+              setTimeout(() => startRec(), 500);
+            }
           };
-          rec.start();
+          try { rec.start(); } catch(e) { console.log('rec.start error:', e); }
         };
         startRec();
       };

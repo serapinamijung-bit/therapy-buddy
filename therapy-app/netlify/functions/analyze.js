@@ -149,16 +149,20 @@ Child: ${data.child}
 Recent logs summary:
 ${JSON.stringify(data.summary, null, 2)}
 
-Write a short, warm, personalized message (2-3 sentences max) for the parent. 
-- Acknowledge something specific that's working or improving
-- Be genuinely encouraging, not generic
-- Sound like a caring friend who's been watching their journey, not a report
-- If success rate is high, celebrate something specific
-- If success rate is low, validate the effort and find something positive
-- Never mention numbers or percentages
-- End with gentle encouragement
+Write two short messages:
 
-Respond in ${isKo ? 'Korean' : 'English'}. Plain text only, no JSON.`;
+1. CHILD_PROGRESS (1-2 sentences): A warm, personalized observation about how things are going with the child. Mention something specific that's working or improving. Never mention numbers or percentages.
+
+2. PARENT_CARE (1-2 sentences): A gentle, heartfelt message FOR THE PARENT — not about the child. Acknowledge how much they're carrying. Validate their effort. Offer a small, concrete self-care suggestion or reframe. Examples: "When things feel stuck, try doing something just for fun together — no goals, no structure.", "You don't have to be perfect at this. Showing up is the work.", "It's okay to have hard days. Rest is part of the process too."
+
+Be warm and human, not clinical. Sound like a caring friend, not a therapist.
+Respond in ${isKo ? 'Korean' : 'English'}.
+
+Respond ONLY with this JSON, no other text:
+{
+  "child_progress": "...",
+  "parent_care": "..."
+}`;
 
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -169,18 +173,24 @@ Respond in ${isKo ? 'Korean' : 'English'}. Plain text only, no JSON.`;
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-5-20250929',
-          max_tokens: 200,
+          max_tokens: 300,
           messages: [{ role: 'user', content: prompt }]
         })
       });
 
       const result = await response.json();
-      const message = result.content?.[0]?.text || '';
+      const text = result.content?.[0]?.text || '';
+      let child_progress = '', parent_care = '';
+      try {
+        const parsed = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] || '{}');
+        child_progress = parsed.child_progress || '';
+        parent_care = parsed.parent_care || '';
+      } catch(e) { child_progress = text; }
 
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({ status: 'ok', message })
+        body: JSON.stringify({ status: 'ok', message: child_progress, parent_care })
       };
     }    const prompt = `You are a helpful assistant supporting parents who are working on behavioral or developmental goals with their child at home.
 

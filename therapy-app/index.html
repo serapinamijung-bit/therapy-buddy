@@ -2637,280 +2637,316 @@ function renderWeek() {
 // ── REPORT ─────────────────────────────────────────────────────────
 function renderReport() {
   const wrap=div('flex:1;overflow-y:auto;padding:24px 22px 40px;');
-
-  // header
   const back=document.createElement('button'); back.style.cssText=`background:none;border:none;cursor:pointer;color:${T.tm};font-size:14px;margin-bottom:20px;padding:0;font-family:'DM Sans',sans-serif;`; back.textContent='← '+(S.lang==='ko'?'뒤로':'Back'); back.onclick=()=>go('week'); wrap.appendChild(back);
 
-  wrap.appendChild(h('h2',"font-family:'Fraunces',serif;font-size:26px;font-weight:400;color:#1A1A1A;margin-bottom:4px;", S.lang==='ko'?'진행 리포트':'Progress Report'));
-  wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:20px;`, `${S.child} · ${S.lang==='ko'?'작성자':'by'} ${S.parent}`));
+  if (!S.reportStep) S.reportStep = 1;
 
-  // period selector
-  if (!S.reportPeriod) S.reportPeriod = '4w';
-  const periodRow = div('display:flex;gap:8px;margin-bottom:20px;');
-  const periods = S.lang==='ko'
-    ? [['2w','2주'],['4w','4주'],['all','전체']]
-    : [['2w','2 weeks'],['4w','4 weeks'],['all','All time']];
-  periods.forEach(([val,label])=>{
-    const b=document.createElement('button');
-    b.style.cssText=`padding:7px 14px;border-radius:20px;border:1.5px solid ${S.reportPeriod===val?T.green:T.border};background:${S.reportPeriod===val?T.gl:'#fff'};color:${S.reportPeriod===val?T.green:T.tm};font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;`;
-    b.textContent=label;
-    b.onclick=()=>{ S.reportPeriod=val; render(); };
-    periodRow.appendChild(b);
-  });
-  wrap.appendChild(periodRow);
+  // ── STEP 1: Purpose ──────────────────────────────────────────────
+  if (S.reportStep === 1) {
+    wrap.appendChild(h('h2',"font-family:'Fraunces',serif;font-size:24px;font-weight:400;color:#1A1A1A;margin-bottom:6px;", S.lang==='ko'?'리포트 생성':'Generate Report'));
+    wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:20px;`, S.lang==='ko'?'누구를 위한 리포트인가요?':'Who is this report for?'));
 
-  // filter logs by period
-  const now = new Date();
-  const cutoff = S.reportPeriod==='2w' ? 14 : S.reportPeriod==='4w' ? 28 : 999;
-  const filteredLogs = S.logs.filter(l => {
-    if (S.reportPeriod==='all') return true;
-    const parts = l.date?.split('/');
-    if (!parts || parts.length < 2) return true;
-    const logDate = new Date(now.getFullYear(), parseInt(parts[0])-1, parseInt(parts[1]));
-    return (now - logDate) / (1000*60*60*24) <= cutoff;
-  });
+    const purposes = S.lang==='ko'
+      ? [
+          ['iep', '📋', 'IEP 미팅', '학교 특수교육팀과의 미팅'],
+          ['therapist', '🧑‍⚕️', '치료사 미팅', 'ABA, 언어, 작업 치료사'],
+          ['teacher', '🏫', '선생님 면담', '담임 또는 특수교육 선생님'],
+          ['evaluation', '📊', '평가 미팅', '초기 평가 또는 재평가'],
+          ['family', '👨‍👩‍👧', '가족 공유', '배우자, 조부모 등 가족'],
+          ['notes', '📝', '내 기록용', '개인 보관 및 참고용'],
+        ]
+      : [
+          ['iep', '📋', 'IEP Meeting', 'School special education team'],
+          ['therapist', '🧑‍⚕️', 'Therapist Meeting', 'ABA, speech, or OT therapist'],
+          ['teacher', '🏫', 'Teacher Conference', 'Classroom or special ed teacher'],
+          ['evaluation', '📊', 'Evaluation Meeting', 'Initial or re-evaluation'],
+          ['family', '👨‍👩‍👧', 'Family Alignment', 'Spouse, grandparents, caregivers'],
+          ['notes', '📝', 'My Own Notes', 'Personal reference and records'],
+        ];
 
-  // overall summary box
-  const totalAtt = filteredLogs.filter(l=>l.attempted==='Yes').length;
-  const totalSucc = filteredLogs.filter(l=>l.outcome===L('success')||l.outcome==='Success').length;
-  const totalPart = filteredLogs.filter(l=>l.outcome===L('partial')||l.outcome==='Partial success').length;
-  const overallRate = totalAtt > 0 ? Math.round(totalSucc/totalAtt*100) : 0;
-
-  const summaryBox = div(`background:${T.gl};border-radius:16px;padding:16px 18px;margin-bottom:20px;`);
-  summaryBox.innerHTML=`<p style="font-size:11px;font-weight:500;color:${T.green};letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;">${S.lang==='ko'?'전체 요약':'Overall Summary'}</p>`;
-  const statsRow = div('display:flex;gap:8px;');
-  [
-    [totalAtt, S.lang==='ko'?'시도 횟수':'Attempts'],
-    [overallRate+'%', S.lang==='ko'?'성공률':'Success rate'],
-    [S.goals.length, S.lang==='ko'?'목표 개수':'Goals'],
-  ].forEach(([val,label])=>{
-    const sc=div(`flex:1;background:#fff;border-radius:12px;padding:10px;text-align:center;`);
-    sc.innerHTML=`<p style="font-family:'Fraunces',serif;font-size:20px;color:${T.text}">${val}</p><p style="font-size:11px;color:${T.muted};margin-top:2px">${label}</p>`;
-    statsRow.appendChild(sc);
-  });
-  summaryBox.appendChild(statsRow);
-
-  // what worked overall
-  const allWorked = filteredLogs.filter(l=>l.worked).map(l=>l.worked).filter(Boolean);
-  const allNext = filteredLogs.filter(l=>l.next).map(l=>l.next).filter(Boolean);
-  if (allWorked.length > 0) {
-    const ww = div(`margin-top:12px;padding-top:12px;border-top:1px solid ${T.border};`);
-    ww.innerHTML=`<p style="font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">${S.lang==='ko'?'효과 있었던 것':'What worked'}</p>`;
-    allWorked.slice(0,3).forEach(w=>{
-      const row=div('display:flex;gap:6px;align-items:flex-start;margin-bottom:4px;');
-      row.innerHTML=`<span style="color:${T.green};font-size:12px;margin-top:1px;">✓</span><p style="font-size:12px;color:${T.tm};line-height:1.5;">${w}</p>`;
-      ww.appendChild(row);
+    const grid = div('display:flex;flex-direction:column;gap:8px;margin-bottom:24px;');
+    purposes.forEach(([val, icon, title, sub]) => {
+      const card = div(`background:#fff;border-radius:14px;border:1.5px solid ${S.reportPurpose===val?T.green:T.border};padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;`);
+      card.innerHTML=`<span style="font-size:24px;">${icon}</span><div><p style="font-size:14px;font-weight:500;color:${T.text};margin-bottom:2px;">${title}</p><p style="font-size:12px;color:${T.muted};">${sub}</p></div>`;
+      if (S.reportPurpose === val) card.innerHTML += `<span style="margin-left:auto;color:${T.green};font-size:18px;">✓</span>`;
+      card.onclick = () => { S.reportPurpose = val; render(); };
+      card.onmouseenter = () => { if(S.reportPurpose!==val) card.style.borderColor=T.border; };
+      grid.appendChild(card);
     });
-    summaryBox.appendChild(ww);
+    wrap.appendChild(grid);
+
+    const nextBtn = document.createElement('button');
+    nextBtn.style.cssText=`width:100%;padding:14px;background:${S.reportPurpose?T.green:T.border};color:${S.reportPurpose?'#fff':T.muted};border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:${S.reportPurpose?'pointer':'default'};font-family:'DM Sans',sans-serif;`;
+    nextBtn.textContent = S.lang==='ko'?'다음 →':'Next →';
+    nextBtn.onclick = () => { if (S.reportPurpose) { S.reportStep=2; render(); } };
+    wrap.appendChild(nextBtn);
+    return wrap;
   }
-  wrap.appendChild(summaryBox);
 
-  // per goal breakdown
-  const goalLabel = div(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;`);
-  goalLabel.textContent = S.lang==='ko'?'목표별 세분화':'By Goal';
-  wrap.appendChild(goalLabel);
+  // ── STEP 2: Period ───────────────────────────────────────────────
+  if (S.reportStep === 2) {
+    wrap.appendChild(h('h2',"font-family:'Fraunces',serif;font-size:24px;font-weight:400;color:#1A1A1A;margin-bottom:6px;", S.lang==='ko'?'기간 선택':'Select Period'));
+    wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:20px;`, S.lang==='ko'?'어느 기간의 기록을 포함할까요?':'Which period should the report cover?'));
 
-  S.goals.forEach((g,i)=>{
+    if (!S.reportPeriod) S.reportPeriod = '4w';
+    const periods = S.lang==='ko'
+      ? [['2w','2주'],['4w','4주'],['all','전체']]
+      : [['2w','2 weeks'],['4w','4 weeks'],['all','All time']];
+
+    const periodGrid = div('display:flex;gap:8px;margin-bottom:24px;');
+    periods.forEach(([val,label])=>{
+      const b=document.createElement('button');
+      b.style.cssText=`flex:1;padding:14px;border-radius:14px;border:1.5px solid ${S.reportPeriod===val?T.green:T.border};background:${S.reportPeriod===val?T.gl:'#fff'};color:${S.reportPeriod===val?T.green:T.tm};font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+      b.textContent=label;
+      b.onclick=()=>{ S.reportPeriod=val; render(); };
+      periodGrid.appendChild(b);
+    });
+    wrap.appendChild(periodGrid);
+
+    const row=div('display:flex;gap:8px;');
+    const backBtn=document.createElement('button'); backBtn.style.cssText=`flex:1;padding:14px;background:none;border:1.5px solid ${T.border};border-radius:14px;font-size:14px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;`; backBtn.textContent=S.lang==='ko'?'이전':'Back'; backBtn.onclick=()=>{S.reportStep=1;render();};
+    const nextBtn=document.createElement('button'); nextBtn.style.cssText=`flex:2;padding:14px;background:${T.green};color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`; nextBtn.textContent=S.lang==='ko'?'다음 →':'Next →'; nextBtn.onclick=()=>{S.reportStep=3;render();};
+    row.appendChild(backBtn); row.appendChild(nextBtn);
+    wrap.appendChild(row);
+    return wrap;
+  }
+
+  // ── STEP 3: Goal Selection ───────────────────────────────────────
+  if (S.reportStep === 3) {
+    wrap.appendChild(h('h2',"font-family:'Fraunces',serif;font-size:24px;font-weight:400;color:#1A1A1A;margin-bottom:6px;", S.lang==='ko'?'목표 선택':'Select Goals'));
+    wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:20px;`, S.lang==='ko'?'포함할 목표를 선택하세요':'Choose which goals to include'));
+
+    if (!S.reportGoals) S.reportGoals = S.goals.map((_,i)=>i); // all selected by default
+
+    const goalGrid = div('display:flex;flex-direction:column;gap:8px;margin-bottom:24px;');
+    S.goals.forEach((g,i) => {
+      const selected = S.reportGoals.includes(i);
+      const card = div(`background:#fff;border-radius:14px;border:1.5px solid ${selected?T.green:T.border};padding:12px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;`);
+      card.innerHTML=`<div style="width:20px;height:20px;border-radius:6px;border:1.5px solid ${selected?T.green:T.border};background:${selected?T.green:'#fff'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">${selected?'<span style="color:#fff;font-size:12px;">✓</span>':''}</div><span style="font-size:18px;">${g.icon}</span><p style="font-size:14px;font-weight:500;color:${T.text};">${g.name}</p>`;
+      card.onclick = () => {
+        if (selected) S.reportGoals = S.reportGoals.filter(x=>x!==i);
+        else S.reportGoals = [...S.reportGoals, i];
+        render();
+      };
+      goalGrid.appendChild(card);
+    });
+    wrap.appendChild(goalGrid);
+
+    const row=div('display:flex;gap:8px;');
+    const backBtn=document.createElement('button'); backBtn.style.cssText=`flex:1;padding:14px;background:none;border:1.5px solid ${T.border};border-radius:14px;font-size:14px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;`; backBtn.textContent=S.lang==='ko'?'이전':'Back'; backBtn.onclick=()=>{S.reportStep=2;render();};
+    const nextBtn=document.createElement('button'); nextBtn.style.cssText=`flex:2;padding:14px;background:${S.reportGoals?.length>0?T.green:T.border};color:${S.reportGoals?.length>0?'#fff':T.muted};border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`; nextBtn.textContent=S.lang==='ko'?'리포트 생성 →':'Generate Report →'; nextBtn.onclick=()=>{if(S.reportGoals?.length>0){S.reportStep=4;render();}};
+    row.appendChild(backBtn); row.appendChild(nextBtn);
+    wrap.appendChild(row);
+    return wrap;
+  }
+
+  // ── STEP 4: Preview & Share ──────────────────────────────────────
+  const purposeLabels = {
+    iep: S.lang==='ko'?'IEP 미팅':'IEP Meeting',
+    therapist: S.lang==='ko'?'치료사 미팅':'Therapist Meeting',
+    teacher: S.lang==='ko'?'선생님 면담':'Teacher Conference',
+    evaluation: S.lang==='ko'?'평가 미팅':'Evaluation Meeting',
+    family: S.lang==='ko'?'가족 공유':'Family Alignment',
+    notes: S.lang==='ko'?'내 기록용':'My Own Notes',
+  };
+
+  wrap.appendChild(h('h2',"font-family:'Fraunces',serif;font-size:24px;font-weight:400;color:#1A1A1A;margin-bottom:4px;", S.lang==='ko'?'리포트 미리보기':'Report Preview'));
+  wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:6px;`, `${purposeLabels[S.reportPurpose]} · ${S.child} · ${S.lang==='ko'?'작성자':'by'} ${S.parent}`));
+
+  const editBtn = document.createElement('button');
+  editBtn.style.cssText=`background:none;border:none;font-size:12px;color:${T.green};cursor:pointer;font-family:'DM Sans',sans-serif;padding:0;margin-bottom:20px;`;
+  editBtn.textContent = S.lang==='ko'?'← 설정 수정':'← Edit settings';
+  editBtn.onclick = () => { S.reportStep=1; render(); };
+  wrap.appendChild(editBtn);
+
+  // filter logs
+  const now = new Date();
+  const cutoff = S.reportPeriod==='2w'?14:S.reportPeriod==='4w'?28:999;
+  const filteredLogs = S.logs.filter(l=>{
+    if (S.reportPeriod==='all') return true;
+    const parts=l.date?.split('/');
+    if(!parts||parts.length<2) return true;
+    const ld=new Date(now.getFullYear(),parseInt(parts[0])-1,parseInt(parts[1]));
+    return (now-ld)/(1000*60*60*24)<=cutoff;
+  });
+
+  const selectedGoals = S.goals.filter((_,i)=>S.reportGoals?.includes(i));
+  const totalAtt = filteredLogs.filter(l=>l.attempted==='Yes'&&S.reportGoals?.includes(l.goalIdx)).length;
+  const totalSucc = filteredLogs.filter(l=>(l.outcome===L('success')||l.outcome==='Success')&&S.reportGoals?.includes(l.goalIdx)).length;
+  const overallRate = totalAtt>0?Math.round(totalSucc/totalAtt*100):0;
+
+  // purpose-specific intro
+  const introText = {
+    iep: S.lang==='ko'
+      ? `이 리포트는 가정에서의 치료 목표 참여 현황을 문서화합니다. IEP 팀과 공유하기 위해 준비됐습니다.`
+      : `This report documents home participation in therapeutic goals, prepared to share with the IEP team.`,
+    therapist: S.lang==='ko'
+      ? `각 목표별 시도 기록과 효과 있었던/없었던 기법을 정리했습니다. 다음 세션 계획에 활용해 주세요.`
+      : `A summary of home attempts by goal, including what worked and what didn't, to inform your next session.`,
+    teacher: S.lang==='ko'
+      ? `가정에서 연습 중인 목표와 현재 효과가 있는 전략을 공유합니다. 학교에서도 일관되게 적용해 주시면 감사하겠습니다.`
+      : `A summary of home goals and strategies that are working. Consistent application at school would be greatly appreciated.`,
+    evaluation: S.lang==='ko'
+      ? `평가를 위한 가정 관찰 데이터입니다. 날짜별 기록과 목표별 진행 상황을 포함합니다.`
+      : `Home observation data for evaluation purposes, including dated logs and progress by goal.`,
+    family: S.lang==='ko'
+      ? `${S.child}와 함께 하고 있는 것들을 공유합니다. 일관된 접근이 가장 큰 도움이 돼요.`
+      : `A summary of what we're working on with ${S.child}. Consistency across caregivers makes the biggest difference.`,
+    notes: S.lang==='ko'
+      ? `개인 기록용 진행 상황 요약입니다.`
+      : `Personal progress summary for reference.`,
+  };
+
+  const introBox = div(`background:${T.gl};border-radius:14px;padding:14px 16px;margin-bottom:16px;`);
+  introBox.innerHTML=`<p style="font-size:13px;color:#2D5A3D;line-height:1.7;">${introText[S.reportPurpose]||''}</p>`;
+  wrap.appendChild(introBox);
+
+  // stats
+  const statsBox = div(`background:#fff;border-radius:14px;border:1px solid ${T.border};padding:14px 16px;margin-bottom:16px;`);
+  statsBox.innerHTML=`<p style="font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;">${S.lang==='ko'?'전체 요약':'Summary'}</p>`;
+  const sr=div('display:flex;gap:8px;');
+  [[totalAtt,S.lang==='ko'?'시도':'Attempts'],[overallRate+'%',S.lang==='ko'?'성공률':'Success'],[selectedGoals.length,S.lang==='ko'?'목표':'Goals']].forEach(([v,l])=>{
+    const sc=div('flex:1;background:#F8F6F2;border-radius:10px;padding:10px;text-align:center;');
+    sc.innerHTML=`<p style="font-family:'Fraunces',serif;font-size:20px;color:${T.text}">${v}</p><p style="font-size:11px;color:${T.muted};margin-top:2px">${l}</p>`;
+    sr.appendChild(sc);
+  });
+  statsBox.appendChild(sr);
+  wrap.appendChild(statsBox);
+
+  // per goal
+  wrap.appendChild(p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;`,S.lang==='ko'?'목표별':'By Goal'));
+  selectedGoals.forEach((g,si)=>{
+    const i = S.goals.indexOf(g);
     const goalLogs = filteredLogs.filter(l=>l.goalIdx===i);
-    const att = goalLogs.filter(l=>l.attempted==='Yes').length;
-    const succ = goalLogs.filter(l=>l.outcome===L('success')||l.outcome==='Success').length;
-    const part = goalLogs.filter(l=>l.outcome===L('partial')||l.outcome==='Partial success').length;
-    const rate = att>0 ? Math.round(succ/att*100) : 0;
-    const worked = goalLogs.filter(l=>l.worked).map(l=>l.worked).filter(Boolean);
-    const notWorked = goalLogs.filter(l=>l.didnt_work).map(l=>l.didnt_work).filter(Boolean);
-    const next = goalLogs.filter(l=>l.next).map(l=>l.next).filter(Boolean);
-    const analysis = S.analyses?.[i];
+    const att=goalLogs.filter(l=>l.attempted==='Yes').length;
+    const succ=goalLogs.filter(l=>l.outcome===L('success')||l.outcome==='Success').length;
+    const rate=att>0?Math.round(succ/att*100):0;
+    const worked=goalLogs.filter(l=>l.worked).map(l=>l.worked).filter(Boolean);
+    const notWorked=goalLogs.filter(l=>l.didnt_work).map(l=>l.didnt_work).filter(Boolean);
+    const analysis=S.analyses?.[i];
 
-    const gc = div(`background:#fff;border-radius:16px;border:1px solid ${T.border};padding:16px 18px;margin-bottom:12px;`);
-
-    // goal header
-    const ghdr = div('display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;');
-    ghdr.innerHTML=`<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:18px">${g.icon}</span><p style="font-size:14px;font-weight:500;color:${T.text}">${g.name}</p></div><span style="font-size:12px;font-weight:500;color:${rate>=50?T.green:T.orange};">${rate}% ${S.lang==='ko'?'성공':'success'}</span>`;
+    const gc=div(`background:#fff;border-radius:14px;border:1px solid ${T.border};padding:14px 16px;margin-bottom:10px;`);
+    const ghdr=div('display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;');
+    ghdr.innerHTML=`<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:18px">${g.icon}</span><p style="font-size:14px;font-weight:500;color:${T.text}">${g.name}</p></div><span style="font-size:12px;font-weight:500;color:${rate>=50?T.green:T.orange}">${rate}% ${S.lang==='ko'?'성공':'success'}</span>`;
     gc.appendChild(ghdr);
 
-    // progress bar
-    const pb = div(`height:6px;border-radius:3px;background:${T.border};overflow:hidden;margin-bottom:12px;`);
-    const pf = div(`height:100%;border-radius:3px;background:${T.green};width:${rate}%;transition:width .8s;`);
-    pb.appendChild(pf); gc.appendChild(pb);
+    const pb=div(`height:5px;border-radius:3px;background:${T.border};overflow:hidden;margin-bottom:10px;`);
+    pb.innerHTML=`<div style="height:100%;width:${rate}%;background:${T.green};border-radius:3px;"></div>`;
+    gc.appendChild(pb);
 
-    // stats
-    const sr = div('display:flex;gap:8px;margin-bottom:12px;');
-    [[att, S.lang==='ko'?'시도':'attempts'],[succ, S.lang==='ko'?'성공':'success'],[part, S.lang==='ko'?'부분 성공':'partial']].forEach(([v,l])=>{
-      const sc=div(`flex:1;background:${T.bg};border-radius:10px;padding:8px;text-align:center;`);
-      sc.innerHTML=`<p style="font-size:16px;font-weight:500;color:${T.text}">${v}</p><p style="font-size:10px;color:${T.muted};margin-top:2px">${l}</p>`;
-      sr.appendChild(sc);
-    });
-    gc.appendChild(sr);
+    // show different detail based on purpose
+    const showTechniques = ['therapist','evaluation','notes'].includes(S.reportPurpose);
+    const showNotWorked = ['therapist','evaluation','notes'].includes(S.reportPurpose);
+    const showRecommendations = ['iep','therapist','evaluation'].includes(S.reportPurpose);
+    const showLogs = ['evaluation','notes'].includes(S.reportPurpose);
 
-    // what worked
-    if (worked.length > 0) {
-      const ww = div(`background:${T.gl};border-radius:10px;padding:10px 12px;margin-bottom:8px;`);
-      ww.innerHTML=`<p style="font-size:10px;font-weight:500;color:${T.green};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">${S.lang==='ko'?'효과 있었던 것':'What worked'}</p>`;
-      worked.slice(0,2).forEach(w=>{
-        const row=div('display:flex;gap:6px;margin-bottom:3px;');
-        row.innerHTML=`<span style="color:${T.green};font-size:11px;">✓</span><p style="font-size:12px;color:${T.tm};line-height:1.5;">${w}</p>`;
-        ww.appendChild(row);
-      });
+    if (worked.length>0) {
+      const ww=div(`background:${T.gl};border-radius:10px;padding:10px 12px;margin-bottom:8px;`);
+      ww.innerHTML=`<p style="font-size:10px;font-weight:500;color:${T.green};text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">${S.lang==='ko'?'효과 있었던 것':'What worked'}</p>`;
+      worked.slice(0,2).forEach(w=>{const r=div('display:flex;gap:6px;margin-bottom:3px;');r.innerHTML=`<span style="color:${T.green};font-size:11px;">✓</span><p style="font-size:12px;color:${T.tm};line-height:1.5;">${w}</p>`;ww.appendChild(r);});
       gc.appendChild(ww);
     }
 
-    // what didn't work
-    if (notWorked.length > 0) {
-      const nw = div(`background:${T.rl};border-radius:10px;padding:10px 12px;margin-bottom:8px;`);
-      nw.innerHTML=`<p style="font-size:10px;font-weight:500;color:${T.red};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">${S.lang==='ko'?'효과 없었던 것':'What didn\'t work'}</p>`;
-      notWorked.slice(0,2).forEach(w=>{
-        const row=div('display:flex;gap:6px;margin-bottom:3px;');
-        row.innerHTML=`<span style="color:${T.red};font-size:11px;">✗</span><p style="font-size:12px;color:${T.tm};line-height:1.5;">${w}</p>`;
-        nw.appendChild(row);
-      });
+    if (showNotWorked && notWorked.length>0) {
+      const nw=div(`background:#FDF0EA;border-radius:10px;padding:10px 12px;margin-bottom:8px;`);
+      nw.innerHTML=`<p style="font-size:10px;font-weight:500;color:${T.orange};text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">${S.lang==='ko'?'효과 없었던 것':'What didn\'t work'}</p>`;
+      notWorked.slice(0,2).forEach(w=>{const r=div('display:flex;gap:6px;margin-bottom:3px;');r.innerHTML=`<span style="color:${T.orange};font-size:11px;">✗</span><p style="font-size:12px;color:${T.tm};line-height:1.5;">${w}</p>`;nw.appendChild(r);});
       gc.appendChild(nw);
     }
 
-    // latest recommendations
-    if (analysis?.next_actions?.length) {
-      const rec = div(`background:${T.ol};border-radius:10px;padding:10px 12px;margin-bottom:8px;`);
-      rec.innerHTML=`<p style="font-size:10px;font-weight:500;color:${T.orange};letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">${S.lang==='ko'?'최근 추천':'Latest recommendations'}</p>`;
-      analysis.next_actions.slice(0,3).forEach((a,ai)=>{
-        const row=div('display:flex;gap:6px;align-items:flex-start;margin-bottom:4px;');
-        row.innerHTML=`<div style="width:16px;height:16px;min-width:16px;border-radius:50%;background:${T.orange};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;margin-top:1px">${ai+1}</div><p style="font-size:12px;color:${T.tm};line-height:1.5;">${a}</p>`;
-        rec.appendChild(row);
-      });
+    if (showRecommendations && analysis?.next_actions?.length) {
+      const rec=div(`background:${T.ol};border-radius:10px;padding:10px 12px;margin-bottom:8px;`);
+      rec.innerHTML=`<p style="font-size:10px;font-weight:500;color:${T.orange};text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">${S.lang==='ko'?'추천 활동':'Recommendations'}</p>`;
+      analysis.next_actions.slice(0,2).forEach((a,ai)=>{const r=div('display:flex;gap:6px;margin-bottom:3px;');r.innerHTML=`<span style="font-size:11px;color:${T.orange};">${ai+1}.</span><p style="font-size:12px;color:${T.tm};line-height:1.5;">${a}</p>`;rec.appendChild(r);});
       gc.appendChild(rec);
     }
 
-    if (att === 0) {
-      gc.appendChild(p(`font-size:13px;color:${T.muted};font-style:italic;`, S.lang==='ko'?'이 기간에 기록이 없어요.':'No logs for this period.'));
+    if (showLogs && goalLogs.length>0) {
+      const logWrap=div('margin-top:8px;');
+      logWrap.innerHTML=`<p style="font-size:10px;font-weight:500;color:${T.muted};text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">${S.lang==='ko'?'기록':'Logs'}</p>`;
+      goalLogs.slice(-5).reverse().forEach(l=>{
+        const lr=div(`font-size:12px;color:${T.tm};padding:6px 0;border-bottom:1px solid ${T.border};line-height:1.5;`);
+        lr.innerHTML=`<span style="color:${T.muted};margin-right:6px;">${l.date}</span>${l.technique||''}${l.outcome?`<span style="float:right;font-size:11px;color:${l.outcome.includes('No')?T.muted:l.outcome.includes('Partial')?T.orange:T.green};">${l.outcome}</span>`:''}`;
+        logWrap.appendChild(lr);
+      });
+      gc.appendChild(logWrap);
     }
 
+    if (att===0) gc.appendChild(p(`font-size:12px;color:${T.muted};font-style:italic;`,S.lang==='ko'?'이 기간에 기록이 없어요.':'No logs for this period.'));
     wrap.appendChild(gc);
   });
 
-  // print button
-  const printBtn = document.createElement('button');
-  printBtn.style.cssText=`width:100%;padding:14px;background:#fff;color:${T.green};border:1.5px solid ${T.green};border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:8px;`;
-  printBtn.innerHTML=`🖨️ ${S.lang==='ko'?'인쇄 / PDF 저장':'Print / Save as PDF'}`;
-  printBtn.onclick=()=>window.print();
-  wrap.appendChild(printBtn);
+  // share section
+  const shareBox=div(`margin-top:16px;background:#fff;border-radius:16px;border:1px solid ${T.border};padding:16px 18px;`);
+  shareBox.innerHTML=`<p style="font-size:13px;font-weight:500;color:${T.tm};margin-bottom:12px;">📧 ${S.lang==='ko'?'이메일로 공유하기':'Share via email'}</p>`;
 
-  // send email section
-  const emailSection = div(`margin-top:12px;background:#fff;border-radius:16px;border:1px solid ${T.border};padding:16px 18px;`);
-  emailSection.innerHTML=`<p style="font-size:13px;font-weight:500;color:${T.tm};margin-bottom:4px;">📧 ${S.lang==='ko'?'이메일로 공유하기':'Share via email'}</p><p style="font-size:12px;color:${T.muted};margin-bottom:12px;">${S.lang==='ko'?'리포트를 이메일로 전송해요.':'Report will be shared via email.'}</p>`;
-
-  const emailInp = document.createElement('input');
-  emailInp.type='email';
-  emailInp.placeholder=S.lang==='ko'?'받는 사람 이메일 주소':'Recipient email address';
+  const emailInp=document.createElement('input'); emailInp.type='email';
+  emailInp.placeholder=S.lang==='ko'?'받는 사람 이메일':'Recipient email';
   emailInp.style.cssText=`width:100%;padding:11px 14px;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;margin-bottom:10px;outline:none;`;
-  emailSection.appendChild(emailInp);
+  shareBox.appendChild(emailInp);
 
-  const sendMsg = p(`font-size:12px;color:${T.gm};margin-top:8px;display:none;`,'');
-  const sendBtn = document.createElement('button');
-  sendBtn.style.cssText=`width:100%;padding:12px;background:${T.green};color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+  const sendBtn=document.createElement('button');
+  sendBtn.style.cssText=`width:100%;padding:12px;background:${T.green};color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:8px;`;
   sendBtn.textContent=S.lang==='ko'?'이메일 전송하기 →':'Send report →';
 
-  sendBtn.onclick = async () => {
-    const to = emailInp.value.trim();
-    if (!to) return;
-    sendBtn.textContent = S.lang==='ko'?'전송 중...':'Sending...';
-    sendBtn.disabled = true;
+  sendBtn.onclick=async()=>{
+    const to=emailInp.value.trim(); if(!to) return;
+    sendBtn.textContent=S.lang==='ko'?'전송 중...':'Sending...'; sendBtn.disabled=true;
 
-    // build report HTML
-    const period = S.reportPeriod==='2w'?(S.lang==='ko'?'최근 2주':'Last 2 weeks'):S.reportPeriod==='4w'?(S.lang==='ko'?'최근 4주':'Last 4 weeks'):(S.lang==='ko'?'전체':'All time');
-    const now2 = new Date();
-    const cutoff2 = S.reportPeriod==='2w'?14:S.reportPeriod==='4w'?28:999;
-    const fLogs = S.logs.filter(l=>{
-      if(S.reportPeriod==='all') return true;
-      const parts=l.date?.split('/');
-      if(!parts||parts.length<2) return true;
-      const ld=new Date(now2.getFullYear(),parseInt(parts[0])-1,parseInt(parts[1]));
-      return (now2-ld)/(1000*60*60*24)<=cutoff2;
-    });
-
-    const tAtt=fLogs.filter(l=>l.attempted==='Yes').length;
-    const tSucc=fLogs.filter(l=>l.outcome===L('success')||l.outcome==='Success').length;
-    const oRate=tAtt>0?Math.round(tSucc/tAtt*100):0;
-
-    let goalsHtml = '';
-    S.goals.forEach((g,i)=>{
-      const gl=fLogs.filter(l=>l.goalIdx===i);
+    const period=S.reportPeriod==='2w'?(S.lang==='ko'?'최근 2주':'Last 2 weeks'):S.reportPeriod==='4w'?(S.lang==='ko'?'최근 4주':'Last 4 weeks'):(S.lang==='ko'?'전체':'All time');
+    let goalsHtml='';
+    selectedGoals.forEach((g)=>{
+      const i=S.goals.indexOf(g);
+      const gl=filteredLogs.filter(l=>l.goalIdx===i);
       const ga=gl.filter(l=>l.attempted==='Yes').length;
       const gs=gl.filter(l=>l.outcome===L('success')||l.outcome==='Success').length;
       const gr=ga>0?Math.round(gs/ga*100):0;
       const gw=gl.filter(l=>l.worked).map(l=>l.worked).filter(Boolean);
       const gn=gl.filter(l=>l.didnt_work).map(l=>l.didnt_work).filter(Boolean);
       const an=S.analyses?.[i];
-      goalsHtml += `
-        <div style="background:#fff;border:1px solid #EAE6DE;border-radius:12px;padding:16px;margin-bottom:12px;">
+      goalsHtml+=`<div style="background:#fff;border:1px solid #EAE6DE;border-radius:12px;padding:16px;margin-bottom:12px;">
         <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:8px;"><tr>
           <td style="font-size:14px;font-weight:500;color:#1A1A1A;">${g.icon} ${g.name}</td>
           <td align="right" style="font-size:12px;font-weight:500;color:${gr>=50?'#2D5A3D':'#D4622A'};white-space:nowrap;">${gr}% success</td>
         </tr></table>
-          <div style="height:4px;background:#EAE6DE;border-radius:2px;margin-bottom:10px;">
-            <div style="height:100%;width:${gr}%;background:#2D5A3D;border-radius:2px;"></div>
-          </div>
-          <p style="font-size:12px;color:#909090;margin-bottom:8px;">${ga} attempts · ${gs} success</p>
-          ${gw.length?`<p style="font-size:12px;color:#2D5A3D;margin-bottom:4px;"><strong>✓ What worked:</strong> ${gw.slice(0,2).join(' / ')}</p>`:''}
-          ${gn.length?`<p style="font-size:12px;color:#C84B3A;margin-bottom:4px;"><strong>✗ What didn't work:</strong> ${gn.slice(0,2).join(' / ')}</p>`:''}
-          ${an?.next_actions?.length?`<p style="font-size:12px;color:#D4622A;"><strong>→ Recommendations:</strong> ${an.next_actions.slice(0,2).join(' / ')}</p>`:''}
-        </div>`;
+        <div style="height:4px;background:#EAE6DE;border-radius:2px;margin-bottom:10px;"><div style="height:100%;width:${gr}%;background:#2D5A3D;border-radius:2px;"></div></div>
+        <p style="font-size:12px;color:#909090;margin-bottom:8px;">${ga} attempts · ${gs} success</p>
+        ${gw.length?`<p style="font-size:12px;color:#2D5A3D;margin-bottom:4px;">✓ ${gw.slice(0,2).join(' / ')}</p>`:''}
+        ${gn.length&&['therapist','evaluation','notes'].includes(S.reportPurpose)?`<p style="font-size:12px;color:#D4622A;margin-bottom:4px;">✗ ${gn.slice(0,2).join(' / ')}</p>`:''}
+        ${an?.next_actions?.length&&['iep','therapist','evaluation'].includes(S.reportPurpose)?`<p style="font-size:12px;color:#D4622A;">→ ${an.next_actions.slice(0,2).join(' / ')}</p>`:''}
+      </div>`;
     });
 
-    const emailBody = `
-      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#F8F6F2;">
-        <h1 style="font-size:22px;color:#2D5A3D;margin-bottom:4px;">🌿 Therapy Buddy</h1>
-        <h2 style="font-size:20px;font-weight:400;color:#1A1A1A;margin-bottom:4px;">Progress Report — ${S.child}</h2>
-        <p style="font-size:13px;color:#909090;margin-bottom:20px;">Period: ${period} · Prepared by ${S.parent}</p>
-
-        <div style="background:#EAF2EC;border-radius:12px;padding:16px;margin-bottom:20px;">
-          <p style="font-size:11px;font-weight:bold;color:#2D5A3D;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Overall Summary</p>
-          <div style="display:flex;gap:12px;">
-            <div style="flex:1;background:#fff;border-radius:8px;padding:10px;text-align:center;">
-              <p style="font-size:20px;font-weight:500;color:#1A1A1A;">${tAtt}</p>
-              <p style="font-size:11px;color:#909090;">Attempts</p>
-            </div>
-            <div style="flex:1;background:#fff;border-radius:8px;padding:10px;text-align:center;">
-              <p style="font-size:20px;font-weight:500;color:#1A1A1A;">${oRate}%</p>
-              <p style="font-size:11px;color:#909090;">Success rate</p>
-            </div>
-            <div style="flex:1;background:#fff;border-radius:8px;padding:10px;text-align:center;">
-              <p style="font-size:20px;font-weight:500;color:#1A1A1A;">${S.goals.length}</p>
-              <p style="font-size:11px;color:#909090;">Goals</p>
-            </div>
-          </div>
-        </div>
-
-        <p style="font-size:11px;font-weight:bold;color:#909090;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">By Goal</p>
-        ${goalsHtml}
-
-        <p style="font-size:12px;color:#909090;margin-top:20px;text-align:center;">Sent via Therapy Buddy · therapybuddy.org</p>
-      </div>`;
+    const emailBody=`<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#F8F6F2;">
+      <h1 style="font-size:22px;color:#2D5A3D;margin-bottom:4px;">🌿 Therapy Buddy</h1>
+      <h2 style="font-size:20px;font-weight:400;color:#1A1A1A;margin-bottom:4px;">${purposeLabels[S.reportPurpose]} — ${S.child}</h2>
+      <p style="font-size:13px;color:#909090;margin-bottom:16px;">Period: ${period} · Prepared by ${S.parent}</p>
+      <div style="background:#EAF2EC;border-radius:12px;padding:14px 16px;margin-bottom:20px;">
+        <p style="font-size:13px;color:#2D5A3D;line-height:1.7;">${introText[S.reportPurpose]||''}</p>
+      </div>
+      <p style="font-size:11px;font-weight:bold;color:#909090;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">By Goal</p>
+      ${goalsHtml}
+      <p style="font-size:12px;color:#909090;margin-top:20px;text-align:center;">Sent via Therapy Buddy · therapybuddy.org</p>
+    </div>`;
 
     try {
-      await fetch('/.netlify/functions/email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to,
-          replyTo: S.parent,
-          subject: `Therapy Buddy Progress Report — ${S.child} (${period})`,
-          body: emailBody
-        })
-      });
-      sendBtn.textContent = S.lang==='ko'?'✓ 전송됐어요':'✓ Sent!';
-      sendBtn.style.background = '#4A8C60';
-      sendMsg.textContent = S.lang==='ko'?'이메일이 전송됐어요!':'Report sent!';
-      sendMsg.style.color = '#2D5A3D';
+      await fetch('/.netlify/functions/email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to,replyTo:S.parent,subject:`Therapy Buddy — ${purposeLabels[S.reportPurpose]} Report for ${S.child} (${period})`,body:emailBody})});
+      sendBtn.textContent=S.lang==='ko'?'✓ 전송됐어요':'✓ Sent!';
+      sendBtn.style.background='#4A8C60';
     } catch(e) {
-      sendMsg.textContent = S.lang==='ko'?'✗ 오류가 발생했어요. 다시 시도해주세요.':'✗ Something went wrong. Try again.';
-      sendMsg.style.color = '#C84B3A';
-      sendBtn.textContent = S.lang==='ko'?'이메일 전송하기 →':'Send report →';
-      sendBtn.disabled = false;
+      sendBtn.textContent=S.lang==='ko'?'다시 시도하기':'Try again';
+      sendBtn.disabled=false;
     }
-    sendMsg.style.display = 'block';
   };
 
-  emailSection.appendChild(sendBtn);
-  emailSection.appendChild(sendMsg);
-  wrap.appendChild(emailSection);
+  shareBox.appendChild(sendBtn);
+
+  const printBtn=document.createElement('button');
+  printBtn.style.cssText=`width:100%;padding:12px;background:#fff;color:${T.green};border:1.5px solid ${T.green};border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+  printBtn.innerHTML=`🖨️ ${S.lang==='ko'?'인쇄 / PDF 저장':'Print / Save as PDF'}`;
+  printBtn.onclick=()=>window.print();
+  shareBox.appendChild(printBtn);
+  wrap.appendChild(shareBox);
 
   return wrap;
 }

@@ -2927,21 +2927,36 @@ function renderReport() {
     if (worked.length>0) {
       const ww=div(`background:${T.gl};border-radius:10px;padding:10px 12px;margin-bottom:8px;`);
       ww.innerHTML=`<p style="font-size:10px;font-weight:500;color:${T.green};text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">${S.lang==='ko'?'효과 있었던 것':'What worked'}</p>`;
-      worked.slice(0,2).forEach(w=>{const r=div('display:flex;gap:6px;margin-bottom:3px;');r.innerHTML=`<span style="color:${T.green};font-size:11px;">✓</span><p style="font-size:12px;color:${T.tm};line-height:1.5;">${w}</p>`;ww.appendChild(r);});
+      worked.slice(0,2).forEach((w,wi)=>{
+        const r=div('display:flex;gap:6px;margin-bottom:3px;align-items:flex-start;');
+        r.innerHTML=`<span style="color:${T.green};font-size:11px;margin-top:2px;">✓</span>`;
+        r.appendChild(makeEditable(editKey(i,`worked_${wi}`), w));
+        ww.appendChild(r);
+      });
       gc.appendChild(ww);
     }
 
     if (showNotWorked && notWorked.length>0) {
       const nw=div(`background:#FDF0EA;border-radius:10px;padding:10px 12px;margin-bottom:8px;`);
       nw.innerHTML=`<p style="font-size:10px;font-weight:500;color:${T.orange};text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">${S.lang==='ko'?'효과 없었던 것':'What didn\'t work'}</p>`;
-      notWorked.slice(0,2).forEach(w=>{const r=div('display:flex;gap:6px;margin-bottom:3px;');r.innerHTML=`<span style="color:${T.orange};font-size:11px;">✗</span><p style="font-size:12px;color:${T.tm};line-height:1.5;">${w}</p>`;nw.appendChild(r);});
+      notWorked.slice(0,2).forEach((w,wi)=>{
+        const r=div('display:flex;gap:6px;margin-bottom:3px;align-items:flex-start;');
+        r.innerHTML=`<span style="color:${T.orange};font-size:11px;margin-top:2px;">✗</span>`;
+        r.appendChild(makeEditable(editKey(i,`notWorked_${wi}`), w));
+        nw.appendChild(r);
+      });
       gc.appendChild(nw);
     }
 
     if (showRecommendations && analysis?.next_actions?.length) {
       const rec=div(`background:${T.ol};border-radius:10px;padding:10px 12px;margin-bottom:8px;`);
       rec.innerHTML=`<p style="font-size:10px;font-weight:500;color:${T.orange};text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">${S.lang==='ko'?'추천 활동':'Recommendations'}</p>`;
-      analysis.next_actions.slice(0,2).forEach((a,ai)=>{const r=div('display:flex;gap:6px;margin-bottom:3px;');r.innerHTML=`<span style="font-size:11px;color:${T.orange};">${ai+1}.</span><p style="font-size:12px;color:${T.tm};line-height:1.5;">${a}</p>`;rec.appendChild(r);});
+      analysis.next_actions.slice(0,2).forEach((a,ai)=>{
+        const r=div('display:flex;gap:6px;margin-bottom:3px;align-items:flex-start;');
+        r.innerHTML=`<span style="font-size:11px;color:${T.orange};margin-top:2px;">${ai+1}.</span>`;
+        r.appendChild(makeEditable(editKey(i,`rec_${ai}`), a));
+        rec.appendChild(r);
+      });
       gc.appendChild(rec);
     }
 

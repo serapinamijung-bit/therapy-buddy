@@ -470,10 +470,10 @@ const STRINGS = {
     restore: 'Restore with a code',
     restorePrompt: 'Enter your 6-character restore code:',
     restoreNotFound: 'Code not found. Please check and try again.',
-    yourName: "What's your name?",
-    yourNameSub: "We'll keep things personal.",
+    yourName: "First, what's your name?",
+    yourNameSub: "We'll use this to personalize your experience.",
     yourNamePlaceholder: 'Your first name',
-    aboutChild: 'Tell us about your child.',
+    aboutChild: 'Now tell us about your child.',
     aboutChildSub: 'Everything stays private.',
     childName: "Child's name",
     childAge: 'Age',
@@ -578,10 +578,10 @@ const STRINGS = {
     restore: '복원 코드로 복구하기',
     restorePrompt: '6자리 복원 코드를 입력하세요:',
     restoreNotFound: '코드를 찾을 수 없어요. 다시 확인해주세요.',
-    yourName: '이름이 어떻게 되세요?',
-    yourNameSub: '개인적으로 맞춤 설정해드릴게요.',
+    yourName: '먼저, 부모님 성함이 어떻게 되세요?',
+    yourNameSub: '맞춤형 경험을 위해 사용할게요.',
     yourNamePlaceholder: '이름',
-    aboutChild: '아이에 대해 알려주세요.',
+    aboutChild: '이제 아이에 대해 알려주세요.',
     aboutChildSub: '모든 정보는 비공개로 유지됩니다.',
     childName: '아이 이름',
     childAge: '나이',
@@ -834,6 +834,31 @@ function h(tag,style='',text='') { const e=document.createElement(tag); if(style
 
 // ── ONBOARDING ─────────────────────────────────────────────────────
 function renderOnboard() {
+  // voice button helper for onboarding
+  function makeVoiceBtn(onResult) {
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRec) return div('');
+    const vb = document.createElement('button');
+    vb.style.cssText=`background:#fff;border:1.5px solid ${T.border};border-radius:10px;padding:8px 10px;font-size:16px;cursor:pointer;flex-shrink:0;`;
+    vb.textContent='🎤';
+    vb.onclick = () => {
+      const rec = new SpeechRec();
+      rec.lang = S.lang==='ko'?'ko-KR':'en-US';
+      rec.continuous = false;
+      rec.interimResults = false;
+      vb.textContent='🔴';
+      vb.style.borderColor=T.red;
+      rec.onresult=(e)=>{
+        const t=e.results[0][0].transcript.trim();
+        if(t) onResult(t);
+        vb.textContent='🎤'; vb.style.borderColor=T.border;
+      };
+      rec.onerror=()=>{vb.textContent='🎤'; vb.style.borderColor=T.border;};
+      rec.onend=()=>{vb.textContent='🎤'; vb.style.borderColor=T.border;};
+      rec.start();
+    };
+    return vb;
+  }
   const wrap = div('flex:1;display:flex;flex-direction:column;padding:28px 22px 36px;');
   const step = S.step;
 
@@ -985,27 +1010,62 @@ if(S.goals.length<maxGoals){
     };
     wrap.appendChild(back);
 
-    // icon picker (always visible at top)
-    const icons=['🎯','💬','👋','🤝','⭐','🌟','🧩','📚','🎮','🌊','🔔','🏃'];
-    const ir=div('display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px;');
-    icons.forEach(ic=>{const b=document.createElement('button');b.textContent=ic;b.style.cssText=`width:36px;height:36px;border-radius:10px;border:1.5px solid ${g.icon===ic?T.green:T.border};background:${g.icon===ic?T.gl:'#fff'};font-size:17px;cursor:pointer;`;b.onclick=()=>{g.icon=ic;render();};ir.appendChild(b);});
+    // auto icon based on goal name
+    function autoIcon(name) {
+      const n = (name||'').toLowerCase();
+      if (/shar|나눔|공유/.test(n)) return '🤝';
+      if (/wait|기다|차례/.test(n)) return '⏳';
+      if (/focus|집중|주의/.test(n)) return '📚';
+      if (/friend|친구|관계/.test(n)) return '👫';
+      if (/emotion|감정|화|분노|표현/.test(n)) return '💭';
+      if (/talk|말|언어|speech|단어/.test(n)) return '💬';
+      if (/name|이름|반응/.test(n)) return '👋';
+      if (/sleep|잠|수면/.test(n)) return '😴';
+      if (/eat|식사|음식|먹/.test(n)) return '🍽️';
+      if (/routine|루틴|습관/.test(n)) return '📋';
+      if (/play|놀이|게임/.test(n)) return '🎮';
+      if (/school|학교|숙제|공부/.test(n)) return '📖';
+      if (/hit|bite|kick|물|때|치/.test(n)) return '🛑';
+      if (/self|스스로|독립/.test(n)) return '⭐';
+      return '🎯';
+    }
+
+    // age-based examples
+    const age = parseInt(S.age) || 6;
+    const examples = S.lang==='ko'
+      ? age <= 4
+        ? { hint: '예: 장난감 공유하기, 이름 부르면 반응하기', placeholder: '예: 장난감 공유하기' }
+        : age <= 8
+          ? { hint: '예: 차례 기다리기, 감정 말로 표현하기', placeholder: '예: 차례 기다리기' }
+          : age <= 12
+            ? { hint: '예: 친구와 갈등 해결하기, 숙제 집중하기', placeholder: '예: 친구와 갈등 해결하기' }
+            : { hint: '예: 사회적 상황 이해하기, 자기 조절하기', placeholder: '예: 사회적 상황 이해하기' }
+      : age <= 4
+        ? { hint: 'e.g. Sharing toys, responding to name', placeholder: 'e.g. Sharing toys' }
+        : age <= 8
+          ? { hint: 'e.g. Taking turns, expressing feelings with words', placeholder: 'e.g. Taking turns' }
+          : age <= 12
+            ? { hint: 'e.g. Resolving conflicts with peers, staying focused on homework', placeholder: 'e.g. Staying focused on homework' }
+            : { hint: 'e.g. Reading social cues, managing frustration', placeholder: 'e.g. Managing frustration' };
 
     if(goalStep === 1) {
       wrap.appendChild(h('h1',"font-family:'Fraunces',serif;font-size:24px;font-weight:400;color:#1A1A1A;line-height:1.3;margin-bottom:6px;",
         S.lang==='ko' ? '어떤 행동을 개선하고 싶으세요?' : 'What behavior would you like to work on?'));
-      wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:16px;line-height:1.6;`,
-        S.lang==='ko' ? '예: 장난감 공유하기, 이름 부르면 반응하기' : 'e.g. Sharing toys with siblings, responding to name'));
-      wrap.appendChild(ir);
+      wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:16px;line-height:1.6;`, examples.hint));
       const ni=document.createElement('input'); ni.type='text'; ni.value=g.name;
-      ni.placeholder=S.lang==='ko'?'예: 장난감 공유하기':'e.g. Sharing toys with siblings';
-      ni.style.cssText=`width:100%;padding:12px 14px;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:16px;`;
+      ni.placeholder=examples.placeholder;
+      ni.style.cssText=`flex:1;padding:12px 14px;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;`;
       ni.oninput=e=>{
         g.name=e.target.value;
+        g.icon=autoIcon(e.target.value);
         nextBtn.style.background = e.target.value.trim() ? T.green : T.border;
         nextBtn.style.color = e.target.value.trim() ? '#fff' : T.muted;
         nextBtn.style.cursor = e.target.value.trim() ? 'pointer' : 'default';
       };
-      wrap.appendChild(ni);
+      const niRow=div('display:flex;gap:8px;margin-bottom:16px;');
+      niRow.appendChild(ni);
+      niRow.appendChild(makeVoiceBtn(v=>{g.name=v;g.icon=autoIcon(v);ni.value=v;nextBtn.style.background=T.green;nextBtn.style.color='#fff';nextBtn.style.cursor='pointer';}));
+      wrap.appendChild(niRow);
       wrap.appendChild(spacer);
 
       const nextBtn=document.createElement('button'); nextBtn.className='btn btn-primary'; nextBtn.textContent=S.lang==='ko'?'다음 →':'Next →';
@@ -1022,9 +1082,12 @@ if(S.goals.length<maxGoals){
         S.lang==='ko' ? '예: 형제가 장난감을 갖고 있을 때' : 'e.g. When sibling has a toy and child tries to grab it'));
       const ti=document.createElement('input'); ti.type='text'; ti.value=g.trigger;
       ti.placeholder=L('whenToUsePlaceholder');
-      ti.style.cssText=`width:100%;padding:12px 14px;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:16px;`;
+      ti.style.cssText=`flex:1;padding:12px 14px;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;`;
       ti.oninput=e=>{g.trigger=e.target.value;};
-      wrap.appendChild(ti);
+      const tiRow=div('display:flex;gap:8px;margin-bottom:16px;');
+      tiRow.appendChild(ti);
+      tiRow.appendChild(makeVoiceBtn(v=>{g.trigger=v;ti.value=v;}));
+      wrap.appendChild(tiRow);
       wrap.appendChild(spacer);
 
       const row = div('display:flex;gap:8px;');
@@ -1451,7 +1514,7 @@ function renderLog() {
       S.lang==='ko'?'자유롭게 남겨주세요':'Drop a note'));
     wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:16px;line-height:1.6;`,
       S.lang==='ko'
-        ? '뭐든 괜찮아요 — 문자, 이메일, 오늘 있었던 일 모두. AI 가 정리해드릴게요.'
+        ? '뭐든 괜찮아요 — 문자, 이메일, 오늘 있었던 일 모두. 저희가 정리해드릴게요.'
         : 'Anything goes — a text, an email, something that happened. We will organize it for you.'));
 
     const guideBox = div(`background:${T.gl};border-radius:12px;padding:12px 14px;margin-bottom:14px;`);
@@ -1905,7 +1968,7 @@ function renderLog() {
         // show editable fields if requested
         if (S.tempLog.showEdit) {
           const editBox = div(`background:#fff;border-radius:14px;border:1px solid ${T.border};padding:16px;margin-top:12px;`);
-          editBox.innerHTML = `<p style="font-size:12px;font-weight:500;color:${T.muted};margin-bottom:12px;">${S.lang==='ko'?'AI 가 정리한 내용이에요 — 수정하실 수 있어요':'AI filled this in — feel free to edit'}</p>`;
+          editBox.innerHTML = `<p style="font-size:12px;font-weight:500;color:${T.muted};margin-bottom:12px;">${S.lang==='ko'?'저희가 정리한 내용이에요 — 수정하실 수 있어요':'AI filled this in — feel free to edit'}</p>`;
 
           const fields = [
             ['before', S.lang==='ko'?'시도 전 상태':'Before', S.tempLog.before],

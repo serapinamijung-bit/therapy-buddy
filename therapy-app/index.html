@@ -835,11 +835,20 @@ function h(tag,style='',text='') { const e=document.createElement(tag); if(style
 // ── ONBOARDING ─────────────────────────────────────────────────────
 function renderOnboard() {
   // voice button helper for onboarding
-  function makeVoiceBtn(onResult, cleanType='goal') {
+  function makeVoiceBtn(onResult, targetEl) {
     const vb = document.createElement('button');
     vb.style.cssText=`background:#fff;border:1.5px solid ${T.border};border-radius:10px;padding:8px 10px;font-size:16px;cursor:pointer;flex-shrink:0;`;
     vb.textContent='🎤';
     vb._active = false;
+
+    const autoResize = (el, text) => {
+      if (!el) return;
+      el.value = text;
+      if (el.tagName === 'TEXTAREA') {
+        el.style.height = 'auto';
+        el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+      }
+    };
 
     const cleanWithAI = async (text) => {
       try {
@@ -887,11 +896,13 @@ function renderOnboard() {
               const data = await res.json();
               if (data.text) {
                 const raw = data.text.trim();
-                // show raw first
                 onResult(raw);
-                // then clean with AI
+                if (targetEl) autoResize(targetEl, raw);
                 const cleaned = await cleanWithAI(raw);
-                if (cleaned !== raw) onResult(cleaned);
+                if (cleaned !== raw) {
+                  onResult(cleaned);
+                  if (targetEl) autoResize(targetEl, cleaned);
+                }
               }
             } catch(e) { console.log('Transcribe error:', e); }
             vb.textContent='🎤'; vb.disabled=false; vb.style.borderColor=T.border;
@@ -1112,19 +1123,19 @@ if(S.goals.length<maxGoals){
       wrap.appendChild(h('h1',"font-family:'Fraunces',serif;font-size:24px;font-weight:400;color:#1A1A1A;line-height:1.3;margin-bottom:6px;",
         S.lang==='ko' ? '어떤 행동을 개선하고 싶으세요?' : 'What behavior would you like to work on?'));
       wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:16px;line-height:1.6;`, examples.hint));
-      const ni=document.createElement('input'); ni.type='text'; ni.value=g.name;
+      const ni=document.createElement('textarea'); ni.value=g.name;
       ni.placeholder=examples.placeholder;
-      ni.style.cssText=`flex:1;padding:12px 14px;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;`;
+      ni.style.cssText=`flex:1;padding:12px 14px;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;resize:none;overflow:hidden;min-height:44px;line-height:1.5;`;
       ni.oninput=e=>{
-        g.name=e.target.value;
-        g.icon=autoIcon(e.target.value);
+        g.name=e.target.value; g.icon=autoIcon(e.target.value);
+        ni.style.height='auto'; ni.style.height=Math.min(ni.scrollHeight,160)+'px';
         nextBtn.style.background = e.target.value.trim() ? T.green : T.border;
         nextBtn.style.color = e.target.value.trim() ? '#fff' : T.muted;
         nextBtn.style.cursor = e.target.value.trim() ? 'pointer' : 'default';
       };
-      const niRow=div('display:flex;gap:8px;margin-bottom:16px;');
+      const niRow=div('display:flex;gap:8px;margin-bottom:16px;align-items:flex-start;');
       niRow.appendChild(ni);
-      niRow.appendChild(makeVoiceBtn(v=>{g.name=v;g.icon=autoIcon(v);ni.value=v;nextBtn.style.background=T.green;nextBtn.style.color='#fff';nextBtn.style.cursor='pointer';}));
+      niRow.appendChild(makeVoiceBtn(v=>{g.name=v;g.icon=autoIcon(v);nextBtn.style.background=T.green;nextBtn.style.color='#fff';nextBtn.style.cursor='pointer';}, ni));
       wrap.appendChild(niRow);
       wrap.appendChild(spacer);
 
@@ -1140,13 +1151,13 @@ if(S.goals.length<maxGoals){
         S.lang==='ko' ? '이 행동이 언제 나타나나요?' : 'When does this behavior usually happen?'));
       wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:16px;line-height:1.6;`,
         S.lang==='ko' ? '예: 형제가 장난감을 갖고 있을 때' : 'e.g. When sibling has a toy and child tries to grab it'));
-      const ti=document.createElement('input'); ti.type='text'; ti.value=g.trigger;
+      const ti=document.createElement('textarea'); ti.value=g.trigger;
       ti.placeholder=L('whenToUsePlaceholder');
-      ti.style.cssText=`flex:1;padding:12px 14px;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;`;
-      ti.oninput=e=>{g.trigger=e.target.value;};
-      const tiRow=div('display:flex;gap:8px;margin-bottom:16px;');
+      ti.style.cssText=`flex:1;padding:12px 14px;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;resize:none;overflow:hidden;min-height:44px;line-height:1.5;`;
+      ti.oninput=e=>{g.trigger=e.target.value; ti.style.height='auto'; ti.style.height=Math.min(ti.scrollHeight,160)+'px';};
+      const tiRow=div('display:flex;gap:8px;margin-bottom:16px;align-items:flex-start;');
       tiRow.appendChild(ti);
-      tiRow.appendChild(makeVoiceBtn(v=>{g.trigger=v;ti.value=v;}));
+      tiRow.appendChild(makeVoiceBtn(v=>{g.trigger=v;}, ti));
       wrap.appendChild(tiRow);
       wrap.appendChild(spacer);
 
@@ -1172,14 +1183,15 @@ if(S.goals.length<maxGoals){
       const renderActs=()=>{
         aw.innerHTML='';
         g.actions.forEach((a,ai)=>{
-          const row2=div('display:flex;gap:8px;align-items:center;margin-bottom:8px;');
-          const num=div(`width:22px;height:22px;min-width:22px;border-radius:50%;background:${T.gl};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:${T.green};`,(ai+1).toString());
-          const ai2=document.createElement('input'); ai2.type='text'; ai2.value=a;
+          const row2=div('display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;');
+          const num=div(`width:22px;height:22px;min-width:22px;border-radius:50%;background:${T.gl};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:${T.green};margin-top:10px;`,(ai+1).toString());
+          const ai2=document.createElement('textarea'); ai2.value=a;
           ai2.placeholder=S.lang==='ko'?'예: 먼저 아이 상태 확인하기':`e.g. Check child's state first`;
-          ai2.style.cssText=`flex:1;padding:10px 12px;font-size:13px;border:1.5px solid ${T.border};border-radius:10px;background:#fff;outline:none;font-family:'DM Sans',sans-serif;color:${T.text};`;
-          ai2.oninput=e=>{g.actions[ai]=e.target.value;};
-          const vb=makeVoiceBtn(v=>{g.actions[ai]=v;ai2.value=v;});
-          vb.style.cssText=`background:#fff;border:1.5px solid ${T.border};border-radius:10px;padding:6px 8px;font-size:14px;cursor:pointer;flex-shrink:0;`;          row2.appendChild(num); row2.appendChild(ai2); row2.appendChild(vb);
+          ai2.style.cssText=`flex:1;padding:10px 12px;font-size:13px;border:1.5px solid ${T.border};border-radius:10px;background:#fff;outline:none;font-family:'DM Sans',sans-serif;color:${T.text};resize:none;overflow:hidden;min-height:40px;line-height:1.5;`;
+          ai2.oninput=e=>{g.actions[ai]=e.target.value; ai2.style.height='auto'; ai2.style.height=Math.min(ai2.scrollHeight,120)+'px';};
+          const vb=makeVoiceBtn(v=>{g.actions[ai]=v;}, ai2);
+          vb.style.cssText=`background:#fff;border:1.5px solid ${T.border};border-radius:10px;padding:6px 8px;font-size:14px;cursor:pointer;flex-shrink:0;margin-top:4px;`;
+          row2.appendChild(num); row2.appendChild(ai2); row2.appendChild(vb);
           if(g.actions.length>1){const del=document.createElement('button');del.textContent='✕';del.style.cssText='background:none;border:none;font-size:14px;color:#aaa;cursor:pointer;padding:0 4px;';del.onclick=()=>{g.actions.splice(ai,1);renderActs();};row2.appendChild(del);}
           aw.appendChild(row2);
         });
@@ -1210,13 +1222,13 @@ if(S.goals.length<maxGoals){
         S.lang==='ko' ? '피하고 싶은 것 또는 다른 추가사항' : 'Anything to avoid or additional notes?'));
       wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:16px;line-height:1.6;`,
         S.lang==='ko' ? '예: 이름을 여러 번 반복하기, 강요하기' : 'e.g. Repeating the question, forcing a response'));
-      const av=document.createElement('input'); av.type='text'; av.value=g.avoid;
+      const av=document.createElement('textarea'); av.value=g.avoid;
       av.placeholder=L('avoidPlaceholder');
-      av.style.cssText=`flex:1;padding:12px 14px;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;`;
-      av.oninput=e=>{g.avoid=e.target.value;};
-      const avRow=div('display:flex;gap:8px;margin-bottom:16px;');
+      av.style.cssText=`flex:1;padding:12px 14px;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;resize:none;overflow:hidden;min-height:44px;line-height:1.5;`;
+      av.oninput=e=>{g.avoid=e.target.value; av.style.height='auto'; av.style.height=Math.min(av.scrollHeight,160)+'px';};
+      const avRow=div('display:flex;gap:8px;margin-bottom:16px;align-items:flex-start;');
       avRow.appendChild(av);
-      avRow.appendChild(makeVoiceBtn(v=>{g.avoid=v;av.value=v;}));
+      avRow.appendChild(makeVoiceBtn(v=>{g.avoid=v;}, av));
       wrap.appendChild(avRow);
       wrap.appendChild(spacer);
 

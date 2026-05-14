@@ -558,7 +558,7 @@ const STRINGS = {
     avoidLabel: 'Avoid',
     seeFullAnalysis: 'See full analysis →',
     logToday: (name) => `Log today's ${name} →`,
-    goalsTitle: 'Behaviors',
+    goalsTitle: 'Behavior Goals',
     goalsSub: (child) => `${child||"Your child"}'s goals. Each becomes an action card.`,
     editGoal: 'Edit',
     resetAll: 'Reset all data',
@@ -667,7 +667,7 @@ const STRINGS = {
     avoidLabel: '피해야 할 것',
     seeFullAnalysis: '전체 분석 보기 →',
     logToday: (name) => `오늘의 "${name}" 기록하기 →`,
-    goalsTitle: '해결하고 싶은 점',
+    goalsTitle: '행동 목표',
     goalsSub: (child) => `${child||"아이"}의 목표. 각 목표가 액션 카드가 됩니다.`,
     editGoal: '수정',
     resetAll: '데이터 초기화',
@@ -1035,7 +1035,7 @@ if(S.goals.length<maxGoals){
     // back button
     const back=document.createElement('button');
     back.style.cssText=`background:none;border:none;cursor:pointer;color:${T.tm};font-size:14px;margin-bottom:20px;padding:0;font-family:'DM Sans',sans-serif;`;
-    const isFromGoalsTab = S.view !== 'onboard';
+    const isFromGoalsTab = S.fromGoalsTab === true;
     back.textContent = goalStep > 1
       ? '← ' + (S.lang==='ko'?'이전':'Back')
       : '← ' + (S.lang==='ko'?'목표 목록으로':'Back to Goals');
@@ -1043,7 +1043,8 @@ if(S.goals.length<maxGoals){
       if(goalStep > 1) { S.goalStep = goalStep - 1; render(); }
       else {
         S.goalStep = 1;
-        if (isFromGoalsTab) { go('goals'); }
+        if (g._new && !g.name.trim()) S.goals.splice(S.editIdx, 1);
+        if (isFromGoalsTab) { S.fromGoalsTab = false; go('goals'); }
         else { S.step=3; render(); }
       }
     };
@@ -1210,7 +1211,7 @@ if(S.goals.length<maxGoals){
         g._saved = true;
         S.goalStep = 1;
         saveState();
-        if (S.view === 'onboard') { S.step=3; render(); } else { go('goals'); }
+        if (S.fromGoalsTab) { S.fromGoalsTab=false; go('goals'); } else { S.step=3; render(); }
       };
       const saveBtn=document.createElement('button'); saveBtn.style.cssText=`flex:2;padding:14px;background:${T.green};color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
       saveBtn.textContent=S.lang==='ko'?'저장하기 ✓':'Save ✓';
@@ -1221,7 +1222,7 @@ if(S.goals.length<maxGoals){
         g._saved = true;
         S.goalStep = 1;
         saveState();
-        if (S.view === 'onboard') { S.step=3; render(); } else { go('goals'); }
+        if (S.fromGoalsTab) { S.fromGoalsTab=false; go('goals'); } else { S.step=3; render(); }
       };
       row.appendChild(skipBtn); row.appendChild(saveBtn);
       wrap.appendChild(row);
@@ -2802,7 +2803,7 @@ function renderGoals() {
     left.innerHTML=`<span style="font-size:20px">${g.icon}</span><p style="font-size:14px;font-weight:500;color:${T.text}">${g.name||'Unnamed'}</p>`;
     const btns=div('display:flex;gap:6px;align-items:center;');
     if(st.total>0){const badge=document.createElement('span');badge.style.cssText=`font-size:10px;background:${sc.bg};color:${sc.color};border-radius:20px;padding:3px 8px;`;badge.textContent=`${st.rate}%`;btns.appendChild(badge);}
-    const eb=document.createElement('button'); eb.textContent=L('editGoal'); eb.style.cssText=`background:none;border:1px solid ${T.border};border-radius:8px;padding:4px 10px;font-size:11px;color:${T.tm};cursor:pointer;font-family:'DM Sans',sans-serif;`; eb.onclick=()=>{S.editIdx=i;S.step=3.5;S.view='onboard';render();};
+    const eb=document.createElement('button'); eb.textContent=L('editGoal'); eb.style.cssText=`background:none;border:1px solid ${T.border};border-radius:8px;padding:4px 10px;font-size:11px;color:${T.tm};cursor:pointer;font-family:'DM Sans',sans-serif;`; eb.onclick=()=>{S.editIdx=i;S.goalStep=1;S.fromGoalsTab=true;S.step=3.5;S.view='onboard';render();};
     const db=document.createElement('button'); db.textContent='✕'; db.style.cssText='background:none;border:none;font-size:14px;color:#aaa;cursor:pointer;padding:0 4px;'; db.onclick=async()=>{ const g=S.goals[i]; S.goals.splice(i,1); saveState(); if(currentUser&&supabase&&g?.goal_id){ await supabase.from('goals').delete().eq('id',g.goal_id); await supabase.from('logs').delete().eq('goal_id',g.goal_id); } render(); };
     btns.appendChild(eb); btns.appendChild(db); top.appendChild(left); top.appendChild(btns); row.appendChild(top);
     if(g.trigger) row.appendChild(p(`font-size:12px;color:${T.muted};`,`📍 ${g.trigger}`));
@@ -2813,8 +2814,9 @@ function renderGoals() {
 if(S.goals.length<maxGoals){
     const ab=document.createElement('button'); ab.style.cssText=`width:100%;padding:14px;background:none;border:1.5px dashed ${T.border};border-radius:14px;font-size:14px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px;`; ab.textContent=L('addGoal'); ab.onclick=()=>{
       const newGoalId='g_'+Math.random().toString(36).substr(2,9)+'_'+Date.now();
-      S.goals.push({goal_id:newGoalId,goal_version:1,goal_number:S.goals.length+1,icon:'🎯',name:'',trigger:'',actions:[''],avoid:''});
-      S.editIdx=S.goals.length-1;S.goalStep=1;S.step=3.5;S.view='onboard';render();
+      const newGoal={goal_id:newGoalId,goal_version:1,goal_number:S.goals.length+1,icon:'🎯',name:'',trigger:'',actions:[''],avoid:'',_new:true};
+      S.goals.push(newGoal);
+      S.editIdx=S.goals.length-1;S.goalStep=1;S.fromGoalsTab=true;S.step=3.5;S.view='onboard';render();
     };
     wrap.appendChild(ab);
   }

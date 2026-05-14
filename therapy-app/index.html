@@ -1035,10 +1035,17 @@ if(S.goals.length<maxGoals){
     // back button
     const back=document.createElement('button');
     back.style.cssText=`background:none;border:none;cursor:pointer;color:${T.tm};font-size:14px;margin-bottom:20px;padding:0;font-family:'DM Sans',sans-serif;`;
-    back.textContent = goalStep > 1 ? '← ' + (S.lang==='ko'?'이전':'Back') : L('backToGoals');
+    const isFromGoalsTab = S.view !== 'onboard';
+    back.textContent = goalStep > 1
+      ? '← ' + (S.lang==='ko'?'이전':'Back')
+      : '← ' + (S.lang==='ko'?'목표 목록으로':'Back to Goals');
     back.onclick=()=>{
       if(goalStep > 1) { S.goalStep = goalStep - 1; render(); }
-      else { S.goalStep = 1; S.step=3; render(); }
+      else {
+        S.goalStep = 1;
+        if (isFromGoalsTab) { go('goals'); }
+        else { S.step=3; render(); }
+      }
     };
     wrap.appendChild(back);
 
@@ -1203,7 +1210,7 @@ if(S.goals.length<maxGoals){
         g._saved = true;
         S.goalStep = 1;
         saveState();
-        S.step=3; render();
+        if (S.view === 'onboard') { S.step=3; render(); } else { go('goals'); }
       };
       const saveBtn=document.createElement('button'); saveBtn.style.cssText=`flex:2;padding:14px;background:${T.green};color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
       saveBtn.textContent=S.lang==='ko'?'저장하기 ✓':'Save ✓';
@@ -1214,7 +1221,7 @@ if(S.goals.length<maxGoals){
         g._saved = true;
         S.goalStep = 1;
         saveState();
-        S.step=3; render();
+        if (S.view === 'onboard') { S.step=3; render(); } else { go('goals'); }
       };
       row.appendChild(skipBtn); row.appendChild(saveBtn);
       wrap.appendChild(row);
@@ -2804,7 +2811,11 @@ function renderGoals() {
 
   const maxGoals = currentUser?.id === 'fa3dfb7f-2127-4554-a3e4-e8e80d55b21b' ? 20 : 5;
 if(S.goals.length<maxGoals){
-    const ab=document.createElement('button'); ab.style.cssText=`width:100%;padding:14px;background:none;border:1.5px dashed ${T.border};border-radius:14px;font-size:14px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px;`; ab.textContent=L('addGoal'); ab.onclick=()=>{S.goals.push({icon:'🎯',name:'',trigger:'',actions:[''],avoid:''});S.editIdx=S.goals.length-1;S.step=3.5;S.view='onboard';render();};
+    const ab=document.createElement('button'); ab.style.cssText=`width:100%;padding:14px;background:none;border:1.5px dashed ${T.border};border-radius:14px;font-size:14px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px;`; ab.textContent=L('addGoal'); ab.onclick=()=>{
+      const newGoalId='g_'+Math.random().toString(36).substr(2,9)+'_'+Date.now();
+      S.goals.push({goal_id:newGoalId,goal_version:1,goal_number:S.goals.length+1,icon:'🎯',name:'',trigger:'',actions:[''],avoid:''});
+      S.editIdx=S.goals.length-1;S.goalStep=1;S.step=3.5;S.view='onboard';render();
+    };
     wrap.appendChild(ab);
   }
 

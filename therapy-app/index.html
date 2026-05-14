@@ -2647,6 +2647,60 @@ function renderReport() {
     wrap.appendChild(h('h2',"font-family:'Fraunces',serif;font-size:24px;font-weight:400;color:#1A1A1A;margin-bottom:6px;", S.lang==='ko'?'리포트 생성':'Generate Report'));
     wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:20px;`, S.lang==='ko'?'누구를 위한 리포트인가요?':'Who is this report for?'));
 
+    // saved templates section
+    const purposeKeys = ['iep','therapist','teacher','evaluation','family','notes'];
+    const purposeNames = {
+      iep: S.lang==='ko'?'IEP 미팅':'IEP Meeting',
+      therapist: S.lang==='ko'?'치료사 미팅':'Therapist Meeting',
+      teacher: S.lang==='ko'?'선생님 면담':'Teacher Conference',
+      evaluation: S.lang==='ko'?'평가 미팅':'Evaluation Meeting',
+      family: S.lang==='ko'?'가족 공유':'Family Alignment',
+      notes: S.lang==='ko'?'내 기록용':'My Own Notes',
+    };
+    const purposeIcons = {iep:'📋',therapist:'🧑‍⚕️',teacher:'🏫',evaluation:'📊',family:'👨‍👩‍👧',notes:'📝'};
+    const savedTemplates = purposeKeys.filter(k => {
+      try { return !!localStorage.getItem(`report_template_${k}`); } catch(e) { return false; }
+    });
+
+    if (savedTemplates.length > 0) {
+      wrap.appendChild(p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;`, S.lang==='ko'?'저장된 템플릿':'Saved Templates'));
+      const tmplGrid = div('display:flex;flex-direction:column;gap:8px;margin-bottom:20px;');
+      savedTemplates.forEach(k => {
+        const card = div(`background:${T.gl};border-radius:14px;border:1.5px solid ${T.green};padding:12px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;`);
+        card.innerHTML=`
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:20px;">${purposeIcons[k]}</span>
+            <div>
+              <p style="font-size:14px;font-weight:500;color:${T.text};margin-bottom:2px;">${purposeNames[k]}</p>
+              <p style="font-size:11px;color:${T.green};">✓ ${S.lang==='ko'?'저장된 템플릿':'Saved template'}</p>
+            </div>
+          </div>
+          <span style="font-size:12px;color:${T.green};font-weight:500;">${S.lang==='ko'?'불러오기 →':'Load →'}</span>
+        `;
+        card.onclick=()=>{
+          S.reportPurpose=k;
+          S.reportPeriod=S.reportPeriod||'4w';
+          S.reportGoals=S.goals.map((_,i)=>i);
+          try { S.reportEdits=JSON.parse(localStorage.getItem(`report_template_${k}`)||'{}'); } catch(e) { S.reportEdits={}; }
+          S.reportStep=4;
+          render();
+        };
+
+        const delTmpl = document.createElement('button');
+        delTmpl.style.cssText=`background:none;border:none;font-size:12px;color:${T.muted};cursor:pointer;padding:0 0 0 8px;`;
+        delTmpl.textContent='🗑️';
+        delTmpl.onclick=(e)=>{
+          e.stopPropagation();
+          localStorage.removeItem(`report_template_${k}`);
+          render();
+        };
+        card.appendChild(delTmpl);
+        tmplGrid.appendChild(card);
+      });
+      wrap.appendChild(tmplGrid);
+      wrap.appendChild(p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;`, S.lang==='ko'?'새 리포트 만들기':'Create New Report'));
+    }
+
     const purposes = S.lang==='ko'
       ? [
           ['iep', '📋', 'IEP 미팅', '학교 특수교육팀과의 미팅'],

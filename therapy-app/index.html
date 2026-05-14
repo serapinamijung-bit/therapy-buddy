@@ -2637,7 +2637,8 @@ function renderWeek() {
 // ── REPORT ─────────────────────────────────────────────────────────
 function renderReport() {
   const wrap=div('flex:1;overflow-y:auto;padding:24px 22px 40px;');
-  const back=document.createElement('button'); back.style.cssText=`background:none;border:none;cursor:pointer;color:${T.tm};font-size:14px;margin-bottom:20px;padding:0;font-family:'DM Sans',sans-serif;`; back.textContent='← '+(S.lang==='ko'?'뒤로':'Back'); back.onclick=()=>go('week'); wrap.appendChild(back);
+  const back=document.createElement('button'); back.style.cssText=`background:none;border:none;cursor:pointer;color:${T.tm};font-size:14px;margin-bottom:20px;padding:0;font-family:'DM Sans',sans-serif;`; back.textContent='← '+(S.lang==='ko'?'Insights 로':'Back to Insights'); back.onclick=()=>go('week');
+  if (!S.reportStep || S.reportStep < 4) wrap.appendChild(back);
 
   if (!S.reportStep) S.reportStep = 1;
 
@@ -2754,9 +2755,9 @@ function renderReport() {
   wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:6px;`, `${purposeLabels[S.reportPurpose]} · ${S.child} · ${S.lang==='ko'?'작성자':'by'} ${S.parent}`));
 
   const editBtn = document.createElement('button');
-  editBtn.style.cssText=`background:none;border:none;font-size:12px;color:${T.green};cursor:pointer;font-family:'DM Sans',sans-serif;padding:0;margin-bottom:20px;`;
-  editBtn.textContent = S.lang==='ko'?'← 설정 수정':'← Edit settings';
-  editBtn.onclick = () => { S.reportStep=1; render(); };
+  editBtn.style.cssText=`background:none;border:none;font-size:14px;color:${T.tm};cursor:pointer;font-family:'DM Sans',sans-serif;padding:0;margin-bottom:20px;`;
+  editBtn.textContent = '← ' + (S.lang==='ko'?'뒤로':'Back');
+  editBtn.onclick = () => { S.reportStep=3; render(); };
   wrap.appendChild(editBtn);
 
   // editable field helper
@@ -2766,30 +2767,36 @@ function renderReport() {
 
   const makeEditable = (key, defaultVal, style='') => {
     const val = getEdit(key, defaultVal);
-    const wrap2 = div('display:flex;gap:6px;align-items:flex-start;');
+    if (val === null) return div(''); // deleted
+    const wrap2 = div('display:flex;gap:4px;align-items:flex-start;flex:1;');
     const txt = div(`flex:1;font-size:12px;color:${T.tm};line-height:1.6;${style}`);
     txt.textContent = val;
+
     const editBtn2 = document.createElement('button');
     editBtn2.style.cssText=`background:none;border:none;cursor:pointer;font-size:12px;color:${T.muted};padding:0;flex-shrink:0;opacity:0.5;`;
     editBtn2.textContent='✏️';
-    editBtn2.title='Edit';
     editBtn2.onclick=()=>{
       const ta=document.createElement('textarea');
-      ta.value=val; ta.style.cssText=`width:100%;padding:6px 8px;border:1.5px solid ${T.green};border-radius:8px;font-size:12px;font-family:'DM Sans',sans-serif;resize:none;outline:none;line-height:1.6;`;
-      ta.style.height='auto';
+      ta.value=getEdit(key,defaultVal);
+      ta.style.cssText=`width:100%;padding:6px 8px;border:1.5px solid ${T.green};border-radius:8px;font-size:12px;font-family:'DM Sans',sans-serif;resize:none;outline:none;line-height:1.6;`;
       txt.replaceWith(ta);
       editBtn2.textContent='✓';
       editBtn2.style.color=T.green;
       editBtn2.style.opacity='1';
       ta.focus();
+      ta.style.height='auto';
       ta.style.height=ta.scrollHeight+'px';
-      editBtn2.onclick=()=>{
-        S.reportEdits[key]=ta.value;
-        render();
-      };
+      editBtn2.onclick=()=>{ S.reportEdits[key]=ta.value; render(); };
     };
+
+    const delBtn = document.createElement('button');
+    delBtn.style.cssText=`background:none;border:none;cursor:pointer;font-size:12px;color:${T.muted};padding:0;flex-shrink:0;opacity:0.4;`;
+    delBtn.textContent='🗑️';
+    delBtn.onclick=()=>{ S.reportEdits[key]=null; render(); };
+
     wrap2.appendChild(txt);
     wrap2.appendChild(editBtn2);
+    wrap2.appendChild(delBtn);
     return wrap2;
   };
 
@@ -2924,27 +2931,50 @@ function renderReport() {
       }
     }
 
-    if (worked.length>0) {
+    if (worked.length>0 || S.reportEdits[editKey(i,'worked_new')]) {
       const ww=div(`background:${T.gl};border-radius:10px;padding:10px 12px;margin-bottom:8px;`);
       ww.innerHTML=`<p style="font-size:10px;font-weight:500;color:${T.green};text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">${S.lang==='ko'?'효과 있었던 것':'What worked'}</p>`;
       worked.slice(0,2).forEach((w,wi)=>{
+        const val = getEdit(editKey(i,`worked_${wi}`), w);
+        if (val === null) return;
         const r=div('display:flex;gap:6px;margin-bottom:3px;align-items:flex-start;');
         r.innerHTML=`<span style="color:${T.green};font-size:11px;margin-top:2px;">✓</span>`;
         r.appendChild(makeEditable(editKey(i,`worked_${wi}`), w));
         ww.appendChild(r);
       });
+      // new items
+      let ni=0; while(S.reportEdits[editKey(i,`worked_new_${ni}`)]!==undefined){
+        const val=S.reportEdits[editKey(i,`worked_new_${ni}`)];
+        if(val!==null){const r=div('display:flex;gap:6px;margin-bottom:3px;align-items:flex-start;');r.innerHTML=`<span style="color:${T.green};font-size:11px;margin-top:2px;">✓</span>`;r.appendChild(makeEditable(editKey(i,`worked_new_${ni}`),''));ww.appendChild(r);}
+        ni++;
+      }
+      const addW=document.createElement('button'); addW.style.cssText=`background:none;border:none;font-size:12px;color:${T.green};cursor:pointer;font-family:'DM Sans',sans-serif;padding:2px 0;margin-top:4px;`; addW.textContent=`+ ${S.lang==='ko'?'추가':'Add'}`; addW.onclick=()=>{S.reportEdits[editKey(i,`worked_new_${ni}`)]='';render();};
+      ww.appendChild(addW);
       gc.appendChild(ww);
+    } else {
+      const addWBox=div(`background:${T.gl};border-radius:10px;padding:8px 12px;margin-bottom:8px;`);
+      const addW=document.createElement('button'); addW.style.cssText=`background:none;border:none;font-size:12px;color:${T.green};cursor:pointer;font-family:'DM Sans',sans-serif;`; addW.textContent=`+ ${S.lang==='ko'?'효과 있었던 것 추가':'Add what worked'}`; addW.onclick=()=>{S.reportEdits[editKey(i,'worked_new_0')]='';render();};
+      addWBox.appendChild(addW); gc.appendChild(addWBox);
     }
 
-    if (showNotWorked && notWorked.length>0) {
+    if (showNotWorked) {
       const nw=div(`background:#FDF0EA;border-radius:10px;padding:10px 12px;margin-bottom:8px;`);
       nw.innerHTML=`<p style="font-size:10px;font-weight:500;color:${T.orange};text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">${S.lang==='ko'?'효과 없었던 것':'What didn\'t work'}</p>`;
       notWorked.slice(0,2).forEach((w,wi)=>{
+        const val=getEdit(editKey(i,`notWorked_${wi}`),w);
+        if(val===null) return;
         const r=div('display:flex;gap:6px;margin-bottom:3px;align-items:flex-start;');
         r.innerHTML=`<span style="color:${T.orange};font-size:11px;margin-top:2px;">✗</span>`;
-        r.appendChild(makeEditable(editKey(i,`notWorked_${wi}`), w));
+        r.appendChild(makeEditable(editKey(i,`notWorked_${wi}`),w));
         nw.appendChild(r);
       });
+      let nni=0; while(S.reportEdits[editKey(i,`nw_new_${nni}`)]!==undefined){
+        const val=S.reportEdits[editKey(i,`nw_new_${nni}`)];
+        if(val!==null){const r=div('display:flex;gap:6px;margin-bottom:3px;align-items:flex-start;');r.innerHTML=`<span style="color:${T.orange};font-size:11px;margin-top:2px;">✗</span>`;r.appendChild(makeEditable(editKey(i,`nw_new_${nni}`),''));nw.appendChild(r);}
+        nni++;
+      }
+      const addNW=document.createElement('button'); addNW.style.cssText=`background:none;border:none;font-size:12px;color:${T.orange};cursor:pointer;font-family:'DM Sans',sans-serif;padding:2px 0;margin-top:4px;`; addNW.textContent=`+ ${S.lang==='ko'?'추가':'Add'}`; addNW.onclick=()=>{S.reportEdits[editKey(i,`nw_new_${nni}`)]='';render();};
+      nw.appendChild(addNW);
       gc.appendChild(nw);
     }
 
@@ -2952,11 +2982,20 @@ function renderReport() {
       const rec=div(`background:${T.ol};border-radius:10px;padding:10px 12px;margin-bottom:8px;`);
       rec.innerHTML=`<p style="font-size:10px;font-weight:500;color:${T.orange};text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">${S.lang==='ko'?'추천 활동':'Recommendations'}</p>`;
       analysis.next_actions.slice(0,2).forEach((a,ai)=>{
+        const val=getEdit(editKey(i,`rec_${ai}`),a);
+        if(val===null) return;
         const r=div('display:flex;gap:6px;margin-bottom:3px;align-items:flex-start;');
         r.innerHTML=`<span style="font-size:11px;color:${T.orange};margin-top:2px;">${ai+1}.</span>`;
-        r.appendChild(makeEditable(editKey(i,`rec_${ai}`), a));
+        r.appendChild(makeEditable(editKey(i,`rec_${ai}`),a));
         rec.appendChild(r);
       });
+      let ri=0; while(S.reportEdits[editKey(i,`rec_new_${ri}`)]!==undefined){
+        const val=S.reportEdits[editKey(i,`rec_new_${ri}`)];
+        if(val!==null){const r=div('display:flex;gap:6px;margin-bottom:3px;align-items:flex-start;');r.innerHTML=`<span style="font-size:11px;color:${T.orange};margin-top:2px;">•</span>`;r.appendChild(makeEditable(editKey(i,`rec_new_${ri}`),''));rec.appendChild(r);}
+        ri++;
+      }
+      const addR=document.createElement('button'); addR.style.cssText=`background:none;border:none;font-size:12px;color:${T.orange};cursor:pointer;font-family:'DM Sans',sans-serif;padding:2px 0;margin-top:4px;`; addR.textContent=`+ ${S.lang==='ko'?'추가':'Add'}`; addR.onclick=()=>{S.reportEdits[editKey(i,`rec_new_${ri}`)]='';render();};
+      rec.appendChild(addR);
       gc.appendChild(rec);
     }
 

@@ -228,13 +228,16 @@ async function initSupabase() {
     supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth event:', event, session?.user?.email);
       if (event === 'SIGNED_IN' && session) {
+        const isSameUser = currentUser?.id === session.user.id;
         currentUser = session.user;
         localStorage.setItem('tb_was_logged_in', '1');
-        // reset state before loading from Supabase
-        S.parent = ''; S.child = ''; S.age = '';
-        S.goals = []; S.logs = []; S.analyses = [];
-        S.view = 'onboard'; S.step = 0;
-        await loadFromSupabase();
+        // only reset state if different user or no data yet
+        if (!isSameUser || !S.parent) {
+          S.parent = ''; S.child = ''; S.age = '';
+          S.goals = []; S.logs = []; S.analyses = [];
+          S.view = 'onboard'; S.step = 0;
+          await loadFromSupabase();
+        }
         render();
       } else if (event === 'SIGNED_OUT') {
         currentUser = null;
@@ -1543,7 +1546,7 @@ function renderLog() {
           };
 
           mr.start();
-          voiceBtn.innerHTML = `<span style="font-size:20px;">🔴</span> ${S.lang==='ko'?'녹음 중... (탭해서 중지)':'Recording... (tap to stop)'}`;
+          voiceBtn.innerHTML = `<span style="font-size:20px;">🔴</span> ${S.lang==='ko'?'녹음 중 — 다 말하고 탭해서 중지':'Recording — tap when done'}`;
           voiceBtn.style.borderColor = T.red;
           voiceBtn.style.color = T.red;
 
@@ -1840,7 +1843,7 @@ function renderLog() {
           };
 
           mr.start();
-          voiceBtn.innerHTML = `<span style="font-size:20px;">🔴</span> ${S.lang==='ko'?'녹음 중... (탭해서 중지)':'Recording... (tap to stop)'}`;
+          voiceBtn.innerHTML = `<span style="font-size:20px;">🔴</span> ${S.lang==='ko'?'녹음 중 — 다 말하고 탭해서 중지':'Recording — tap when done'}`;
           voiceBtn.style.borderColor = T.red;
           voiceBtn.style.color = T.red;
 
@@ -2783,7 +2786,20 @@ if(S.goals.length<maxGoals){
       S = {view:'onboard', step:0, lang:S.lang, parent:'', child:'', age:'', goals:[], editIdx:null, goalStep:1, logGoalIdx:0, logs:[], analyses:[], isDemo:false, tempLog:{}};
       render();
     };
-    accountWrap.appendChild(signOutBtn);
+    const accountBtns = div('display:flex;gap:8px;');
+    const reloadBtn = document.createElement('button');
+    reloadBtn.style.cssText=`padding:12px;background:none;border:1px solid ${T.border};border-radius:12px;font-size:13px;color:${T.green};cursor:pointer;font-family:'DM Sans',sans-serif;`;
+    reloadBtn.textContent='↻';
+    reloadBtn.title = S.lang==='ko'?'데이터 새로고침':'Reload data';
+    reloadBtn.onclick = async () => {
+      reloadBtn.textContent = '⏳';
+      await loadFromSupabase();
+      render();
+    };
+    signOutBtn.style.cssText=`flex:1;padding:12px;background:none;border:1px solid ${T.border};border-radius:12px;font-size:13px;color:${T.tm};cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:space-between;`;
+    accountBtns.appendChild(reloadBtn);
+    accountBtns.appendChild(signOutBtn);
+    accountWrap.appendChild(accountBtns);
   } else {
     const siBox = div(`background:${T.card};border-radius:14px;border:1px solid ${T.border};padding:14px 16px;`);
     siBox.innerHTML=`<p style="font-size:13px;font-weight:500;color:${T.tm};margin-bottom:4px;">Create a free account</p><p style="font-size:12px;color:${T.muted};margin-bottom:10px;">Save your data and access it from any device.</p>`;

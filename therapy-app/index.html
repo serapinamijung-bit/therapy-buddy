@@ -2820,6 +2820,7 @@ function renderReport() {
   if (savedTemplate && Object.keys(S.reportEdits).length === 0) {
     S.reportEdits = savedTemplate;
   }
+  const now = new Date();
   const cutoff = S.reportPeriod==='2w'?14:S.reportPeriod==='4w'?28:999;
   const filteredLogs = S.logs.filter(l=>{
     if (S.reportPeriod==='all') return true;

@@ -1475,62 +1475,84 @@ function renderLog() {
       voiceBtn.style.cssText=`width:100%;padding:12px;background:#fff;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px;`;
       voiceBtn.innerHTML = `<span style="font-size:20px;">🎤</span> ${S.lang==='ko'?'말하기':'Speak instead'}`;
       voiceBtn._active = false;
+      voiceBtn._mediaRecorder = null;
+      voiceBtn._chunks = [];
 
-      voiceBtn.onclick = () => {
-        const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRec) return;
-
+      voiceBtn.onclick = async () => {
         if (voiceBtn._active) {
+          // stop recording
           voiceBtn._active = false;
-          voiceBtn.innerHTML = `<span style="font-size:20px;">🎤</span> ${S.lang==='ko'?'말하기':'Speak instead'}`;
-          voiceBtn.style.borderColor = T.border;
-          voiceBtn.style.color = T.text;
-          const val = diaryTA.value;
-          S.tempLog.diary = val;
-          S.tempLog.noteMode = 'drop';
-          S.tempLog.mode = 'diary';
-          if (val && val.trim().length >= 10) render();
+          if (voiceBtn._mediaRecorder && voiceBtn._mediaRecorder.state !== 'inactive') {
+            voiceBtn._mediaRecorder.stop();
+          }
+          voiceBtn.innerHTML = `<span style="font-size:20px;">⏳</span> ${S.lang==='ko'?'변환 중...':'Transcribing...'}`;
+          voiceBtn.disabled = true;
           return;
         }
 
-        voiceBtn._active = true;
-        voiceBtn.innerHTML = `<span style="font-size:20px;">🔴</span> ${S.lang==='ko'?'듣는 중... (탭해서 중지)':'Listening... (tap to stop)'}`;
-        voiceBtn.style.borderColor = T.red;
-        voiceBtn.style.color = T.red;
+        // start recording
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          voiceBtn._chunks = [];
+          voiceBtn._active = true;
 
-        const lang = S.lang==='ko'?'ko-KR':'en-US';
+          const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm'
+            : MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4'
+            : 'audio/ogg';
 
-        const listen = () => {
-          if (!voiceBtn._active) return;
-          const r = new SpeechRec();
-          r.lang = lang;
-          r.continuous = false;
-          r.interimResults = false;
-          r.onresult = (e) => {
-            if (!e.results || !e.results[0]) return;
-            const t = e.results[0][0].transcript.trim();
-            if (!t) return;
-            const cur = diaryTA.value;
-            const next = cur ? cur + ' ' + t : t;
-            diaryTA.value = next;
-            S.tempLog.diary = next;
+          const mr = new MediaRecorder(stream, { mimeType });
+          voiceBtn._mediaRecorder = mr;
+
+          mr.ondataavailable = (e) => {
+            if (e.data.size > 0) voiceBtn._chunks.push(e.data);
           };
-          r.onend = () => { if (voiceBtn._active) setTimeout(listen, 150); };
-          r.onerror = (e) => {
-            if (e.error === 'no-speech' || e.error === 'aborted') {
-              if (voiceBtn._active) setTimeout(listen, 150);
-            } else {
-              voiceBtn._active = false;
+
+          mr.onstop = async () => {
+            stream.getTracks().forEach(t => t.stop());
+            const blob = new Blob(voiceBtn._chunks, { type: mimeType });
+
+            // convert to base64
+            const reader = new FileReader();
+            reader.onloadend = async () => {
+              const base64 = reader.result.split(',')[1];
+              try {
+                const res = await fetch('/.netlify/functions/transcribe', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ audio: base64, mimeType, lang: S.lang })
+                });
+                const data = await res.json();
+                if (data.text) {
+                  const cur = diaryTA.value;
+                  const next = cur ? cur + ' ' + data.text.trim() : data.text.trim();
+                  diaryTA.value = next;
+                  S.tempLog.diary = next;
+                }
+              } catch(e) {
+                console.log('Transcription error:', e);
+              }
               voiceBtn.innerHTML = `<span style="font-size:20px;">🎤</span> ${S.lang==='ko'?'말하기':'Speak instead'}`;
+              voiceBtn.disabled = false;
               voiceBtn.style.borderColor = T.border;
               voiceBtn.style.color = T.text;
-            }
+              S.tempLog.noteMode = 'drop';
+              S.tempLog.mode = 'diary';
+              if (diaryTA.value && diaryTA.value.trim().length >= 10) render();
+            };
+            reader.readAsDataURL(blob);
           };
-          try { r.start(); } catch(e) {
-            if (voiceBtn._active) setTimeout(listen, 300);
-          }
-        };
-        listen();
+
+          mr.start();
+          voiceBtn.innerHTML = `<span style="font-size:20px;">🔴</span> ${S.lang==='ko'?'녹음 중... (탭해서 중지)':'Recording... (tap to stop)'}`;
+          voiceBtn.style.borderColor = T.red;
+          voiceBtn.style.color = T.red;
+
+        } catch(e) {
+          console.log('Mic error:', e);
+          voiceBtn._active = false;
+          voiceBtn.innerHTML = `<span style="font-size:20px;">🎤</span> ${S.lang==='ko'?'말하기':'Speak instead'}`;
+          alert(S.lang==='ko'?'마이크 접근 권한이 필요해요.':'Microphone access is required.');
+        }
       };
       const dRow = div('display:flex;flex-direction:column;gap:0;');
       dRow.appendChild(diaryTA);
@@ -1761,41 +1783,72 @@ function renderLog() {
       voiceBtn.innerHTML = `<span style="font-size:20px;">🎤</span> ${S.lang==='ko'?'말하기 시작':'Start speaking'}`;
 
       voiceBtn.innerHTML = `<span style="font-size:20px;">🎤</span> ${S.lang==='ko'?'말하기 시작':'Start speaking'}`;
-      let isRecording2 = false;
-      voiceBtn.onclick = () => {
-        if (isRecording2) {
-          isRecording2 = false;
-          voiceBtn.innerHTML = `<span style="font-size:20px;">🎤</span> ${S.lang==='ko'?'말하기 시작':'Start speaking'}`;
-          voiceBtn.style.borderColor = T.border;
-          voiceBtn.style.color = T.text;
-          setTimeout(() => render(), 300);
+      voiceBtn._active = false;
+      voiceBtn._chunks = [];
+
+      voiceBtn.onclick = async () => {
+        if (voiceBtn._active) {
+          voiceBtn._active = false;
+          if (voiceBtn._mediaRecorder && voiceBtn._mediaRecorder.state !== 'inactive') {
+            voiceBtn._mediaRecorder.stop();
+          }
+          voiceBtn.innerHTML = `<span style="font-size:20px;">⏳</span> ${S.lang==='ko'?'변환 중...':'Transcribing...'}`;
+          voiceBtn.disabled = true;
           return;
         }
-        const SpeechRec2 = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRec2) return;
-        isRecording2 = true;
-        let final = S.tempLog.diary || '';
-        voiceBtn.innerHTML = `<span style="font-size:20px;">🔴</span> ${S.lang==='ko'?'듣는 중... (탭해서 중지)':'Listening... (tap to stop)'}`;
-        voiceBtn.style.borderColor = T.red;
-        voiceBtn.style.color = T.red;
 
-        const startRec2 = () => {
-          if (!isRecording2) return;
-          const rec = new SpeechRec2();
-          rec.lang = S.lang==='ko'?'ko-KR':'en-US';
-          rec.continuous = false;
-          rec.interimResults = false;
-          rec.onresult = (e) => {
-            const transcript = e.results[0][0].transcript;
-            final = final ? final + ' ' + transcript : transcript;
-            diaryTA.value = final;
-            S.tempLog.diary = final;
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          voiceBtn._chunks = [];
+          voiceBtn._active = true;
+
+          const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm'
+            : MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4'
+            : 'audio/ogg';
+
+          const mr = new MediaRecorder(stream, { mimeType });
+          voiceBtn._mediaRecorder = mr;
+
+          mr.ondataavailable = (e) => { if (e.data.size > 0) voiceBtn._chunks.push(e.data); };
+          mr.onstop = async () => {
+            stream.getTracks().forEach(t => t.stop());
+            const blob = new Blob(voiceBtn._chunks, { type: mimeType });
+            const reader = new FileReader();
+            reader.onloadend = async () => {
+              const base64 = reader.result.split(',')[1];
+              try {
+                const res = await fetch('/.netlify/functions/transcribe', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ audio: base64, mimeType, lang: S.lang })
+                });
+                const data = await res.json();
+                if (data.text) {
+                  const cur = diaryTA.value;
+                  const next = cur ? cur + ' ' + data.text.trim() : data.text.trim();
+                  diaryTA.value = next;
+                  S.tempLog.diary = next;
+                }
+              } catch(e) { console.log('Transcription error:', e); }
+              voiceBtn.innerHTML = `<span style="font-size:20px;">🎤</span> ${S.lang==='ko'?'말하기 시작':'Start speaking'}`;
+              voiceBtn.disabled = false;
+              voiceBtn.style.borderColor = T.border;
+              voiceBtn.style.color = T.text;
+              if (diaryTA.value && diaryTA.value.trim().length >= 10) render();
+            };
+            reader.readAsDataURL(blob);
           };
-          rec.onend = () => { if (isRecording2) startRec2(); };
-          rec.onerror = (e) => { if (e.error === 'no-speech' && isRecording2) startRec2(); };
-          rec.start();
-        };
-        startRec2();
+
+          mr.start();
+          voiceBtn.innerHTML = `<span style="font-size:20px;">🔴</span> ${S.lang==='ko'?'녹음 중... (탭해서 중지)':'Recording... (tap to stop)'}`;
+          voiceBtn.style.borderColor = T.red;
+          voiceBtn.style.color = T.red;
+
+        } catch(e) {
+          voiceBtn._active = false;
+          voiceBtn.innerHTML = `<span style="font-size:20px;">🎤</span> ${S.lang==='ko'?'말하기 시작':'Start speaking'}`;
+          alert(S.lang==='ko'?'마이크 접근 권한이 필요해요.':'Microphone access is required.');
+        }
       };
 
       const dRow = div('display:flex;flex-direction:column;gap:0;');

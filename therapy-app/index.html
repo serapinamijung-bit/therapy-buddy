@@ -2751,6 +2751,7 @@ function renderReport() {
       byGoal: true,
       recentLogs: true,
       worked: true,
+      recommendations: true,
       techniques: false,
       notWorked: false,
     };
@@ -2760,6 +2761,7 @@ function renderReport() {
           ['summary', '📊', '전체 요약', '시도 횟수, 성공률, 목표 수'],
           ['byGoal', '🎯', '목표별 진행 상황', '각 목표의 성공률'],
           ['worked', '✅', '효과 있었던 것', '가정에서 효과가 있었던 방법'],
+          ['recommendations', '✨', '추천 활동', 'AI 가 분석한 다음 단계 추천'],
           ['recentLogs', '📅', '최근 기록 (날짜별)', '날짜별 시도 기록'],
           ['techniques', '🔧', '구체적인 시도 방법', '각 시도에서 사용한 기법'],
           ['notWorked', '⚠️', '효과 없었던 것', '민감할 수 있음 — 대상에 따라 선택'],
@@ -2768,6 +2770,7 @@ function renderReport() {
           ['summary', '📊', 'Overall summary', 'Attempts, success rate, goal count'],
           ['byGoal', '🎯', 'Progress by goal', 'Success rate per goal'],
           ['worked', '✅', 'What worked', 'Methods that were effective at home'],
+          ['recommendations', '✨', 'Recommendations', 'AI-analyzed next steps to try'],
           ['recentLogs', '📅', 'Recent logs (by date)', 'Dated record of attempts'],
           ['techniques', '🔧', 'Specific techniques tried', 'Methods used in each attempt'],
           ['notWorked', '⚠️', "What didn't work", 'May be sensitive — select based on audience'],
@@ -2804,7 +2807,7 @@ function renderReport() {
 
   const editBtn = document.createElement('button');
   editBtn.style.cssText=`background:none;border:none;font-size:14px;color:${T.tm};cursor:pointer;font-family:'DM Sans',sans-serif;padding:0;margin-bottom:20px;`;
-  editBtn.textContent = '← ' + (S.lang==='ko'?'목표 선택으로':'Back to goal selection');
+  editBtn.textContent = '← ' + (S.lang==='ko'?'내용 선택으로':'Back to content selection');
   editBtn.onclick = () => { S.reportStep=3.5; render(); };
   wrap.appendChild(editBtn);
 
@@ -2950,11 +2953,11 @@ function renderReport() {
     gc.appendChild(pb);
 
     // show different detail based on purpose
-  const rs = S.reportSections || {summary:true, byGoal:true, recentLogs:true, worked:true, techniques:false, notWorked:false};
+  const rs = S.reportSections || {summary:true, byGoal:true, recentLogs:true, worked:true, recommendations:true, techniques:false, notWorked:false};
   const showWorked = rs.worked !== false;
   const showTechniques = rs.techniques || ['therapist','evaluation','notes'].includes(S.reportPurpose);
   const showNotWorked = rs.notWorked || ['evaluation'].includes(S.reportPurpose);
-  const showRecommendations = ['iep','therapist','evaluation'].includes(S.reportPurpose);
+  const showRecommendations = rs.recommendations !== false && ['iep','therapist','evaluation'].includes(S.reportPurpose);
   const showLogs = rs.recentLogs;
 
     // evaluation: show advocacy box first

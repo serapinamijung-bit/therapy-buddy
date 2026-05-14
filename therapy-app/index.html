@@ -896,8 +896,10 @@ function renderOnboard() {
 
   // dots
   const dots = div('display:flex;gap:5px;margin-bottom:32px;');
-  for(let i=0;i<5;i++){const d=div();d.style.cssText=`height:4px;border-radius:2px;flex:${i===step?2:1};background:${i<=step?T.green:T.border};transition:all .3s;`;dots.appendChild(d);}
-  wrap.appendChild(dots);
+  if (!S.fromGoalsTab) {
+    for(let i=0;i<5;i++){const d=div();d.style.cssText=`height:4px;border-radius:2px;flex:${i===step?2:1};background:${i<=step?T.green:T.border};transition:all .3s;`;dots.appendChild(d);}
+    wrap.appendChild(dots);
+  }
 
   if (step===0) {
     const blob = div(`width:90px;height:90px;border-radius:62% 38% 70% 30%/45% 65% 35% 55%;background:linear-gradient(140deg,${T.gm},${T.green});display:flex;align-items:center;justify-content:center;font-size:38px;margin-bottom:20px;`);

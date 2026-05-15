@@ -422,7 +422,8 @@ async function loadFromSupabase(retries = 3) {
           name: g.name,
           trigger: g.trigger,
           actions: g.actions || [],
-          avoid: g.avoid
+          avoid: g.avoid,
+          archived: g.archived || false
         }));
       }
 
@@ -1469,6 +1470,7 @@ function renderHome() {
     const tl=p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;`,L('todayCards'));
     wrap.appendChild(tl);
     S.goals.forEach((g,i)=>{
+      if (g.archived) return; // skip archived goals
       const st=stats(i); const c=CARD_COLORS[i%CARD_COLORS.length];
       const analysis = S.analyses && S.analyses[i];
 
@@ -1785,13 +1787,18 @@ function renderLog() {
           wrap.appendChild(empathyBox);
         }
 
-        // show matched goal or suggested goal
-        const goalIdx = S.tempLog.goalIdx;
-        const matchedGoal = goalIdx >= 0 ? S.goals[goalIdx] : null;
+        // show matched goals or suggested goal
+        const goalIdxs = S.tempLog.goalIdxs || [S.tempLog.goalIdx];
+        const matchedGoals = goalIdxs.filter(idx => idx >= 0).map(idx => S.goals[idx]).filter(Boolean);
 
-        if (matchedGoal) {
+        if (matchedGoals.length > 0) {
           const matchBox = div(`background:#fff;border-radius:14px;border:1px solid ${T.border};padding:12px 16px;margin-top:12px;`);
-          matchBox.innerHTML = `<p style="font-size:11px;color:${T.muted};margin-bottom:6px;">${S.lang==='ko'?'관련 목표':'Related goal'}</p><p style="font-size:14px;font-weight:500;color:${T.text};">${matchedGoal.icon} ${matchedGoal.name}</p>`;
+          matchBox.innerHTML = `<p style="font-size:11px;color:${T.muted};margin-bottom:8px;">${S.lang==='ko'?'관련 목표':'Related goals'} (${matchedGoals.length})</p>`;
+          matchedGoals.forEach(g => {
+            const row = div('display:flex;align-items:center;gap:8px;margin-bottom:4px;');
+            row.innerHTML = `<span style="font-size:16px;">${g.icon}</span><p style="font-size:14px;font-weight:500;color:${T.text};">${g.name}</p>`;
+            matchBox.appendChild(row);
+          });
           wrap.appendChild(matchBox);
         } else if (S.tempLog.suggestedGoal) {
           const sg = S.tempLog.suggestedGoal;
@@ -1845,11 +1852,13 @@ function renderLog() {
           : (S.lang==='ko'?'기록으로 저장하기 →':'Save as note →');
         saveBtn.onclick = () => {
           const d=new Date(); const date=`${d.getMonth()+1}/${d.getDate()}`;
-          const finalGoalIdx = goalIdx >= 0 ? goalIdx : 0;
-          const newLog={goalIdx:finalGoalIdx,date,caregiver:'You',before:S.tempLog.before||'',attempted:'Yes',technique:S.tempLog.technique||S.tempLog.diary||'',worked:S.tempLog.worked||'',didnt_work:S.tempLog.didnt_work||'',reaction:'',outcome:S.tempLog.outcome||'',next:S.tempLog.next||''};
-          S.logs.push(newLog); S.tempLog={}; saveState();
-          if(currentUser){ saveLogToSupabase({goalName:S.goals[finalGoalIdx]?.name||'',date,caregiver:'You',before:newLog.before,attempted:newLog.attempted,technique:newLog.technique,worked:newLog.worked,didnt_work:newLog.didnt_work,reaction:newLog.reaction,outcome:newLog.outcome,next:newLog.next},S.goals[finalGoalIdx]?.goal_id||''); }
-          go('home');
+          const idxsToSave = matchedGoals.length > 0 ? goalIdxs.filter(idx=>idx>=0) : [0];
+          idxsToSave.forEach(gIdx => {
+            const newLog={goalIdx:gIdx,date,caregiver:'You',before:S.tempLog.before||'',attempted:'Yes',technique:S.tempLog.technique||S.tempLog.diary||'',worked:S.tempLog.worked||'',didnt_work:S.tempLog.didnt_work||'',reaction:'',outcome:S.tempLog.outcome||'',next:S.tempLog.next||''};
+            S.logs.push(newLog);
+            if(currentUser){ saveLogToSupabase({goalName:S.goals[gIdx]?.name||'',date,caregiver:'You',before:newLog.before,attempted:newLog.attempted,technique:newLog.technique,worked:newLog.worked,didnt_work:newLog.didnt_work,reaction:newLog.reaction,outcome:newLog.outcome,next:newLog.next},S.goals[gIdx]?.goal_id||''); }
+          });
+          S.tempLog={}; saveState(); go('home');
         };
         const skipBtn = document.createElement('button');
         skipBtn.style.cssText=`width:100%;padding:12px;background:none;border:none;font-size:13px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;`;
@@ -1889,7 +1898,10 @@ function renderLog() {
             if (data.parsed) {
               Object.assign(S.tempLog, data.parsed);
               S.tempLog.empathy = data.parsed.empathy || '';
-              S.tempLog.goalIdx = data.parsed.goalIdx !== undefined ? data.parsed.goalIdx : -1;
+              // support both goalIdxs (array) and legacy goalIdx
+              const idxs = data.parsed.goalIdxs || (data.parsed.goalIdx !== undefined ? [data.parsed.goalIdx] : [-1]);
+              S.tempLog.goalIdxs = idxs;
+              S.tempLog.goalIdx = idxs[0];
               S.tempLog.suggestedGoal = data.parsed.suggestedGoal || null;
               S.tempLog.diaryParsed = true;
               render();
@@ -3317,7 +3329,12 @@ function renderGoals() {
   wrap.appendChild(h('h2',"font-family:'Fraunces',serif;font-size:26px;font-weight:400;color:#1A1A1A;margin-bottom:6px;",L('goalsTitle')));
   wrap.appendChild(p(`font-size:14px;color:${T.muted};margin-bottom:24px;line-height:1.55;`, L('goalsSub', S.child)));
 
-  S.goals.forEach((g,i)=>{
+  const activeGoals = S.goals.filter(g => !g.archived);
+  const archivedGoals = S.goals.filter(g => g.archived);
+
+  // active goals
+  activeGoals.forEach((g)=>{
+    const i = S.goals.indexOf(g);
     const st=stats(i); const sc=statusCfg(st.status);
     const row=div(`background:${T.card};border-radius:18px;border:1px solid ${T.border};padding:16px 18px;margin-bottom:10px;`);
     const top=div('display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;');
@@ -3326,14 +3343,29 @@ function renderGoals() {
     const btns=div('display:flex;gap:6px;align-items:center;');
     if(st.total>0){const badge=document.createElement('span');badge.style.cssText=`font-size:10px;background:${sc.bg};color:${sc.color};border-radius:20px;padding:3px 8px;`;badge.textContent=`${st.rate}%`;btns.appendChild(badge);}
     const eb=document.createElement('button'); eb.textContent=L('editGoal'); eb.style.cssText=`background:none;border:1px solid ${T.border};border-radius:8px;padding:4px 10px;font-size:11px;color:${T.tm};cursor:pointer;font-family:'DM Sans',sans-serif;`; eb.onclick=()=>{S.editIdx=i;S.goalStep=1;S.fromGoalsTab=true;S.step=3.5;S.view='onboard';render();};
-    const db=document.createElement('button'); db.textContent='✕'; db.style.cssText='background:none;border:none;font-size:14px;color:#aaa;cursor:pointer;padding:0 4px;'; db.onclick=async()=>{ const g=S.goals[i]; S.goals.splice(i,1); saveState(); if(currentUser&&supabase&&g?.goal_id){ await supabase.from('goals').delete().eq('id',g.goal_id); await supabase.from('logs').delete().eq('goal_id',g.goal_id); } render(); };
-    btns.appendChild(eb); btns.appendChild(db); top.appendChild(left); top.appendChild(btns); row.appendChild(top);
+
+    // archive button
+    const ab2=document.createElement('button');
+    ab2.textContent='📦';
+    ab2.title=S.lang==='ko'?'보관하기':'Archive';
+    ab2.style.cssText='background:none;border:none;font-size:14px;cursor:pointer;padding:0 2px;opacity:0.5;';
+    ab2.onclick=async()=>{
+      g.archived=true;
+      saveState();
+      if(currentUser&&supabase&&g?.goal_id){
+        await supabase.from('goals').update({archived:true}).eq('id',g.goal_id);
+      }
+      render();
+    };
+
+    const db=document.createElement('button'); db.textContent='✕'; db.style.cssText='background:none;border:none;font-size:14px;color:#aaa;cursor:pointer;padding:0 4px;'; db.onclick=async()=>{ const goal=S.goals[i]; if(!confirm(S.lang==='ko'?`"${goal.name}" 목표를 삭제할까요? 기록도 함께 삭제돼요.`:`Delete "${goal.name}"? Logs will also be deleted.`)) return; S.goals.splice(i,1); saveState(); if(currentUser&&supabase&&goal?.goal_id){ await supabase.from('goals').delete().eq('id',goal.goal_id); await supabase.from('logs').delete().eq('goal_id',goal.goal_id); } render(); };
+    btns.appendChild(eb); btns.appendChild(ab2); btns.appendChild(db); top.appendChild(left); top.appendChild(btns); row.appendChild(top);
     if(g.trigger) row.appendChild(p(`font-size:12px;color:${T.muted};`,`📍 ${g.trigger}`));
     wrap.appendChild(row);
   });
 
   const maxGoals = currentUser?.id === 'fa3dfb7f-2127-4554-a3e4-e8e80d55b21b' ? 20 : 5;
-if(S.goals.length<maxGoals){
+  if(activeGoals.length<maxGoals){
     const ab=document.createElement('button'); ab.style.cssText=`width:100%;padding:14px;background:none;border:1.5px dashed ${T.border};border-radius:14px;font-size:14px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px;`; ab.textContent=L('addGoal'); ab.onclick=()=>{
       const newGoalId='g_'+Math.random().toString(36).substr(2,9)+'_'+Date.now();
       const newGoal={goal_id:newGoalId,goal_version:1,goal_number:S.goals.length+1,icon:'🎯',name:'',trigger:'',actions:[''],avoid:'',_new:true};
@@ -3341,6 +3373,51 @@ if(S.goals.length<maxGoals){
       S.editIdx=S.goals.length-1;S.goalStep=1;S.fromGoalsTab=true;S.step=3.5;S.view='onboard';render();
     };
     wrap.appendChild(ab);
+  }
+
+  // archived goals section
+  if (archivedGoals.length > 0) {
+    const archiveSection = div('margin-top:24px;');
+    const archiveHeader = div('display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;');
+    archiveHeader.innerHTML=`<p style="font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;">📦 ${S.lang==='ko'?'보관된 목표':'Archived Goals'} (${archivedGoals.length})</p>`;
+    const toggleArchive = document.createElement('button');
+    toggleArchive.style.cssText=`background:none;border:none;font-size:12px;color:${T.green};cursor:pointer;font-family:'DM Sans',sans-serif;`;
+    toggleArchive.textContent = S.showArchived ? (S.lang==='ko'?'접기':'Hide') : (S.lang==='ko'?'보기':'Show');
+    toggleArchive.onclick=()=>{ S.showArchived=!S.showArchived; render(); };
+    archiveHeader.appendChild(toggleArchive);
+    archiveSection.appendChild(archiveHeader);
+
+    if (S.showArchived) {
+      archivedGoals.forEach((g) => {
+        const i = S.goals.indexOf(g);
+        const st=stats(i);
+        const row=div(`background:#fff;border-radius:14px;border:1px solid ${T.border};padding:12px 16px;margin-bottom:8px;opacity:0.7;`);
+        const top=div('display:flex;justify-content:space-between;align-items:center;');
+        top.innerHTML=`<div style="display:flex;gap:8px;align-items:center;"><span style="font-size:18px;">${g.icon}</span><p style="font-size:13px;color:${T.tm};">${g.name}</p></div>`;
+        const btns2=div('display:flex;gap:6px;');
+
+        const restoreBtn=document.createElement('button');
+        restoreBtn.style.cssText=`background:none;border:1px solid ${T.border};border-radius:8px;padding:4px 10px;font-size:11px;color:${T.green};cursor:pointer;font-family:'DM Sans',sans-serif;`;
+        restoreBtn.textContent=S.lang==='ko'?'복원':'Restore';
+        restoreBtn.onclick=async()=>{
+          g.archived=false;
+          saveState();
+          if(currentUser&&supabase&&g?.goal_id){
+            await supabase.from('goals').update({archived:false}).eq('id',g.goal_id);
+          }
+          render();
+        };
+
+        const db2=document.createElement('button'); db2.textContent='✕'; db2.style.cssText='background:none;border:none;font-size:13px;color:#aaa;cursor:pointer;padding:0 4px;'; db2.onclick=async()=>{ if(!confirm(S.lang==='ko'?`"${g.name}" 목표를 삭제할까요?`:`Delete "${g.name}"?`)) return; S.goals.splice(i,1); saveState(); if(currentUser&&supabase&&g?.goal_id){ await supabase.from('goals').delete().eq('id',g.goal_id); await supabase.from('logs').delete().eq('goal_id',g.goal_id); } render(); };
+
+        btns2.appendChild(restoreBtn); btns2.appendChild(db2);
+        top.appendChild(btns2);
+        row.appendChild(top);
+        if(st.total>0) row.appendChild(p(`font-size:11px;color:${T.muted};margin-top:4px;`,`${st.total} ${S.lang==='ko'?'번 시도':'attempts'} · ${st.rate}% ${S.lang==='ko'?'성공':'success'}`));
+        archiveSection.appendChild(row);
+      });
+    }
+    wrap.appendChild(archiveSection);
   }
 
   // restore code display — only show if not logged in

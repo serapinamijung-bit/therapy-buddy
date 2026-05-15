@@ -3062,7 +3062,10 @@ function renderReport() {
 
     const gc=div(`background:#fff;border-radius:14px;border:1px solid ${T.border};padding:14px 16px;margin-bottom:10px;`);
     const ghdr=div('display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;');
-    ghdr.innerHTML=`<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:18px">${g.icon}</span><p style="font-size:14px;font-weight:500;color:${T.text}">${g.name}</p></div><span style="font-size:12px;font-weight:500;color:${rate>=50?T.green:T.orange}">${rate}% ${S.lang==='ko'?'성공':'success'}</span>`;
+    ghdr.innerHTML=`<table width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td style="display:flex;align-items:center;gap:8px;"><span style="font-size:18px;">${g.icon}</span><p style="font-size:14px;font-weight:500;color:${T.text};line-height:1.3;">${g.name}</p></td>
+      <td align="right" style="white-space:nowrap;vertical-align:top;padding-top:2px;"><span style="font-size:12px;font-weight:500;color:${rate>=50?T.green:T.orange};">${rate}% ${S.lang==='ko'?'성공':'success'}</span></td>
+    </tr></table>`;
     gc.appendChild(ghdr);
 
     const pb=div(`height:5px;border-radius:3px;background:${T.border};overflow:hidden;margin-bottom:10px;`);
@@ -3121,13 +3124,9 @@ function renderReport() {
       const addW=document.createElement('button'); addW.style.cssText=`background:none;border:none;font-size:12px;color:${T.green};cursor:pointer;font-family:'DM Sans',sans-serif;padding:2px 0;margin-top:4px;`; addW.textContent=`+ ${S.lang==='ko'?'추가':'Add'}`; addW.onclick=()=>{S.reportEdits[editKey(i,`worked_new_${ni}`)]='';render();};
       ww.appendChild(addW);
       gc.appendChild(ww);
-    } else {
-      const addWBox=div(`background:${T.gl};border-radius:10px;padding:8px 12px;margin-bottom:8px;`);
-      const addW=document.createElement('button'); addW.style.cssText=`background:none;border:none;font-size:12px;color:${T.green};cursor:pointer;font-family:'DM Sans',sans-serif;`; addW.textContent=`+ ${S.lang==='ko'?'효과 있었던 것 추가':'Add what worked'}`; addW.onclick=()=>{S.reportEdits[editKey(i,'worked_new_0')]='';render();};
-      addWBox.appendChild(addW); gc.appendChild(addWBox);
     }
 
-    if (showNotWorked) {
+    if (showNotWorked && notWorked.length > 0) {
       const nw=div(`background:#FDF0EA;border-radius:10px;padding:10px 12px;margin-bottom:8px;`);
       nw.innerHTML=`<p style="font-size:10px;font-weight:500;color:${T.orange};text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">${S.lang==='ko'?'효과 없었던 것':'What didn\'t work'}</p>`;
       notWorked.slice(0,2).forEach((w,wi)=>{

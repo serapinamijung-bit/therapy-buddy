@@ -46,8 +46,8 @@ Do three things:
 - next: what to try next time (one short sentence, or empty)
 
 3. Goal matching:
-- goalIdx: which existing goal index (0, 1, 2...) this note is most related to. Return -1 if none match well.
-- suggestedGoal: if goalIdx is -1, suggest a new goal based on this note:
+- goalIdxs: array of existing goal indices (0, 1, 2...) this note is related to. Can be multiple if the note covers multiple goals. Return [-1] if none match well.
+- suggestedGoal: if goalIdxs is [-1], suggest a new goal based on this note:
   - name: short goal name (e.g. "Sharing toys", "Morning routine")
   - trigger: when this behavior happens (one sentence)
   - actions: array of 2-3 specific action steps
@@ -63,7 +63,7 @@ Respond ONLY with this JSON:
   "didnt_work": "",
   "outcome": "",
   "next": "",
-  "goalIdx": 0,
+  "goalIdxs": [0],
   "suggestedGoal": null
 }`;
 

@@ -2968,24 +2968,27 @@ function renderReport() {
     if (!S.reportTemplates) S.reportTemplates = {};
     S.reportTemplates[S.reportPurpose] = S.reportEdits;
     await saveReportTemplate(S.reportPurpose, S.reportEdits);
-    tmplBtn.textContent=S.lang==='ko'?'✓ 저장됐어요':'✓ Saved!';
-    tmplBtn.style.color=T.green;
-    tmplBtn.style.borderColor=T.green;
 
-    const navRow = div('display:flex;gap:8px;margin-top:10px;');
+    // replace tmplBar with clean confirmation + nav
+    tmplBar.innerHTML = '';
+    const savedMsg = div('display:flex;flex-direction:column;gap:8px;width:100%;');
+    savedMsg.innerHTML = `<p style="font-size:12px;color:${T.green};font-weight:500;text-align:center;margin-bottom:4px;">✓ ${S.lang==='ko'?'템플릿으로 저장됐어요':'Template saved!'}</p>`;
+
+    const navRow = div('display:flex;gap:8px;');
     const toHub = document.createElement('button');
-    toHub.style.cssText=`flex:1;padding:10px;background:${T.green};color:#fff;border:none;border-radius:12px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
-    toHub.textContent = S.lang==='ko'?'새 리포트 생성':'New Report';
+    toHub.style.cssText=`flex:1;padding:11px;background:${T.green};color:#fff;border:none;border-radius:12px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+    toHub.textContent = S.lang==='ko'?'새 리포트':'New Report';
     toHub.onclick=()=>{ S.reportStep=1; S.reportPurpose=null; S.reportGoals=null; S.reportEdits={}; render(); };
 
     const toInsights = document.createElement('button');
-    toInsights.style.cssText=`flex:1;padding:10px;background:#fff;color:${T.tm};border:1.5px solid ${T.border};border-radius:12px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;`;
-    toInsights.textContent = S.lang==='ko'?'Insights 로':'Back to Insights';
+    toInsights.style.cssText=`flex:1;padding:11px;background:#fff;color:${T.tm};border:1.5px solid ${T.border};border-radius:12px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+    toInsights.textContent = S.lang==='ko'?'Insights 로':'Insights';
     toInsights.onclick=()=>{ S.reportStep=1; S.reportPurpose=null; S.reportGoals=null; S.reportEdits={}; go('week'); };
 
-    tmplBar.appendChild(navRow);
     navRow.appendChild(toHub);
     navRow.appendChild(toInsights);
+    savedMsg.appendChild(navRow);
+    tmplBar.appendChild(savedMsg);
   };
   tmplBar.appendChild(tmplLabel);
   tmplBar.appendChild(tmplBtn);

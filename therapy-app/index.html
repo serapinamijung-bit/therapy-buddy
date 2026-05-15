@@ -2837,7 +2837,7 @@ function renderReport() {
 
     const row=div('display:flex;gap:8px;');
     const backBtn=document.createElement('button'); backBtn.style.cssText=`flex:1;padding:14px;background:none;border:1.5px solid ${T.border};border-radius:14px;font-size:14px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;`; backBtn.textContent=S.lang==='ko'?'이전':'Back'; backBtn.onclick=()=>{S.reportStep=2;render();};
-    const nextBtn=document.createElement('button'); nextBtn.style.cssText=`flex:2;padding:14px;background:${S.reportGoals?.length>0?T.green:T.border};color:${S.reportGoals?.length>0?'#fff':T.muted};border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`; nextBtn.textContent=S.lang==='ko'?'다음 →':'Next →'; nextBtn.onclick=()=>{if(S.reportGoals?.length>0){S.reportStep=3.5;render();}};
+    const nextBtn=document.createElement('button'); nextBtn.style.cssText=`flex:2;padding:14px;background:${S.reportGoals?.length>0?T.green:T.border};color:${S.reportGoals?.length>0?'#fff':T.muted};border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`; nextBtn.textContent=S.lang==='ko'?'다음 →':'Next →'; nextBtn.onclick=()=>{if(S.reportGoals?.length>0){S.reportStep=3.5;S.reportSections=null;render();}};
     row.appendChild(backBtn); row.appendChild(nextBtn);
     wrap.appendChild(row);
     return wrap;
@@ -2848,15 +2848,17 @@ function renderReport() {
     wrap.appendChild(h('h2',"font-family:'Fraunces',serif;font-size:24px;font-weight:400;color:#1A1A1A;margin-bottom:6px;", S.lang==='ko'?'포함할 내용':'What to include'));
     wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:20px;`, S.lang==='ko'?'리포트에 포함할 항목을 선택하세요':'Choose what to include in this report'));
 
-    if (!S.reportSections) S.reportSections = {
-      summary: true,
-      byGoal: true,
-      recentLogs: true,
-      worked: true,
-      recommendations: false,
-      techniques: false,
-      notWorked: false,
-    };
+    if (!S.reportSections) {
+      const defaults = {
+        iep:       {summary:true,  byGoal:true, worked:true, recommendations:false, recentLogs:true,  techniques:true,  notWorked:true},
+        therapist: {summary:true,  byGoal:true, worked:true, recommendations:false, recentLogs:false, techniques:true,  notWorked:true},
+        teacher:   {summary:true,  byGoal:true, worked:true, recommendations:false, recentLogs:false, techniques:false, notWorked:false},
+        evaluation:{summary:true,  byGoal:true, worked:true, recommendations:false, recentLogs:true,  techniques:true,  notWorked:true},
+        family:    {summary:true,  byGoal:true, worked:true, recommendations:true,  recentLogs:true,  techniques:true,  notWorked:true},
+        notes:     {summary:true,  byGoal:true, worked:true, recommendations:true,  recentLogs:true,  techniques:true,  notWorked:true},
+      };
+      S.reportSections = defaults[S.reportPurpose] || {summary:true, byGoal:true, worked:true, recommendations:false, recentLogs:true, techniques:false, notWorked:false};
+    }
 
     const sections = S.lang==='ko'
       ? [

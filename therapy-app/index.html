@@ -494,7 +494,7 @@ async function loadFromSupabase(retries = 3) {
         .select('child_profile_id, role, display_name')
         .eq('user_id', currentUser.id)
         .limit(1)
-        .single();
+        .maybeSingle();
       if (caregiverRow?.child_profile_id) {
         S.childProfileId = caregiverRow.child_profile_id;
         S.caregiverRole = caregiverRow.role;

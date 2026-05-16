@@ -1271,10 +1271,10 @@ function renderOnboard() {
     const inp = document.createElement('input'); inp.type='text'; inp.value=S.parent; inp.placeholder=L('yourNamePlaceholder');
     inp.oninput=e=>{S.parent=e.target.value;updateBtn();};
     wrap.appendChild(inp); wrap.appendChild(spacer);
-    const btn=document.createElement('button'); btn.id='cont-btn'; btn.className='btn btn-primary'; btn.disabled=!S.parent.trim(); btn.textContent=L('continue');
-    if(!S.parent.trim()) btn.style.cssText='background:'+T.border+';color:'+T.muted+';cursor:default;width:100%;padding:15px;border:none;border-radius:15px;font-size:15px;font-weight:500;font-family:DM Sans,sans-serif;';
-    btn.onclick=()=>{if(S.parent.trim()){saveState();S.step=2;render();}};
-    wrap.appendChild(btn);
+    const btn1=document.createElement('button'); btn1.id='cont-btn'; btn1.className='btn btn-primary'; btn1.disabled=!S.parent.trim(); btn1.textContent=L('continue');
+    if(!S.parent.trim()) btn1.style.cssText='background:'+T.border+';color:'+T.muted+';cursor:default;width:100%;padding:15px;border:none;border-radius:15px;font-size:15px;font-weight:500;font-family:DM Sans,sans-serif;';
+    btn1.onclick=()=>{if(S.parent.trim()){saveState();S.step=2;render();}};
+    wrap.appendChild(btn1);
     setTimeout(()=>inp.focus(),50);
   }
 
@@ -1285,10 +1285,10 @@ function renderOnboard() {
     const n=document.createElement('input'); n.type='text'; n.value=S.child; n.placeholder=L('childName'); n.oninput=e=>{S.child=e.target.value;updateBtn();};
     const a=document.createElement('input'); a.type='number'; a.value=S.age; a.placeholder=L('childAge'); a.oninput=e=>{S.age=e.target.value;updateBtn();};
     wrap.appendChild(n); wrap.appendChild(a); wrap.appendChild(spacer);
-    const btn=document.createElement('button'); btn.id='cont-btn'; btn.className='btn btn-primary'; btn.disabled=!(S.child.trim()&&S.age); btn.textContent=L('continue');
-    if(!(S.child.trim()&&S.age)) btn.style.cssText='background:'+T.border+';color:'+T.muted+';cursor:default;width:100%;padding:15px;border:none;border-radius:15px;font-size:15px;font-weight:500;font-family:DM Sans,sans-serif;';
-    btn.onclick=()=>{if(S.child.trim()&&S.age){saveState();S.step=3;render();}};
-    wrap.appendChild(btn);
+    const btn2=document.createElement('button'); btn2.id='cont-btn'; btn2.className='btn btn-primary'; btn2.disabled=!(S.child.trim()&&S.age); btn2.textContent=L('continue');
+    if(!(S.child.trim()&&S.age)) btn2.style.cssText='background:'+T.border+';color:'+T.muted+';cursor:default;width:100%;padding:15px;border:none;border-radius:15px;font-size:15px;font-weight:500;font-family:DM Sans,sans-serif;';
+    btn2.onclick=()=>{if(S.child.trim()&&S.age){saveState();S.step=3;render();}};
+    wrap.appendChild(btn2);
   }
 
   if (step===3) {
@@ -1332,10 +1332,10 @@ function renderOnboard() {
       wrap.appendChild(retryBtn);
 
       wrap.appendChild(spacer);
-      const btn=document.createElement('button'); btn.className='btn btn-primary';
-      btn.textContent=S.lang==='ko'?`액션 카드 시작하기 →`:`Let's start with action cards →`;
-      btn.onclick=()=>{ saveState(); if(!currentUser){ S.step=3.8; render(); } else { go('home'); } };
-      wrap.appendChild(btn);
+      const btn3=document.createElement('button'); btn3.className='btn btn-primary';
+      btn3.textContent=S.lang==='ko'?`액션 카드 시작하기 →`:`Let's start with action cards →`;
+      btn3.onclick=()=>{ saveState(); if(!currentUser){ S.step=3.8; render(); } else { go('home'); } };
+      wrap.appendChild(btn3);
       return wrap;
     }
 

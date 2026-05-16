@@ -220,7 +220,9 @@ async function initSupabase() {
         S.parent = ''; S.child = ''; S.age = '';
         S.goals = []; S.logs = []; S.analyses = [];
         S.view = 'onboard';
+        S.lang = 'en';
         localStorage.removeItem('tb_was_logged_in');
+        localStorage.removeItem('tb_lang');
       }
     }
 
@@ -695,6 +697,7 @@ async function loadFromSupabase(retries = 3) {
       S.view = 'home';
       // load report templates
       if (profile.report_templates) S.reportTemplates = profile.report_templates;
+      S.caregiversList = null; // reset cache to reload fresh
 
       // load child_profile_id from caregivers table
       const { data: caregiverData } = await supabase
@@ -4047,7 +4050,7 @@ function renderGoals() {
     const reloadBtn=document.createElement('button'); reloadBtn.style.cssText=`padding:9px 14px;background:none;border:1px solid ${T.border};border-radius:10px;font-size:13px;color:${T.green};cursor:pointer;font-family:'DM Sans',sans-serif;`; reloadBtn.textContent='↻'; reloadBtn.title=S.lang==='ko'?'새로고침':'Reload';
     reloadBtn.onclick=async()=>{reloadBtn.textContent='⏳';await loadFromSupabase();render();};
     const signOutBtn=document.createElement('button'); signOutBtn.style.cssText=`flex:1;padding:9px;background:none;border:1px solid ${T.border};border-radius:10px;font-size:13px;color:${T.tm};cursor:pointer;font-family:'DM Sans',sans-serif;`; signOutBtn.textContent=S.lang==='ko'?'로그아웃':'Sign out';
-    signOutBtn.onclick=async()=>{if(supabase)await supabase.auth.signOut();currentUser=null;localStorage.removeItem('tb_was_logged_in');S={view:'onboard',step:0,lang:S.lang,parent:'',child:'',age:'',goals:[],editIdx:null,goalStep:1,logGoalIdx:0,logs:[],analyses:[],isDemo:false,tempLog:{}};render();};
+    signOutBtn.onclick=async()=>{if(supabase)await supabase.auth.signOut();currentUser=null;localStorage.removeItem('tb_was_logged_in');localStorage.removeItem('tb_lang');S={view:'onboard',step:0,lang:'en',parent:'',child:'',age:'',goals:[],editIdx:null,goalStep:1,logGoalIdx:0,logs:[],analyses:[],isDemo:false,tempLog:{}};render();};
     btnRow2.appendChild(reloadBtn); btnRow2.appendChild(signOutBtn);
     accountCard.appendChild(btnRow2);
     wrap.appendChild(accountCard);

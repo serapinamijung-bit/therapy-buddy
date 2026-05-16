@@ -509,10 +509,10 @@ async function loadFromSupabase(retries = 3) {
 // ── LANGUAGE ────────────────────────────────────────────────────────
 const STRINGS = {
   en: {
-    appTagline: 'The companion that helps your child\'s goals work at home.',
-    appDesc: "Log daily interactions. See what's working. Get better guidance each cycle.",
+    appTagline: 'Your parenting companion — here to help with the hard parts.',
+    appDesc: "Share what's on your mind. We'll help you turn it into a plan, track what's working, and walk into every meeting prepared.",
     getStarted: 'Get started',
-    seeDemo: "See demo with Ian's data",
+    seeDemo: "See how it works",
     restore: 'Restore with a code',
     restorePrompt: 'Enter your 6-character restore code:',
     restoreNotFound: 'Code not found. Please check and try again.',
@@ -617,10 +617,10 @@ const STRINGS = {
     upArrow: '↑', rightArrow: '→', downArrow: '↓',
   },
   ko: {
-    appTagline: '집에서도 아이의 목표를 이어가도록 도와드려요.',
-    appDesc: '매일 상호작용을 기록하고, 효과 있는 방법을 확인하고, 매 사이클마다 더 나은 가이드를 받으세요.',
+    appTagline: '육아의 고민, 함께 해결해드릴게요.',
+    appDesc: '고민을 털어놓으면 목표를 만들어드리고, 기록할수록 더 나은 방법을 찾아드릴게요. 미팅 리포트도 자동으로 만들어드려요.',
     getStarted: '시작하기',
-    seeDemo: '이안이 데이터로 미리보기',
+    seeDemo: '어떻게 작동하는지 보기',
     restore: '복원 코드로 복구하기',
     restorePrompt: '6자리 복원 코드를 입력하세요:',
     restoreNotFound: '코드를 찾을 수 없어요. 다시 확인해주세요.',
@@ -806,6 +806,7 @@ let S = {
 
 // ── DEMO DATA ──────────────────────────────────────────────────────
 function loadDemo() {
+  // load demo data
   S.parent = 'Sera'; S.child = 'Ian'; S.age = '5';
   S.isDemo = true;
   S.goals = [
@@ -825,7 +826,77 @@ function loadDemo() {
     {goalIdx:1,date:'5/4',caregiver:'Mom',before:'Distracted outdoors',attempted:'Yes',technique:'Interesting info hook',worked:"John's 'bunny is gone' — Ian dropped everything",reaction:'Neutral',outcome:'Partial success',next:'Peer calling + interesting info is the key'},
     {goalIdx:0,date:'5/4',caregiver:'Mom',before:'Mid-play',attempted:'Yes',technique:'Visual bridge photo',worked:'',reaction:'Neutral',outcome:'No success',next:'Only show photo during natural pauses'},
   ];
+  S.demoTour = true;
+  S.demoStep = 0;
   go('home');
+}
+
+function renderDemoTour() {
+  const steps = S.lang === 'ko' ? [
+    { icon:'🎯', title:'목표 → 액션 카드', desc:'고민을 말하면 AI 가 목표를 만들어줘요. 각 목표가 액션 카드가 돼요.', tab:'home' },
+    { icon:'📝', title:'기록하기', desc:'카드를 탭하면 오늘 뭘 시도했는지 기록할 수 있어요. 말하기도 가능해요.', tab:'log' },
+    { icon:'✨', title:'인사이트 & 새 추천', desc:'기록이 쌓이면 AI 가 뭐가 효과 있는지 분석하고 다음 방법을 추천해줘요.', tab:'week' },
+    { icon:'📋', title:'리포트 생성', desc:'IEP, 치료사, 선생님 미팅 전에 리포트를 생성해서 이메일로 공유하세요.', tab:'report' },
+  ] : [
+    { icon:'🎯', title:'Goals → Action Cards', desc:'Share your concerns and AI turns them into goals. Each becomes an action card.', tab:'home' },
+    { icon:'📝', title:'Log what happened', desc:'Tap a card to log what you tried today. You can speak or type freely.', tab:'log' },
+    { icon:'✨', title:'Insights & new suggestions', desc:'As you log, AI analyzes what\'s working and suggests what to try next.', tab:'week' },
+    { icon:'📋', title:'Generate reports', desc:'Before IEP, therapist, or teacher meetings — generate and share a report in seconds.', tab:'report' },
+  ];
+
+  const step = S.demoStep || 0;
+  const current = steps[step];
+
+  const overlay = div('position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:20px;');
+
+  const card = div('background:#F8F6F2;border-radius:24px;padding:24px;width:100%;max-width:390px;margin-bottom:80px;');
+
+  // progress dots
+  const dotsEl = div('display:flex;gap:6px;margin-bottom:20px;');
+  steps.forEach((_,i) => {
+    const d = div(`width:${i===step?24:8}px;height:8px;border-radius:4px;background:${i<=step?T.green:T.border};transition:all .3s;`);
+    dotsEl.appendChild(d);
+  });
+  card.appendChild(dotsEl);
+
+  card.innerHTML += `
+    <div style="font-size:36px;margin-bottom:12px;">${current.icon}</div>
+    <p style="font-family:'Fraunces',serif;font-size:20px;font-weight:400;color:#1A1A1A;margin-bottom:8px;">${current.title}</p>
+    <p style="font-size:14px;color:#4A4A4A;line-height:1.7;margin-bottom:20px;">${current.desc}</p>
+  `;
+
+  const btnRow = div('display:flex;gap:8px;');
+
+  if (step < steps.length - 1) {
+    const nextBtn = document.createElement('button');
+    nextBtn.style.cssText=`flex:2;padding:13px;background:#2D5A3D;color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+    nextBtn.textContent = S.lang==='ko'?'다음 →':'Next →';
+    nextBtn.onclick = () => {
+      S.demoStep = step + 1;
+      const nextTab = steps[step + 1].tab;
+      if (nextTab === 'log') go('log');
+      else if (nextTab === 'week') go('week');
+      else if (nextTab === 'report') { S.reportStep=1; go('report'); }
+      else go('home');
+    };
+    btnRow.appendChild(nextBtn);
+  } else {
+    const startBtn = document.createElement('button');
+    startBtn.style.cssText=`flex:2;padding:13px;background:#2D5A3D;color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+    startBtn.textContent = S.lang==='ko'?'시작하기 🌿':'Get started 🌿';
+    startBtn.onclick = () => { S.demoTour=false; S.isDemo=false; S.step=0; S.view='onboard'; render(); };
+    btnRow.appendChild(startBtn);
+  }
+
+  const skipBtn = document.createElement('button');
+  skipBtn.style.cssText=`flex:1;padding:13px;background:none;border:1.5px solid #EAE6DE;border-radius:14px;font-size:13px;color:#909090;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+  skipBtn.textContent = S.lang==='ko'?'건너뛰기':'Skip tour';
+  skipBtn.onclick = () => { S.demoTour=false; S.isDemo=false; S.step=0; S.view='onboard'; render(); };
+  btnRow.appendChild(skipBtn);
+
+  card.appendChild(btnRow);
+  overlay.appendChild(card);
+  return overlay;
 }
 
 // ── STATS ──────────────────────────────────────────────────────────
@@ -1062,37 +1133,168 @@ function renderOnboard() {
 
   if (step===3) {
     const back=document.createElement('button'); back.style.cssText=`background:none;border:none;cursor:pointer;color:${T.tm};font-size:14px;margin-bottom:16px;padding:0;font-family:'DM Sans',sans-serif;`; back.textContent='← '+L('back').replace('← ',''); back.onclick=()=>{S.step=2;render();}; wrap.appendChild(back);
-    wrap.appendChild(h('h1',"font-family:'Fraunces',serif;font-size:26px;font-weight:400;color:#1A1A1A;margin-bottom:6px;line-height:1.3;", L('therapyGoals', S.child)));
-    wrap.appendChild(p(`font-size:14px;color:${T.muted};margin-bottom:20px;line-height:1.55;`, L('therapyGoalsSub')));
 
-    S.goals.forEach((g,i)=>{
-      const row=div(`display:flex;align-items:center;gap:10px;background:${T.gl};border-radius:12px;padding:12px 14px;margin-bottom:8px;`);
-      row.innerHTML=`<span style="font-size:20px">${g.icon}</span><div style="flex:1"><p style="font-size:13px;font-weight:500;color:${T.green}">${g.name}</p>${g.trigger?`<p style="font-size:11px;color:${T.gm};margin-top:2px">📍 Trigger set</p>`:''}</div>`;
-      const eb=document.createElement('button'); eb.textContent=L('editGoal'); eb.style.cssText=`background:none;border:1px solid ${T.gm};border-radius:8px;padding:4px 10px;font-size:11px;color:${T.green};cursor:pointer;font-family:'DM Sans',sans-serif;`;
-      eb.onclick=()=>{S.editIdx=i;S.step=3.5;render();};
-      const db=document.createElement('button'); db.textContent='✕'; db.style.cssText='background:none;border:none;font-size:14px;color:#aaa;cursor:pointer;padding:0 4px;';
-      db.onclick=async()=>{ const g=S.goals[i]; S.goals.splice(i,1); saveState(); if(currentUser&&supabase&&g?.goal_id){ await supabase.from('goals').delete().eq('id',g.goal_id); await supabase.from('logs').delete().eq('goal_id',g.goal_id); } render(); };
-      row.appendChild(eb); row.appendChild(db); wrap.appendChild(row);
-    });
+    // if goals already generated — show review screen
+    if (S.goals.length > 0) {
+      wrap.appendChild(h('h1',"font-family:'Fraunces',serif;font-size:24px;font-weight:400;color:#1A1A1A;margin-bottom:6px;line-height:1.3;", S.lang==='ko'?'이런 목표들은 어떨까요?':'Here are some goals to start with'));
+      wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:16px;line-height:1.6;`, S.lang==='ko'?'수정하거나 삭제할 수 있어요. 나중에 언제든 추가할 수 있어요.':'You can edit or remove any of these. You can always add more later.'));
 
-    const maxGoals = currentUser?.id === 'fa3dfb7f-2127-4554-a3e4-e8e80d55b21b' ? 20 : 5;
-if(S.goals.length<maxGoals){
-      const ab=document.createElement('button');
-      ab.style.cssText=`width:100%;padding:13px;background:none;border:1.5px dashed ${T.border};border-radius:14px;font-size:14px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:14px;`;
-      ab.textContent=L('addGoal');
-      ab.onclick=()=>{
-        const newGoalId = 'g_' + Math.random().toString(36).substr(2,9) + '_' + Date.now();
-        S.goals.push({goal_id:newGoalId, goal_version:1, goal_number:S.goals.length+1, icon:'🎯',name:'',trigger:'',actions:[''],avoid:''});
-        S.editIdx=S.goals.length-1;S.step=3.5;render();
-      };
-      wrap.appendChild(ab);
+      S.goals.forEach((g,i)=>{
+        const row=div(`background:${T.gl};border-radius:14px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px;`);
+        row.innerHTML=`<span style="font-size:22px;">${g.icon}</span><div style="flex:1;"><p style="font-size:14px;font-weight:500;color:${T.green};margin-bottom:2px;">${g.name}</p>${g.trigger?`<p style="font-size:12px;color:${T.gm};line-height:1.5;">📍 ${g.trigger}</p>`:''}</div>`;
+        const eb=document.createElement('button'); eb.textContent=S.lang==='ko'?'편집':'Edit'; eb.style.cssText=`background:none;border:1px solid ${T.gm};border-radius:8px;padding:3px 8px;font-size:11px;color:${T.green};cursor:pointer;font-family:'DM Sans',sans-serif;margin-right:4px;`;
+        eb.onclick=()=>{S.editIdx=i;S.step=3.5;render();};
+        const db=document.createElement('button'); db.textContent='✕'; db.style.cssText='background:none;border:none;font-size:14px;color:#aaa;cursor:pointer;padding:0 4px;';
+        db.onclick=async()=>{ S.goals.splice(i,1); saveState(); render(); };
+        row.appendChild(eb); row.appendChild(db);
+        wrap.appendChild(row);
+      });
+
+      // add more manually
+      const maxGoals = currentUser?.id === 'fa3dfb7f-2127-4554-a3e4-e8e80d55b21b' ? 20 : 5;
+      if (S.goals.length < maxGoals) {
+        const ab=document.createElement('button');
+        ab.style.cssText=`width:100%;padding:12px;background:none;border:1.5px dashed ${T.border};border-radius:14px;font-size:13px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:16px;`;
+        ab.textContent=`+ ${S.lang==='ko'?'목표 직접 추가하기':'Add a goal manually'}`;
+        ab.onclick=()=>{
+          const newGoalId='g_'+Math.random().toString(36).substr(2,9)+'_'+Date.now();
+          S.goals.push({goal_id:newGoalId,goal_version:1,goal_number:S.goals.length+1,icon:'🎯',name:'',trigger:'',actions:[''],avoid:''});
+          S.editIdx=S.goals.length-1;S.step=3.5;render();
+        };
+        wrap.appendChild(ab);
+      }
+
+      // retry with different input
+      const retryBtn=document.createElement('button');
+      retryBtn.style.cssText=`background:none;border:none;font-size:12px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;display:block;margin-bottom:16px;`;
+      retryBtn.textContent=S.lang==='ko'?'↩ 다시 입력하기':'↩ Start over with different input';
+      retryBtn.onclick=()=>{ S.goals=[]; S.onboardingConcern=''; render(); };
+      wrap.appendChild(retryBtn);
+
+      wrap.appendChild(spacer);
+      const btn=document.createElement('button'); btn.className='btn btn-primary';
+      btn.textContent=S.lang==='ko'?`액션 카드 시작하기 →`:`Let's start with action cards →`;
+      btn.onclick=()=>{ saveState(); if(!currentUser){ S.step=3.8; render(); } else { go('home'); } };
+      wrap.appendChild(btn);
+      return wrap;
     }
 
+    // concern input screen
+    wrap.appendChild(h('h1',"font-family:'Fraunces',serif;font-size:24px;font-weight:400;color:#1A1A1A;margin-bottom:8px;line-height:1.3;",
+      S.lang==='ko'
+        ? `${S.child} 육아를 하면서 고민되는 부분을 알려주세요`
+        : `What's been on your mind lately as a parent?`));
+    wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:6px;line-height:1.6;`,
+      S.lang==='ko'
+        ? `자유롭게 말씀해주세요. AI 가 목표를 제안해드릴게요.`
+        : `Share anything that's been challenging. We'll suggest some goals to work on.`));
+
+    const exBox = div(`background:${T.gl};border-radius:12px;padding:10px 14px;margin-bottom:16px;`);
+    exBox.innerHTML=`<p style="font-size:12px;color:${T.green};line-height:1.7;">${S.lang==='ko'
+      ? '예: "친구들이랑 잘 못 어울리고 장난감을 잘 안 나눠요. 이름 불러도 반응을 잘 안 하고..."'
+      : 'e.g. "He struggles to play with other kids and doesn\'t share toys. Sometimes he doesn\'t respond when I call his name..."'}</p>`;
+    wrap.appendChild(exBox);
+
+    const ta = document.createElement('textarea');
+    ta.value = S.onboardingConcern || '';
+    ta.placeholder = S.lang==='ko' ? '여기에 자유롭게 적어주세요...' : 'Write or speak freely...';
+    ta.style.cssText=`width:100%;min-height:140px;padding:12px 14px;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;resize:none;line-height:1.7;`;
+    ta.oninput=e=>{ S.onboardingConcern=e.target.value; };
+    ta.onblur=()=>{ if(S.onboardingConcern&&S.onboardingConcern.length>=10) render(); };
+
+    // voice button
+    const voiceBtn2 = document.createElement('button');
+    voiceBtn2.style.cssText=`width:100%;padding:11px;background:#fff;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px;`;
+    voiceBtn2.innerHTML=`<span style="font-size:18px;">🎤</span> ${S.lang==='ko'?'말하기':'Speak instead'}`;
+    voiceBtn2._active=false;
+    voiceBtn2.onclick=async()=>{
+      if (voiceBtn2._active) {
+        voiceBtn2._active=false;
+        if(voiceBtn2._mr&&voiceBtn2._mr.state!=='inactive') voiceBtn2._mr.stop();
+        voiceBtn2.innerHTML=`<span style="font-size:18px;">⏳</span> ${S.lang==='ko'?'변환 중...':'Transcribing...'}`;
+        voiceBtn2.disabled=true;
+        return;
+      }
+      try {
+        const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+        voiceBtn2._active=true; voiceBtn2._chunks=[];
+        const mimeType=MediaRecorder.isTypeSupported('audio/webm')?'audio/webm':MediaRecorder.isTypeSupported('audio/mp4')?'audio/mp4':'audio/ogg';
+        const mr=new MediaRecorder(stream,{mimeType}); voiceBtn2._mr=mr;
+        mr.ondataavailable=e=>{if(e.data.size>0)voiceBtn2._chunks.push(e.data);};
+        mr.onstop=async()=>{
+          stream.getTracks().forEach(t=>t.stop());
+          const blob=new Blob(voiceBtn2._chunks,{type:mimeType});
+          const reader=new FileReader();
+          reader.onloadend=async()=>{
+            const base64=reader.result.split(',')[1];
+            try {
+              const res=await fetch('/.netlify/functions/transcribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({audio:base64,mimeType,lang:S.lang})});
+              const data=await res.json();
+              if(data.text){ S.onboardingConcern=(ta.value?ta.value+' ':'')+data.text.trim(); ta.value=S.onboardingConcern; }
+            } catch(e){}
+            voiceBtn2.innerHTML=`<span style="font-size:18px;">🎤</span> ${S.lang==='ko'?'말하기':'Speak instead'}`;
+            voiceBtn2.disabled=false; voiceBtn2.style.borderColor=T.border;
+            if(S.onboardingConcern&&S.onboardingConcern.length>=10) render();
+          };
+          reader.readAsDataURL(blob);
+        };
+        mr.start();
+        voiceBtn2.innerHTML=`<span style="font-size:18px;">🔴</span> ${S.lang==='ko'?'녹음 중 — 탭해서 중지':'Recording — tap when done'}`;
+        voiceBtn2.style.borderColor=T.red;
+      } catch(e){
+        voiceBtn2._active=false;
+        voiceBtn2.innerHTML=`<span style="font-size:18px;">🎤</span> ${S.lang==='ko'?'말하기':'Speak instead'}`;
+      }
+    };
+
+    const inputWrap=div('display:flex;flex-direction:column;gap:0;margin-bottom:16px;');
+    inputWrap.appendChild(ta); inputWrap.appendChild(voiceBtn2);
+    wrap.appendChild(inputWrap);
+
+    // generate goals button
+    if (S.onboardingConcern && S.onboardingConcern.length >= 10) {
+      const genBtn=document.createElement('button');
+      genBtn.style.cssText=`width:100%;padding:14px;background:${T.green};color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+      genBtn.textContent=S.lang==='ko'?'✨ 목표 제안받기':'✨ Suggest goals for me';
+      genBtn.onclick=async()=>{
+        genBtn.textContent=S.lang==='ko'?'✨ 분석 중...':'✨ Thinking...';
+        genBtn.disabled=true;
+        let dots=0; const iv=setInterval(()=>{dots=(dots+1)%4;genBtn.textContent=(S.lang==='ko'?'✨ 분석 중':'✨ Thinking')+'.'.repeat(dots);},500);
+        try {
+          const res=await fetch('/.netlify/functions/analyze',{
+            method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({type:'suggest_goals',concern:S.onboardingConcern,child:S.child,age:S.age,lang:S.lang})
+          });
+          clearInterval(iv);
+          const data=await res.json();
+          if(data.goals&&data.goals.length>0){
+            S.goals=data.goals.map((g,i)=>({
+              goal_id:'g_'+Math.random().toString(36).substr(2,9)+'_'+Date.now()+i,
+              goal_version:1, goal_number:i+1,
+              icon:g.icon||'🎯', name:g.name, trigger:g.trigger||'', actions:g.actions||[], avoid:''
+            }));
+            render();
+          }
+        } catch(e){
+          clearInterval(iv);
+          genBtn.textContent=S.lang==='ko'?'✨ 목표 제안받기':'✨ Suggest goals for me';
+          genBtn.disabled=false;
+        }
+      };
+      wrap.appendChild(genBtn);
+    }
+
+    // skip to manual
     wrap.appendChild(spacer);
-    const btn=document.createElement('button'); btn.className='btn btn-primary'; btn.disabled=S.goals.length===0; btn.textContent=L('letsGo');
-    if(S.goals.length===0) btn.style.cssText='background:'+T.border+';color:'+T.muted+';cursor:default;width:100%;padding:15px;border:none;border-radius:15px;font-size:15px;font-weight:500;font-family:DM Sans,sans-serif;';
-    btn.onclick=()=>{if(S.goals.length>0){ saveState(); if(!currentUser){ S.step=3.8; render(); } else { go('home'); } }};
-    wrap.appendChild(btn);
+    const skipToManual=document.createElement('button');
+    skipToManual.style.cssText=`background:none;border:none;font-size:13px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;width:100%;padding:8px;`;
+    skipToManual.textContent=S.lang==='ko'?'직접 목표 입력하기':'I\'ll add goals manually';
+    skipToManual.onclick=()=>{
+      const newGoalId='g_'+Math.random().toString(36).substr(2,9)+'_'+Date.now();
+      S.goals.push({goal_id:newGoalId,goal_version:1,goal_number:1,icon:'🎯',name:'',trigger:'',actions:[''],avoid:''});
+      S.editIdx=0;S.step=3.5;render();
+    };
+    wrap.appendChild(skipToManual);
   }
 
   if (step===3.5) {
@@ -1451,6 +1653,19 @@ function renderHome() {
           render();
         }
       }).catch(() => { S.homeParentCareLoading = false; });
+    }
+
+    // first visit welcome — show once after onboarding
+    if (S.goals.length > 0 && S.logs.length === 0 && !S.firstVisitDismissed) {
+      const welcomeBox = div(`background:${T.green};border-radius:18px;padding:18px 20px;margin-bottom:16px;`);
+      welcomeBox.innerHTML = `
+        <p style="font-family:'Fraunces',serif;font-size:18px;font-weight:400;color:#fff;margin-bottom:8px;">🌿 ${S.lang==='ko'?'액션 카드가 준비됐어요!':'Your action cards are ready!'}</p>
+        <p style="font-size:13px;color:rgba(255,255,255,.8);line-height:1.6;margin-bottom:12px;">${S.lang==='ko'
+          ? '아래 카드를 탭해서 오늘 무엇을 시도했는지 기록해보세요. 기록할수록 더 좋은 가이드를 드릴게요.'
+          : 'Tap a card below to log what you tried today. The more you log, the better your guidance gets.'}</p>
+        <button onclick="S.firstVisitDismissed=true;render();" style="background:rgba(255,255,255,.2);border:none;border-radius:10px;padding:7px 14px;font-size:12px;color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">${S.lang==='ko'?'확인':'Got it'}</button>
+      `;
+      wrap.appendChild(welcomeBox);
     }
 
     // vent button
@@ -3382,23 +3597,12 @@ function renderGoals() {
     const top=div('display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;');
     const left=div('display:flex;gap:10px;align-items:center;');
     left.innerHTML=`<span style="font-size:20px">${g.icon}</span><p style="font-size:14px;font-weight:500;color:${T.text}">${g.name||'Unnamed'}</p>`;
-    const btns=div('display:flex;gap:6px;align-items:center;');
-    if(st.total>0){const badge=document.createElement('span');badge.style.cssText=`font-size:10px;background:${sc.bg};color:${sc.color};border-radius:20px;padding:3px 8px;`;badge.textContent=`${st.rate}%`;btns.appendChild(badge);}
-    const eb=document.createElement('button'); eb.textContent=S.lang==='ko'?'편집':'Edit'; eb.style.cssText=`background:none;border:1px solid ${T.border};border-radius:8px;padding:4px 10px;font-size:11px;color:${T.tm};cursor:pointer;font-family:'DM Sans',sans-serif;`; eb.onclick=()=>{S.editIdx=i;S.goalStep=1;S.fromGoalsTab=true;S.step=3.5;S.view='onboard';render();};
-
-    const ab2=document.createElement('button');
-    ab2.textContent=S.lang==='ko'?'보관':'Archive';
-    ab2.style.cssText=`background:none;border:1px solid ${T.border};border-radius:8px;padding:4px 10px;font-size:11px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;`;
-    ab2.onclick=async()=>{
-      g.archived=true;
-      saveState();
-      if(currentUser&&supabase&&g?.goal_id){
-        await supabase.from('goals').update({archived:true}).eq('id',g.goal_id);
-      }
-      render();
-    };
-
-    const db=document.createElement('button'); db.textContent=S.lang==='ko'?'삭제':'Delete'; db.style.cssText=`background:none;border:1px solid ${T.border};border-radius:8px;padding:4px 10px;font-size:11px;color:#C84B3A;cursor:pointer;font-family:'DM Sans',sans-serif;`; db.onclick=async()=>{ const goal=S.goals[i]; if(!confirm(S.lang==='ko'?`"${goal.name}" 목표를 삭제할까요? 기록도 함께 삭제돼요.`:`Delete "${goal.name}"? Logs will also be deleted.`)) return; S.goals.splice(i,1); saveState(); if(currentUser&&supabase&&goal?.goal_id){ await supabase.from('goals').delete().eq('id',goal.goal_id); await supabase.from('logs').delete().eq('goal_id',goal.goal_id); } render(); };
+    const btns=div('display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0;');
+    if(st.total>0){const badge=document.createElement('span');badge.style.cssText=`font-size:10px;background:${sc.bg};color:${sc.color};border-radius:20px;padding:3px 8px;margin-bottom:2px;`;badge.textContent=`${st.rate}%`;btns.appendChild(badge);}
+    const eb=document.createElement('button'); eb.textContent=S.lang==='ko'?'편집':'Edit'; eb.style.cssText=`background:none;border:1px solid ${T.border};border-radius:8px;padding:3px 10px;font-size:11px;color:${T.tm};cursor:pointer;font-family:'DM Sans',sans-serif;width:64px;`; eb.onclick=()=>{S.editIdx=i;S.goalStep=1;S.fromGoalsTab=true;S.step=3.5;S.view='onboard';render();};
+    const ab2=document.createElement('button'); ab2.textContent=S.lang==='ko'?'보관':'Archive'; ab2.style.cssText=`background:none;border:1px solid ${T.border};border-radius:8px;padding:3px 10px;font-size:11px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;width:64px;`;
+    ab2.onclick=async()=>{ g.archived=true; saveState(); if(currentUser&&supabase&&g?.goal_id){ await supabase.from('goals').update({archived:true}).eq('id',g.goal_id); } render(); };
+    const db=document.createElement('button'); db.textContent=S.lang==='ko'?'삭제':'Delete'; db.style.cssText=`background:none;border:1px solid ${T.border};border-radius:8px;padding:3px 10px;font-size:11px;color:#C84B3A;cursor:pointer;font-family:'DM Sans',sans-serif;width:64px;`; db.onclick=async()=>{ const goal=S.goals[i]; if(!confirm(S.lang==='ko'?`"${goal.name}" 목표를 삭제할까요? 기록도 함께 삭제돼요.`:`Delete "${goal.name}"? Logs will also be deleted.`)) return; S.goals.splice(i,1); saveState(); if(currentUser&&supabase&&goal?.goal_id){ await supabase.from('goals').delete().eq('id',goal.goal_id); await supabase.from('logs').delete().eq('goal_id',goal.goal_id); } render(); };
     btns.appendChild(eb); btns.appendChild(ab2); btns.appendChild(db); top.appendChild(left); top.appendChild(btns); row.appendChild(top);
     if(g.trigger) row.appendChild(p(`font-size:12px;color:${T.muted};`,`📍 ${g.trigger}`));
     wrap.appendChild(row);
@@ -3625,6 +3829,17 @@ function render() {
   else if(S.view==='report') content=renderReport();
   if(content) screenEl.appendChild(content);
   renderNav();
+  // demo tour overlay
+  if(S.demoTour) {
+    const existing = document.getElementById('demo-tour-overlay');
+    if(existing) existing.remove();
+    const overlay = renderDemoTour();
+    overlay.id = 'demo-tour-overlay';
+    document.body.appendChild(overlay);
+  } else {
+    const existing = document.getElementById('demo-tour-overlay');
+    if(existing) existing.remove();
+  }
 }
 
 initSupabaseAndRender();

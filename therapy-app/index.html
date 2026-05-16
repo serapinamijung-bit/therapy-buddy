@@ -1265,6 +1265,8 @@ function renderOnboard() {
   }
 
   const spacer = div('flex:1');
+
+  if (step===1) {
     const back=document.createElement('button'); back.style.cssText=`background:none;border:none;cursor:pointer;color:${T.tm};font-size:14px;margin-bottom:16px;padding:0;font-family:'DM Sans',sans-serif;`; back.textContent='← '+L('back').replace('← ',''); back.onclick=()=>{S.step=0;render();}; wrap.appendChild(back);
     wrap.appendChild(h('h1',"font-family:'Fraunces',serif;font-size:28px;font-weight:400;color:#1A1A1A;margin-bottom:6px;", L('yourName')));
     wrap.appendChild(p(`font-size:14px;color:${T.muted};margin-bottom:24px;`, L('yourNameSub')));

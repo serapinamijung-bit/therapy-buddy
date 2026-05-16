@@ -578,13 +578,15 @@ async function loadFromSupabase(retries = 3) {
       S.lang = profile.lang || 'en';
       localStorage.setItem('tb_lang', S.lang);
 
-      // load caregiver info first
-      const { data: caregiverRow } = await supabase
+      // load caregiver info — get the OLDEST one (first created)
+      const { data: caregiverRows } = await supabase
         .from('caregivers')
         .select('child_profile_id, role, display_name')
         .eq('user_id', currentUser.id)
-        .limit(1)
-        .maybeSingle();
+        .order('created_at', { ascending: true });
+
+      const caregiverRow = caregiverRows?.[0] || null;
+
       if (caregiverRow?.child_profile_id) {
         S.childProfileId = caregiverRow.child_profile_id;
         S.caregiverRole = caregiverRow.role;

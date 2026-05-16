@@ -436,7 +436,7 @@ async function saveLogToSupabase(log, goalId) {
       goal_id: goalId,
       goal_name: log.goalName,
       date: log.date,
-      caregiver: S.parent || log.caregiver,
+      caregiver: S.parent || 'Me',
       before_state: log.before,
       attempted: log.attempted,
       technique: log.technique,
@@ -574,6 +574,7 @@ async function loadFromSupabase(retries = 3) {
       S.child = profile.child_name || '';
       S.age = profile.child_age || '';
       S.lang = profile.lang || 'en';
+      localStorage.setItem('tb_lang', S.lang);
 
       // load caregiver info first
       const { data: caregiverRow } = await supabase
@@ -1028,6 +1029,7 @@ function saveState() {
 function clearState() {
   localStorage.removeItem('tb_lang');
   localStorage.removeItem('tb_was_logged_in');
+  localStorage.removeItem('tb_lang');
 }
 
 let S = {
@@ -1172,8 +1174,8 @@ function renderNav() {
   nav.style.display = show ? 'flex' : 'none';
   if (!show) return;
   const navLabels = S.lang === 'ko'
-    ? [['home','⌂','홈'],['log','✎','노트'],['week','◎','돌아보기'],['goals','⚙','목표']]
-    : [['home','⌂','Home'],['log','✎','Notes'],['week','◎','Insights'],['goals','⚙','Goals']];
+    ? [['home','⌂','홈'],['log','✎','노트'],['week','◎','돌아보기'],['goals','⚙','설정']]
+    : [['home','⌂','Home'],['log','✎','Notes'],['week','◎','Insights'],['goals','⚙','Settings']];
   nav.innerHTML = navLabels.map(([id,ic,lb]) => `
     <button class="nav-btn ${S.view===id?'active':''}" onclick="go('${id}')">
       <span style="font-size:19px">${ic}</span><span>${lb}</span>
@@ -2934,7 +2936,7 @@ function renderWeek() {
         </div>
         <div style="text-align:right;">
           <p style="font-size:11px;color:${T.muted};">${l.date}</p>
-          ${l.caregiver&&l.caregiver!=='You'?`<p style="font-size:10px;color:${T.green};">by ${l.caregiver}</p>`:''}
+          ${l.caregiver&&l.caregiver!==S.parent?`<p style="font-size:10px;color:${T.green};">by ${l.caregiver}</p>`:l.caregiver?`<p style="font-size:10px;color:${T.muted};">by ${l.caregiver}</p>`:''}
         </div>
       `;
       card.appendChild(hdr);
@@ -3862,341 +3864,212 @@ function renderReport() {
 
 // ── GOALS ──────────────────────────────────────────────────────────
 function renderGoals() {
-  const wrap=div('flex:1;overflow-y:auto;padding:24px 22px 32px;');
-  wrap.appendChild(h('h2',"font-family:'Fraunces',serif;font-size:26px;font-weight:400;color:#1A1A1A;margin-bottom:6px;",L('goalsTitle')));
-  wrap.appendChild(p(`font-size:14px;color:${T.muted};margin-bottom:24px;line-height:1.55;`, L('goalsSub', S.child)));
+  const wrap=div('flex:1;overflow-y:auto;padding:24px 22px 40px;');
+
+  // section header helper
+  const sectionHeader = (title) => {
+    const hdr = div('margin-top:28px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #EAE6DE;');
+    hdr.innerHTML = `<p style="font-size:12px;font-weight:700;color:${T.green};letter-spacing:.1em;text-transform:uppercase;">${title}</p>`;
+    return hdr;
+  };
+
+  // ── BEHAVIOR GOALS ──────────────────────────────────────────────
+  const goalsHdr = div('margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #EAE6DE;');
+  goalsHdr.innerHTML = `<p style="font-size:12px;font-weight:700;color:${T.green};letter-spacing:.1em;text-transform:uppercase;">${S.lang==='ko'?'행동 목표':'Behavior Goals'}</p>`;
+  wrap.appendChild(goalsHdr);
 
   const activeGoals = S.goals.filter(g => !g.archived);
   const archivedGoals = S.goals.filter(g => g.archived);
+  const maxGoals = currentUser?.id === 'fa3dfb7f-2127-4554-a3e4-e8e80d55b21b' ? 20 : 5;
 
-  // active goals
   activeGoals.forEach((g)=>{
     const i = S.goals.indexOf(g);
     const st=stats(i); const sc=statusCfg(st.status);
-    const row=div(`background:${T.card};border-radius:18px;border:1px solid ${T.border};padding:16px 18px;margin-bottom:10px;`);
-    const top=div('display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;');
-    const left=div('display:flex;gap:10px;align-items:center;');
-    left.innerHTML=`<span style="font-size:20px">${g.icon}</span><p style="font-size:14px;font-weight:500;color:${T.text}">${g.name||'Unnamed'}</p>`;
-    const btns=div('display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0;');
-    if(st.total>0){const badge=document.createElement('span');badge.style.cssText=`font-size:10px;background:${sc.bg};color:${sc.color};border-radius:20px;padding:3px 8px;margin-bottom:2px;`;badge.textContent=`${st.rate}%`;btns.appendChild(badge);}
-    const eb=document.createElement('button'); eb.textContent=S.lang==='ko'?'편집':'Edit'; eb.style.cssText=`background:none;border:1px solid ${T.border};border-radius:8px;padding:3px 10px;font-size:11px;color:${T.tm};cursor:pointer;font-family:'DM Sans',sans-serif;width:64px;`; eb.onclick=()=>{S.editIdx=i;S.goalStep=1;S.fromGoalsTab=true;S.step=3.5;S.view='onboard';render();};
-    const ab2=document.createElement('button'); ab2.textContent=S.lang==='ko'?'보관':'Archive'; ab2.style.cssText=`background:none;border:1px solid ${T.border};border-radius:8px;padding:3px 10px;font-size:11px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;width:64px;`;
+    const card=div(`background:#fff;border-radius:16px;border:1px solid ${T.border};padding:14px 16px;margin-bottom:10px;`);
+
+    // top row: icon + name + % badge
+    const topRow = div('display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;');
+    const nameWrap = div('display:flex;align-items:center;gap:8px;flex:1;min-width:0;');
+    nameWrap.innerHTML=`<span style="font-size:20px;flex-shrink:0;">${g.icon}</span><p style="font-size:14px;font-weight:500;color:${T.text};line-height:1.4;">${g.name||'Unnamed'}</p>`;
+    topRow.appendChild(nameWrap);
+    if(st.total>0){
+      const badge=div(`background:${sc.bg};color:${sc.color};border-radius:20px;padding:3px 9px;font-size:11px;font-weight:600;flex-shrink:0;margin-left:8px;`);
+      badge.textContent=`${st.rate}%`;
+      topRow.appendChild(badge);
+    }
+    card.appendChild(topRow);
+
+    if(g.trigger) card.appendChild(p(`font-size:11px;color:${T.muted};margin-bottom:10px;`,`📍 ${g.trigger}`));
+
+    // bottom row: buttons
+    const btnRow = div('display:flex;gap:6px;');
+    const eb=document.createElement('button'); eb.textContent=S.lang==='ko'?'편집':'Edit'; eb.style.cssText=`flex:1;padding:7px;background:none;border:1px solid ${T.border};border-radius:8px;font-size:12px;color:${T.tm};cursor:pointer;font-family:'DM Sans',sans-serif;`; eb.onclick=()=>{S.editIdx=i;S.goalStep=1;S.fromGoalsTab=true;S.step=3.5;S.view='onboard';render();};
+    const ab2=document.createElement('button'); ab2.textContent=S.lang==='ko'?'보관':'Archive'; ab2.style.cssText=`flex:1;padding:7px;background:none;border:1px solid ${T.border};border-radius:8px;font-size:12px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;`;
     ab2.onclick=async()=>{ g.archived=true; saveState(); if(currentUser&&supabase&&g?.goal_id){ await supabase.from('goals').update({archived:true}).eq('id',g.goal_id); } render(); };
-    const db=document.createElement('button'); db.textContent=S.lang==='ko'?'삭제':'Delete'; db.style.cssText=`background:none;border:1px solid ${T.border};border-radius:8px;padding:3px 10px;font-size:11px;color:#C84B3A;cursor:pointer;font-family:'DM Sans',sans-serif;width:64px;`; db.onclick=async()=>{ const goal=S.goals[i]; if(!confirm(S.lang==='ko'?`"${goal.name}" 목표를 삭제할까요? 기록도 함께 삭제돼요.`:`Delete "${goal.name}"? Logs will also be deleted.`)) return; S.goals.splice(i,1); saveState(); if(currentUser&&supabase&&goal?.goal_id){ await supabase.from('goals').delete().eq('id',goal.goal_id); await supabase.from('logs').delete().eq('goal_id',goal.goal_id); } render(); };
-    btns.appendChild(eb); btns.appendChild(ab2); btns.appendChild(db); top.appendChild(left); top.appendChild(btns); row.appendChild(top);
-    if(g.trigger) row.appendChild(p(`font-size:12px;color:${T.muted};`,`📍 ${g.trigger}`));
-    wrap.appendChild(row);
+    const db=document.createElement('button'); db.textContent=S.lang==='ko'?'삭제':'Delete'; db.style.cssText=`flex:1;padding:7px;background:none;border:1px solid #FEC5C5;border-radius:8px;font-size:12px;color:#C84B3A;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+    db.onclick=async()=>{ const goal=S.goals[i]; if(!confirm(S.lang==='ko'?`"${goal.name}" 목표를 삭제할까요?`:`Delete "${goal.name}"?`)) return; S.goals.splice(i,1); saveState(); if(currentUser&&supabase&&goal?.goal_id){ await supabase.from('goals').delete().eq('id',goal.goal_id); await supabase.from('logs').delete().eq('goal_id',goal.goal_id); } render(); };
+    btnRow.appendChild(eb); btnRow.appendChild(ab2); btnRow.appendChild(db);
+    card.appendChild(btnRow);
+    wrap.appendChild(card);
   });
 
-  const maxGoals = currentUser?.id === 'fa3dfb7f-2127-4554-a3e4-e8e80d55b21b' ? 20 : 5;
   if(activeGoals.length < maxGoals){
-    const ab=document.createElement('button'); ab.style.cssText=`width:100%;padding:14px;background:none;border:1.5px dashed ${T.border};border-radius:14px;font-size:14px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px;`; ab.textContent=L('addGoal'); ab.onclick=()=>{
+    const ab=document.createElement('button'); ab.style.cssText=`width:100%;padding:13px;background:none;border:1.5px dashed ${T.border};border-radius:14px;font-size:14px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px;`; ab.textContent=`+ ${S.lang==='ko'?'목표 추가하기':'Add a behavior goal'}`; ab.onclick=()=>{
       const newGoalId='g_'+Math.random().toString(36).substr(2,9)+'_'+Date.now();
-      const newGoal={goal_id:newGoalId,goal_version:1,goal_number:S.goals.length+1,icon:'🎯',name:'',trigger:'',actions:[''],avoid:'',_new:true};
-      S.goals.push(newGoal);
+      S.goals.push({goal_id:newGoalId,goal_version:1,goal_number:S.goals.length+1,icon:'🎯',name:'',trigger:'',actions:[''],avoid:'',_new:true});
       S.editIdx=S.goals.length-1;S.goalStep=1;S.fromGoalsTab=true;S.step=3.5;S.view='onboard';render();
     };
     wrap.appendChild(ab);
   } else {
-    const limitNote = p(`font-size:12px;color:${T.muted};text-align:center;margin-top:8px;line-height:1.6;`,
-      S.lang==='ko'
-        ? `Action card 는 최대 ${maxGoals}개예요. 목표를 보관하면 새 목표를 추가할 수 있어요.`
-        : `Max ${maxGoals} active action cards. Archive a goal to add a new one.`);
-    wrap.appendChild(limitNote);
+    wrap.appendChild(p(`font-size:12px;color:${T.muted};text-align:center;margin-top:8px;line-height:1.6;`,
+      S.lang==='ko'?`Action card 는 최대 ${maxGoals}개예요. 목표를 보관하면 새 목표를 추가할 수 있어요.`:`Max ${maxGoals} active action cards. Archive a goal to add a new one.`));
   }
 
-  // archived goals section
+  // ── ARCHIVED GOALS ──────────────────────────────────────────────
   if (archivedGoals.length > 0) {
-    const archiveSection = div('margin-top:24px;');
-    const archiveHeader = div('display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;');
-    archiveHeader.innerHTML=`<p style="font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;">📦 ${S.lang==='ko'?'보관된 목표':'Archived Goals'} (${archivedGoals.length})</p>`;
-    const toggleArchive = document.createElement('button');
-    toggleArchive.style.cssText=`background:none;border:none;font-size:12px;color:${T.green};cursor:pointer;font-family:'DM Sans',sans-serif;`;
-    toggleArchive.textContent = S.showArchived ? (S.lang==='ko'?'접기':'Hide') : (S.lang==='ko'?'보기':'Show');
-    toggleArchive.onclick=()=>{ S.showArchived=!S.showArchived; render(); };
-    archiveHeader.appendChild(toggleArchive);
-    archiveSection.appendChild(archiveHeader);
+    const archHdr = div('margin-top:24px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;padding-bottom:8px;border-bottom:2px solid #EAE6DE;');
+    archHdr.innerHTML=`<p style="font-size:12px;font-weight:700;color:${T.muted};letter-spacing:.1em;text-transform:uppercase;">📦 ${S.lang==='ko'?'보관된 목표':'Archived Goals'} (${archivedGoals.length})</p>`;
+    const toggleBtn=document.createElement('button'); toggleBtn.style.cssText=`background:none;border:none;font-size:12px;color:${T.green};cursor:pointer;font-family:'DM Sans',sans-serif;`; toggleBtn.textContent=S.showArchived?(S.lang==='ko'?'접기':'Hide'):(S.lang==='ko'?'보기':'Show'); toggleBtn.onclick=()=>{S.showArchived=!S.showArchived;render();};
+    archHdr.appendChild(toggleBtn);
+    wrap.appendChild(archHdr);
 
     if (S.showArchived) {
       archivedGoals.forEach((g) => {
         const i = S.goals.indexOf(g);
         const st=stats(i);
         const row=div(`background:#fff;border-radius:14px;border:1px solid ${T.border};padding:12px 16px;margin-bottom:8px;opacity:0.7;`);
-        const top=div('display:flex;justify-content:space-between;align-items:center;');
-        top.innerHTML=`<div style="display:flex;gap:8px;align-items:center;"><span style="font-size:18px;">${g.icon}</span><p style="font-size:13px;color:${T.tm};">${g.name}</p></div>`;
-        const btns2=div('display:flex;gap:6px;');
-
-        const restoreBtn=document.createElement('button');
-        restoreBtn.style.cssText=`background:none;border:1px solid ${T.border};border-radius:8px;padding:4px 10px;font-size:11px;color:${T.green};cursor:pointer;font-family:'DM Sans',sans-serif;`;
-        restoreBtn.textContent=S.lang==='ko'?'복원':'Restore';
+        const top=div('display:flex;align-items:center;justify-content:space-between;');
+        top.innerHTML=`<div style="display:flex;gap:8px;align-items:center;flex:1;min-width:0;"><span style="font-size:16px;">${g.icon}</span><p style="font-size:13px;color:${T.tm};">${g.name}</p></div>`;
+        const btns2=div('display:flex;gap:6px;flex-shrink:0;');
+        const restoreBtn=document.createElement('button'); restoreBtn.style.cssText=`padding:5px 10px;background:none;border:1px solid ${T.green};border-radius:8px;font-size:11px;color:${T.green};cursor:pointer;font-family:'DM Sans',sans-serif;`; restoreBtn.textContent=S.lang==='ko'?'복원':'Restore';
         restoreBtn.onclick=async()=>{
-          const maxG = currentUser?.id === 'fa3dfb7f-2127-4554-a3e4-e8e80d55b21b' ? 20 : 5;
-          if (activeGoals.length >= maxG) {
-            alert(S.lang==='ko'?`목표는 최대 ${maxG}개까지 활성화할 수 있어요. 기존 목표를 보관하거나 삭제해주세요.`:`You can have up to ${maxG} active goals. Archive or delete an existing goal first.`);
-            return;
-          }
-          g.archived=false;
-          saveState();
-          if(currentUser&&supabase&&g?.goal_id){
-            await supabase.from('goals').update({archived:false}).eq('id',g.goal_id);
-          }
-          render();
+          if(activeGoals.length>=maxGoals){alert(S.lang==='ko'?`최대 ${maxGoals}개까지 활성화할 수 있어요.`:`Max ${maxGoals} active goals.`);return;}
+          g.archived=false; saveState(); if(currentUser&&supabase&&g?.goal_id){await supabase.from('goals').update({archived:false}).eq('id',g.goal_id);} render();
         };
-
-        const db2=document.createElement('button'); db2.textContent='✕'; db2.style.cssText='background:none;border:none;font-size:13px;color:#aaa;cursor:pointer;padding:0 4px;'; db2.onclick=async()=>{ if(!confirm(S.lang==='ko'?`"${g.name}" 목표를 삭제할까요?`:`Delete "${g.name}"?`)) return; S.goals.splice(i,1); saveState(); if(currentUser&&supabase&&g?.goal_id){ await supabase.from('goals').delete().eq('id',g.goal_id); await supabase.from('logs').delete().eq('goal_id',g.goal_id); } render(); };
-
-        btns2.appendChild(restoreBtn); btns2.appendChild(db2);
-        top.appendChild(btns2);
-        row.appendChild(top);
-        if(st.total>0) row.appendChild(p(`font-size:11px;color:${T.muted};margin-top:4px;`,`${st.total} ${S.lang==='ko'?'번 시도':'attempts'} · ${st.rate}% ${S.lang==='ko'?'성공':'success'}`));
-        archiveSection.appendChild(row);
+        const db2=document.createElement('button'); db2.textContent='✕'; db2.style.cssText='padding:5px 8px;background:none;border:none;font-size:13px;color:#aaa;cursor:pointer;';
+        db2.onclick=async()=>{if(!confirm(S.lang==='ko'?`삭제할까요?`:`Delete?`))return;S.goals.splice(i,1);saveState();if(currentUser&&supabase&&g?.goal_id){await supabase.from('goals').delete().eq('id',g.goal_id);await supabase.from('logs').delete().eq('goal_id',g.goal_id);}render();};
+        btns2.appendChild(restoreBtn);btns2.appendChild(db2);top.appendChild(btns2);row.appendChild(top);
+        if(st.total>0) row.appendChild(p(`font-size:11px;color:${T.muted};margin-top:4px;`,`${st.total} ${S.lang==='ko'?'번 시도':'attempts'} · ${st.rate}%`));
+        wrap.appendChild(row);
       });
     }
-    wrap.appendChild(archiveSection);
   }
 
-  // restore code display — only show if not logged in
-  // invite caregiver section
+  // ── CAREGIVERS ──────────────────────────────────────────────────
   if (currentUser && S.childProfileId) {
-    const inviteWrap = div('margin-top:20px;');
-    inviteWrap.appendChild(p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;`, S.lang==='ko'?'공동 보호자':'Caregivers'));
+    wrap.appendChild(sectionHeader(S.lang==='ko'?'공동 보호자':'Caregivers'));
 
-    // show existing caregivers
     const caregiversBox = div(`background:#fff;border-radius:14px;border:1px solid ${T.border};padding:14px 16px;margin-bottom:10px;`);
-
-    // fetch caregivers async
     if (!S.caregiversList) {
-      caregiversBox.innerHTML = `<p style="font-size:13px;color:${T.muted};">불러오는 중...</p>`;
-      supabase.from('caregivers')
-        .select('user_id, display_name, role, lang')
-        .eq('child_profile_id', S.childProfileId)
-        .then(({data}) => {
-          if (data) { S.caregiversList = data; render(); }
-        });
+      caregiversBox.innerHTML = `<p style="font-size:13px;color:${T.muted};">${S.lang==='ko'?'불러오는 중...':'Loading...'}</p>`;
+      supabase.from('caregivers').select('user_id, display_name, role, lang').eq('child_profile_id', S.childProfileId)
+        .then(({data}) => { if (data) { S.caregiversList = data; render(); } });
     } else {
       S.caregiversList.forEach(c => {
-        const row = div('display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;');
         const isMe = c.user_id === currentUser.id;
-        row.innerHTML = `
-          <div style="display:flex;align-items:center;gap:8px;">
-            <div style="width:32px;height:32px;border-radius:50%;background:${T.gl};display:flex;align-items:center;justify-content:center;font-size:14px;">👤</div>
-            <div>
-              <p style="font-size:13px;font-weight:500;color:${T.text};">${c.display_name||'Caregiver'}${isMe?` (${S.lang==='ko'?'나':'me'})`:''}</p>
-              <p style="font-size:11px;color:${T.muted};">${c.role==='owner'?(S.lang==='ko'?'소유자':'Owner'):(S.lang==='ko'?'보호자':'Caregiver')} · ${c.lang==='ko'?'한국어':'English'}</p>
-            </div>
-          </div>
-        `;
+        const row = div('display:flex;align-items:center;gap:10px;margin-bottom:8px;');
+        row.innerHTML=`
+          <div style="width:34px;height:34px;border-radius:50%;background:${T.gl};display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">👤</div>
+          <div>
+            <p style="font-size:13px;font-weight:500;color:${T.text};">${c.display_name||'Caregiver'}${isMe?` <span style="font-size:11px;color:${T.muted};">(${S.lang==='ko'?'나':'me'})</span>`:''}</p>
+            <p style="font-size:11px;color:${T.muted};">${c.role==='owner'?(S.lang==='ko'?'소유자':'Owner'):(S.lang==='ko'?'보호자':'Caregiver')} · ${c.lang==='ko'?'한국어':'English'}</p>
+          </div>`;
         caregiversBox.appendChild(row);
       });
     }
-    inviteWrap.appendChild(caregiversBox);
+    wrap.appendChild(caregiversBox);
 
     // invite form
     const inviteBox = div(`background:${T.gl};border-radius:14px;padding:14px 16px;`);
-    inviteBox.innerHTML = `<p style="font-size:12px;font-weight:500;color:${T.green};margin-bottom:10px;">+ ${S.lang==='ko'?'보호자 초대하기':'Invite a caregiver'}</p>`;
-
-    const emailInp = document.createElement('input');
-    emailInp.type = 'email';
-    emailInp.placeholder = S.lang==='ko'?'이메일 주소':'Email address';
-    emailInp.style.cssText=`width:100%;padding:10px 12px;border:1.5px solid ${T.border};border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:8px;`;
-
-    const nameInp = document.createElement('input');
-    nameInp.type = 'text';
-    nameInp.placeholder = S.lang==='ko'?'호칭 (예: 아빠, 할머니)':'Display name (e.g. Dad, Grandma)';
-    nameInp.style.cssText=`width:100%;padding:10px 12px;border:1.5px solid ${T.border};border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:8px;`;
-
-    const sendBtn = document.createElement('button');
-    sendBtn.style.cssText=`width:100%;padding:10px;background:${T.green};color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
-    sendBtn.textContent = S.lang==='ko'?'초대 링크 보내기':'Send invite';
-    sendBtn.onclick = async() => {
-      const email = emailInp.value.trim();
-      const name = nameInp.value.trim();
-      if (!email) return;
-      sendBtn.textContent = S.lang==='ko'?'전송 중...':'Sending...';
-      sendBtn.disabled = true;
+    inviteBox.innerHTML=`<p style="font-size:12px;font-weight:600;color:${T.green};margin-bottom:10px;">+ ${S.lang==='ko'?'보호자 초대하기':'Invite a caregiver'}</p>`;
+    const emailInp2=document.createElement('input'); emailInp2.type='email'; emailInp2.placeholder=S.lang==='ko'?'이메일 주소':'Email address'; emailInp2.style.cssText=`width:100%;padding:10px 12px;border:1.5px solid ${T.border};border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:8px;`;
+    const nameInp2=document.createElement('input'); nameInp2.type='text'; nameInp2.placeholder=S.lang==='ko'?'호칭 (예: 아빠, 할머니)':'Display name (e.g. Dad, Grandma)'; nameInp2.style.cssText=`width:100%;padding:10px 12px;border:1.5px solid ${T.border};border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:8px;`;
+    const sendBtn2=document.createElement('button'); sendBtn2.style.cssText=`width:100%;padding:10px;background:${T.green};color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`; sendBtn2.textContent=S.lang==='ko'?'초대 링크 보내기':'Send invite';
+    sendBtn2.onclick=async()=>{
+      const email=emailInp2.value.trim(); const name=nameInp2.value.trim();
+      if(!email) return;
+      sendBtn2.textContent=S.lang==='ko'?'전송 중...':'Sending...'; sendBtn2.disabled=true;
       try {
-        // create invitation
-        const { data: inv } = await supabase.from('invitations').insert({
-          child_profile_id: S.childProfileId,
-          invited_by: currentUser.id,
-          email,
-        }).select().single();
-
-        if (inv) {
-          const inviteUrl = `https://therapybuddy.org?invite=${inv.token}&name=${encodeURIComponent(name||email)}`;
-          // send via email function
-          await fetch('/.netlify/functions/email', {
-            method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({
-              to: email,
-              subject: `${S.parent} invited you to Therapy Buddy`,
-              body: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#F8F6F2;">
-                <a href="https://therapybuddy.org" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;margin-bottom:20px;">
-                  <div style="width:28px;height:28px;border-radius:50%;background:#2D5A3D;display:inline-flex;align-items:center;justify-content:center;font-size:14px;">🌿</div>
-                  <span style="font-family:Georgia,serif;font-size:18px;color:#2D5A3D;">Therapy Buddy</span>
-                </a>
-                <h2 style="font-size:20px;font-weight:400;color:#1A1A1A;margin-bottom:12px;">${S.parent} invited you to track ${S.child}'s progress together.</h2>
-                <p style="font-size:14px;color:#4A4A4A;line-height:1.7;margin-bottom:20px;">You'll be able to log notes, see what's working, and coordinate with other caregivers — all in one place.</p>
-                <a href="${inviteUrl}" style="display:block;background:#2D5A3D;color:#fff;text-align:center;padding:14px;border-radius:12px;font-size:15px;font-weight:500;text-decoration:none;margin-bottom:16px;">Accept invitation →</a>
-                <p style="font-size:12px;color:#909090;">If the button doesn't work, copy this link: ${inviteUrl}</p>
-              </div>`
-            })
-          });
-          sendBtn.textContent = S.lang==='ko'?'✓ 초대 전송됐어요':'✓ Invite sent!';
-          sendBtn.style.background = '#4A8C60';
-          emailInp.value = ''; nameInp.value = '';
+        const {data:inv}=await supabase.from('invitations').insert({child_profile_id:S.childProfileId,invited_by:currentUser.id,email}).select().single();
+        if(inv){
+          const inviteUrl=`https://therapybuddy.org?invite=${inv.token}&name=${encodeURIComponent(name||email)}`;
+          await fetch('/.netlify/functions/email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:email,subject:`${S.parent} invited you to Therapy Buddy`,body:`<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#F8F6F2;"><a href="https://therapybuddy.org" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;margin-bottom:20px;"><div style="width:28px;height:28px;border-radius:50%;background:#2D5A3D;display:inline-flex;align-items:center;justify-content:center;font-size:14px;">🌿</div><span style="font-family:Georgia,serif;font-size:18px;color:#2D5A3D;">Therapy Buddy</span></a><h2 style="font-size:20px;font-weight:400;color:#1A1A1A;margin-bottom:12px;">${S.parent} invited you to track ${S.child}'s progress together.</h2><p style="font-size:14px;color:#4A4A4A;line-height:1.7;margin-bottom:20px;">You'll be able to log notes, see what's working, and coordinate with other caregivers — all in one place.</p><a href="${inviteUrl}" style="display:block;background:#2D5A3D;color:#fff;text-align:center;padding:14px;border-radius:12px;font-size:15px;font-weight:500;text-decoration:none;margin-bottom:16px;">Accept invitation →</a><p style="font-size:12px;color:#909090;">If the button doesn't work, copy this link: ${inviteUrl}</p></div>`})});
+          sendBtn2.textContent=S.lang==='ko'?'✓ 초대 전송됐어요':'✓ Invite sent!'; sendBtn2.style.background='#4A8C60';
+          emailInp2.value=''; nameInp2.value='';
         }
-      } catch(e) {
-        sendBtn.textContent = S.lang==='ko'?'다시 시도':'Try again';
-        sendBtn.disabled = false;
-      }
+      } catch(e){ sendBtn2.textContent=S.lang==='ko'?'다시 시도':'Try again'; sendBtn2.disabled=false; }
     };
-
-    inviteBox.appendChild(emailInp);
-    inviteBox.appendChild(nameInp);
-    inviteBox.appendChild(sendBtn);
-    inviteWrap.appendChild(inviteBox);
-    wrap.appendChild(inviteWrap);
+    inviteBox.appendChild(emailInp2); inviteBox.appendChild(nameInp2); inviteBox.appendChild(sendBtn2);
+    wrap.appendChild(inviteBox);
   }
 
-  // language toggle
-  const langWrap = div('margin-top:16px;');
-  const langLabel = p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;`, S.lang==='ko'?'언어 설정':'Language');
-  const langRow = div('display:flex;gap:8px;');
-  ['en','ko'].forEach(l => {
-    const lb = document.createElement('button');
+  // ── LANGUAGE ────────────────────────────────────────────────────
+  wrap.appendChild(sectionHeader(S.lang==='ko'?'언어':'Language'));
+  const langRow=div('display:flex;gap:8px;');
+  ['en','ko'].forEach(l=>{
+    const lb=document.createElement('button');
     lb.style.cssText=`flex:1;padding:10px;border-radius:12px;border:1.5px solid ${S.lang===l?T.green:T.border};background:${S.lang===l?T.gl:'#fff'};color:${S.lang===l?T.green:T.tm};font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
-    lb.textContent = l==='ko'?'한국어':'English';
-    lb.onclick=()=>{ S.lang=l; localStorage.setItem('tb_lang',l); saveState(); render(); };
+    lb.textContent=l==='ko'?'한국어':'English';
+    lb.onclick=()=>{S.lang=l;localStorage.setItem('tb_lang',l);saveState();render();};
     langRow.appendChild(lb);
   });
-  langWrap.appendChild(langLabel);
-  langWrap.appendChild(langRow);
-  wrap.appendChild(langWrap);
+  wrap.appendChild(langRow);
+
+  // ── ACCOUNT ─────────────────────────────────────────────────────
+  wrap.appendChild(sectionHeader(S.lang==='ko'?'계정':'Account'));
 
   if (!currentUser) {
-    const warn = div(`background:${T.ol};border-radius:14px;padding:12px 16px;margin-top:16px;display:flex;gap:10px;align-items:flex-start;`);
-    warn.innerHTML=`<span style="font-size:16px;">⚠️</span><div><p style="font-size:13px;font-weight:500;color:${T.orange};margin-bottom:2px;">${S.lang==='ko'?'데이터가 저장되지 않아요':'Your data is not being saved'}</p><p style="font-size:12px;color:${T.tm};line-height:1.5;">${S.lang==='ko'?'로그인하면 어느 기기에서나 데이터에 접근할 수 있어요.':'Sign in to save your data and access it from any device.'}</p></div>`;
+    const warn=div(`background:${T.ol};border-radius:14px;padding:12px 16px;margin-bottom:12px;display:flex;gap:10px;`);
+    warn.innerHTML=`<span style="font-size:16px;">⚠️</span><div><p style="font-size:13px;font-weight:500;color:${T.orange};margin-bottom:2px;">${S.lang==='ko'?'데이터가 저장되지 않아요':'Your data is not being saved'}</p><p style="font-size:12px;color:${T.tm};line-height:1.5;">${S.lang==='ko'?'로그인하면 어느 기기에서나 접근할 수 있어요.':'Sign in to access from any device.'}</p></div>`;
     wrap.appendChild(warn);
-  }
 
-  // reset
-  const resetWrap = div('margin-top:16px;padding-top:16px;border-top:1px solid #EAE6DE;');
-  const resetBtn = document.createElement('button');
-  resetBtn.style.cssText=`width:100%;padding:12px;background:none;border:1px solid #e2e8f0;border-radius:12px;font-size:13px;color:#94a3b8;cursor:pointer;font-family:'DM Sans',sans-serif;`;
-  resetBtn.textContent=L('resetAll');
-  resetBtn.onclick=()=>{
-    // show warning screen
-    const overlay = div('position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:100;display:flex;align-items:flex-end;justify-content:center;');
-    const sheet = div(`background:#fff;border-radius:24px 24px 0 0;padding:28px 24px 40px;width:100%;max-width:390px;`);
-    sheet.innerHTML = `
-      <p style="font-size:22px;text-align:center;margin-bottom:12px;">⚠️</p>
-      <p style="font-family:'Fraunces',serif;font-size:20px;font-weight:400;color:#1A1A1A;text-align:center;margin-bottom:8px;">${S.lang==='ko'?'모든 데이터를 삭제할까요?':'Delete all data?'}</p>
-      <p style="font-size:13px;color:#909090;text-align:center;line-height:1.6;margin-bottom:24px;">${S.lang==='ko'?'목표, 기록, 분석 결과가 모두 삭제돼요. 이 작업은 되돌릴 수 없어요.':'All goals, logs, and analyses will be permanently deleted. This cannot be undone.'}</p>
-    `;
-    const deleteBtn = document.createElement('button');
-    deleteBtn.style.cssText=`width:100%;padding:14px;background:#C84B3A;color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:10px;`;
-    deleteBtn.textContent = S.lang==='ko'?'모두 삭제하기':'Delete everything';
-    deleteBtn.onclick=async()=>{
-      // delete from Supabase if logged in
-      if (supabase && currentUser) {
-        await supabase.from('logs').delete().eq('user_id', currentUser.id);
-        await supabase.from('analyses').delete().eq('user_id', currentUser.id);
-        await supabase.from('goals').delete().eq('user_id', currentUser.id);
-        await supabase.from('profiles').delete().eq('id', currentUser.id);
-      }
-      clearState();
-      S={view:'onboard',step:0,lang:S.lang,parent:'',child:'',age:'',goals:[],editIdx:null,goalStep:1,logGoalIdx:0,logs:[],analyses:[],isDemo:false,tempLog:{}};
-      document.body.removeChild(overlay);
-      render();
+    const siBox=div(`background:#fff;border-radius:14px;border:1px solid ${T.border};padding:14px 16px;`);
+    const googleBtn=document.createElement('button'); googleBtn.style.cssText=`width:100%;padding:10px;background:#fff;color:#1A1A1A;border:1.5px solid ${T.border};border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;`; googleBtn.innerHTML=`<svg width="16" height="16" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A353" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/><path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.31z"/></svg>Sign in with Google`; googleBtn.onclick=signInWithGoogle;
+    const orDiv=div('display:flex;align-items:center;gap:8px;margin-bottom:8px;'); orDiv.innerHTML=`<div style="flex:1;height:1px;background:${T.border}"></div><p style="font-size:11px;color:${T.muted}">or</p><div style="flex:1;height:1px;background:${T.border}"></div>`;
+    const emailInp3=document.createElement('input'); emailInp3.type='email'; emailInp3.placeholder='your@email.com'; emailInp3.style.cssText=`width:100%;padding:10px 12px;border:1.5px solid ${T.border};border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;margin-bottom:8px;outline:none;`;
+    const siBtn=document.createElement('button'); siBtn.style.cssText=`width:100%;padding:10px;background:${T.green};color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`; siBtn.textContent=S.lang==='ko'?'이메일로 로그인 링크 받기 →':'Send sign-in link →';
+    const siMsg=p(`font-size:12px;color:${T.gm};margin-top:6px;display:none;`,'');
+    siBtn.onclick=async()=>{
+      const email=emailInp3.value.trim(); if(!email) return;
+      siBtn.textContent=S.lang==='ko'?'전송 중...':'Sending...'; siBtn.disabled=true;
+      const {error}=await signInWithMagicLink(email);
+      if(error){siBtn.textContent=S.lang==='ko'?'다시 시도':'Try again';siBtn.disabled=false;siMsg.textContent='✗';siMsg.style.color=T.red;}
+      else{siMsg.textContent=S.lang==='ko'?'✓ 이메일을 확인하세요!':'✓ Check your email!';siMsg.style.color=T.green;}
+      siMsg.style.display='block';
     };
-    const cancelBtn = document.createElement('button');
-    cancelBtn.style.cssText=`width:100%;padding:14px;background:none;border:1.5px solid ${T.border};border-radius:14px;font-size:15px;color:${T.tm};cursor:pointer;font-family:'DM Sans',sans-serif;`;
-    cancelBtn.textContent = S.lang==='ko'?'취소':'Cancel';
-    cancelBtn.onclick=()=>document.body.removeChild(overlay);
-    sheet.appendChild(deleteBtn);
-    sheet.appendChild(cancelBtn);
-    overlay.appendChild(sheet);
-    overlay.onclick=(e)=>{ if(e.target===overlay) document.body.removeChild(overlay); };
-    document.body.appendChild(overlay);
-  };
-  resetWrap.appendChild(resetBtn);
-
-  // sign out / account section
-  const accountWrap = div('margin-top:12px;');
-  const user = currentUser;
-  if (user) {
-    const signOutBtn = document.createElement('button');
-    signOutBtn.style.cssText=`width:100%;padding:12px;background:none;border:1px solid ${T.border};border-radius:12px;font-size:13px;color:${T.tm};cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:space-between;`;
-    signOutBtn.innerHTML=`<span style="font-size:12px;color:${T.muted};">✓ ${currentUser.email}</span><span>Sign out</span>`;
-    signOutBtn.onclick = async () => {
-      if (supabase) await supabase.auth.signOut();
-      currentUser = null;
-      localStorage.removeItem('tb_was_logged_in');
-      S = {view:'onboard', step:0, lang:S.lang, parent:'', child:'', age:'', goals:[], editIdx:null, goalStep:1, logGoalIdx:0, logs:[], analyses:[], isDemo:false, tempLog:{}};
-      render();
-    };
-    const accountBtns = div('display:flex;gap:8px;');
-    const reloadBtn = document.createElement('button');
-    reloadBtn.style.cssText=`padding:12px;background:none;border:1px solid ${T.border};border-radius:12px;font-size:13px;color:${T.green};cursor:pointer;font-family:'DM Sans',sans-serif;`;
-    reloadBtn.textContent='↻';
-    reloadBtn.title = S.lang==='ko'?'데이터 새로고침':'Reload data';
-    reloadBtn.onclick = async () => {
-      reloadBtn.textContent = '⏳';
-      await loadFromSupabase();
-      render();
-    };
-    signOutBtn.style.cssText=`flex:1;padding:12px;background:none;border:1px solid ${T.border};border-radius:12px;font-size:13px;color:${T.tm};cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:space-between;`;
-    accountBtns.appendChild(reloadBtn);
-    accountBtns.appendChild(signOutBtn);
-    accountWrap.appendChild(accountBtns);
+    const bn2=p('font-size:11px;color:#909090;text-align:center;margin-bottom:8px;line-height:1.6;',S.lang==='ko'?'카카오톡 등에서 열었다면 외부 브라우저로 열어주세요':'If opened from a messenger, please open in Safari or Chrome');
+    siBox.appendChild(googleBtn); siBox.appendChild(bn2); siBox.appendChild(orDiv); siBox.appendChild(emailInp3); siBox.appendChild(siBtn); siBox.appendChild(siMsg);
+    wrap.appendChild(siBox);
   } else {
-    const siBox = div(`background:${T.card};border-radius:14px;border:1px solid ${T.border};padding:14px 16px;`);
-    siBox.innerHTML=`<p style="font-size:13px;font-weight:500;color:${T.tm};margin-bottom:4px;">Create a free account</p><p style="font-size:12px;color:${T.muted};margin-bottom:10px;">Save your data and access it from any device.</p>`;
-
-    const googleBtn = document.createElement('button');
-    googleBtn.style.cssText=`width:100%;padding:10px;background:#fff;color:#1A1A1A;border:1.5px solid ${T.border};border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;`;
-    googleBtn.innerHTML=`<svg width="16" height="16" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A353" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/><path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.31z"/></svg>Sign in with Google`;
-    googleBtn.onclick = signInWithGoogle;
-    const bn2=document.createElement("p");bn2.style.cssText="font-size:11px;color:#909090;text-align:center;margin-bottom:8px;line-height:1.6;";bn2.textContent=S.lang==="ko"?"카카오톡 등 메신저에서 열었다면 외부 브라우저로 열어주세요":"If opened from a messenger app, please open in Safari or Chrome";wrap.appendChild(bn2);
-
-    const orDiv = div('display:flex;align-items:center;gap:8px;margin-bottom:8px;');
-    orDiv.innerHTML=`<div style="flex:1;height:1px;background:${T.border}"></div><p style="font-size:11px;color:${T.muted}">or</p><div style="flex:1;height:1px;background:${T.border}"></div>`;
-
-    const emailInp = document.createElement('input');
-    emailInp.type='email'; emailInp.placeholder='your@email.com';
-    emailInp.style.cssText=`width:100%;padding:10px 12px;border:1.5px solid ${T.border};border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;margin-bottom:8px;outline:none;`;
-
-    const siBtn = document.createElement('button');
-    siBtn.style.cssText=`width:100%;padding:10px;background:${T.green};color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
-    siBtn.textContent='Send sign-in link to my email →';
-
-    const siMsg = p(`font-size:12px;color:${T.gm};margin-top:6px;display:none;`,'');
-    siBtn.onclick = async () => {
-      const email = emailInp.value.trim();
-      if (!email) return;
-      siBtn.textContent = 'Sending...'; siBtn.disabled = true;
-      const { error } = await signInWithMagicLink(email);
-      if (error) {
-        siBtn.textContent = 'Send sign-in link →'; siBtn.disabled = false;
-        siMsg.textContent = '✗ Something went wrong.'; siMsg.style.color = T.red;
-      } else {
-        siMsg.textContent = '✓ Link sent! Check your email.'; siMsg.style.color = T.green;
-      }
-      siMsg.style.display = 'block';
-    };
-
-    siBox.appendChild(googleBtn);
-    siBox.appendChild(orDiv);
-    siBox.appendChild(emailInp);
-    siBox.appendChild(siBtn);
-    siBox.appendChild(siMsg);
-    accountWrap.appendChild(siBox);
+    const accountCard=div(`background:#fff;border-radius:14px;border:1px solid ${T.border};padding:14px 16px;`);
+    accountCard.innerHTML=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;"><div style="width:36px;height:36px;border-radius:50%;background:${T.gl};display:flex;align-items:center;justify-content:center;font-size:16px;">👤</div><div><p style="font-size:13px;font-weight:500;color:${T.text};">${S.parent}</p><p style="font-size:11px;color:${T.muted};">${currentUser.email}</p></div></div>`;
+    const btnRow2=div('display:flex;gap:8px;');
+    const reloadBtn=document.createElement('button'); reloadBtn.style.cssText=`padding:9px 14px;background:none;border:1px solid ${T.border};border-radius:10px;font-size:13px;color:${T.green};cursor:pointer;font-family:'DM Sans',sans-serif;`; reloadBtn.textContent='↻'; reloadBtn.title=S.lang==='ko'?'새로고침':'Reload';
+    reloadBtn.onclick=async()=>{reloadBtn.textContent='⏳';await loadFromSupabase();render();};
+    const signOutBtn=document.createElement('button'); signOutBtn.style.cssText=`flex:1;padding:9px;background:none;border:1px solid ${T.border};border-radius:10px;font-size:13px;color:${T.tm};cursor:pointer;font-family:'DM Sans',sans-serif;`; signOutBtn.textContent=S.lang==='ko'?'로그아웃':'Sign out';
+    signOutBtn.onclick=async()=>{if(supabase)await supabase.auth.signOut();currentUser=null;localStorage.removeItem('tb_was_logged_in');S={view:'onboard',step:0,lang:S.lang,parent:'',child:'',age:'',goals:[],editIdx:null,goalStep:1,logGoalIdx:0,logs:[],analyses:[],isDemo:false,tempLog:{}};render();};
+    btnRow2.appendChild(reloadBtn); btnRow2.appendChild(signOutBtn);
+    accountCard.appendChild(btnRow2);
+    wrap.appendChild(accountCard);
   }
-  wrap.appendChild(accountWrap);
 
-  wrap.appendChild(resetWrap);
+  // ── RESET ───────────────────────────────────────────────────────
+  wrap.appendChild(sectionHeader(S.lang==='ko'?'데이터':'Data'));
+  const resetBtn=document.createElement('button'); resetBtn.style.cssText=`width:100%;padding:12px;background:none;border:1px solid #e2e8f0;border-radius:12px;font-size:13px;color:#94a3b8;cursor:pointer;font-family:'DM Sans',sans-serif;`; resetBtn.textContent=L('resetAll');
+  resetBtn.onclick=()=>{
+    const overlay=div('position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:100;display:flex;align-items:flex-end;justify-content:center;');
+    const sheet=div(`background:#fff;border-radius:24px 24px 0 0;padding:28px 24px 40px;width:100%;max-width:390px;`);
+    sheet.innerHTML=`<p style="font-size:22px;text-align:center;margin-bottom:12px;">⚠️</p><p style="font-family:'Fraunces',serif;font-size:20px;font-weight:400;color:#1A1A1A;text-align:center;margin-bottom:8px;">${S.lang==='ko'?'모든 데이터를 삭제할까요?':'Delete all data?'}</p><p style="font-size:13px;color:#909090;text-align:center;line-height:1.6;margin-bottom:24px;">${S.lang==='ko'?'목표, 기록, 분석 결과가 모두 삭제돼요.':'All goals, logs, and analyses will be permanently deleted.'}</p>`;
+    const deleteBtn=document.createElement('button'); deleteBtn.style.cssText=`width:100%;padding:14px;background:#C84B3A;color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:10px;`; deleteBtn.textContent=S.lang==='ko'?'모두 삭제하기':'Delete everything';
+    deleteBtn.onclick=async()=>{
+      if(supabase&&currentUser){await supabase.from('logs').delete().eq('user_id',currentUser.id);await supabase.from('analyses').delete().eq('user_id',currentUser.id);await supabase.from('goals').delete().eq('user_id',currentUser.id);await supabase.from('profiles').delete().eq('id',currentUser.id);}
+      clearState(); S={view:'onboard',step:0,lang:S.lang,parent:'',child:'',age:'',goals:[],editIdx:null,goalStep:1,logGoalIdx:0,logs:[],analyses:[],isDemo:false,tempLog:{}}; document.body.removeChild(overlay); render();
+    };
+    const cancelBtn=document.createElement('button'); cancelBtn.style.cssText=`width:100%;padding:14px;background:none;border:1.5px solid ${T.border};border-radius:14px;font-size:15px;color:${T.tm};cursor:pointer;font-family:'DM Sans',sans-serif;`; cancelBtn.textContent=S.lang==='ko'?'취소':'Cancel'; cancelBtn.onclick=()=>document.body.removeChild(overlay);
+    sheet.appendChild(deleteBtn); sheet.appendChild(cancelBtn); overlay.appendChild(sheet); overlay.onclick=(e)=>{if(e.target===overlay)document.body.removeChild(overlay);}; document.body.appendChild(overlay);
+  };
+  wrap.appendChild(resetBtn);
+
   return wrap;
 }
 

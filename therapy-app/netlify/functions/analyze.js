@@ -103,7 +103,63 @@ Respond ONLY with this JSON:
       };
     }
 
-    // CLEAN GOAL MODE
+    // SUGGEST GOALS MODE
+    if (data.type === 'suggest_goals') {
+      const isKo = data.lang === 'ko';
+      const ageNum = parseInt(data.age) || 6;
+      const prompt = `A parent shared their parenting concerns about their child:
+
+"${data.concern}"
+
+Child: ${data.child}, Age: ${ageNum}
+
+Based on what they shared, suggest 2-4 specific, actionable therapy-style goals to work on at home.
+
+For each goal:
+- name: short, clear goal name (3-6 words, action-oriented)
+- icon: one relevant emoji
+- trigger: when this behavior typically occurs (one sentence)
+- actions: 2-3 specific steps to try at home (concrete, practical for age ${ageNum})
+
+Respond in ${isKo ? 'Korean' : 'English'}. Keep everything SHORT and practical.
+
+Respond ONLY with this JSON:
+{
+  "goals": [
+    {
+      "name": "...",
+      "icon": "🎯",
+      "trigger": "...",
+      "actions": ["...", "...", "..."]
+    }
+  ]
+}`;
+
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-5-20250929',
+          max_tokens: 800,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+
+      const result = await response.json();
+      const text = result.content?.[0]?.text || '';
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : { goals: [] };
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ status: 'ok', goals: parsed.goals || [] })
+      };
+    }
     if (data.type === 'clean_goal') {
       const isKo = data.lang === 'ko';
       const prompt = `Clean up this voice input from a parent into a concise, clear phrase:

@@ -231,21 +231,65 @@ async function initSupabase() {
         const isSameUser = currentUser?.id === session.user.id;
         currentUser = session.user;
         localStorage.setItem('tb_was_logged_in', '1');
+
+        // process pending invite FIRST before loading data
+        if (S.pendingInviteToken) {
+          const token = S.pendingInviteToken;
+          const name = S.pendingInviteName;
+          S.pendingInviteToken = null;
+          S.pendingInviteName = null;
+          const inviteResult = await processInvite(token, name);
+          if (inviteResult) {
+            // invite accepted — show name setup
+            S.view = 'onboard';
+            S.step = 'invite_setup';
+            render();
+            return;
+          }
+        }
+
         if (!isSameUser || !S.parent) {
           S.parent = ''; S.child = ''; S.age = '';
           S.goals = []; S.logs = []; S.analyses = [];
           S.view = 'onboard'; S.step = 0;
           await loadFromSupabase();
-        }
-        // process pending invite
-        if (S.pendingInviteToken) {
-          const inviteResult = await processInvite(S.pendingInviteToken, S.pendingInviteName);
-          S.pendingInviteToken = null;
-          S.pendingInviteName = null;
-          // if invite accepted, show caregiver setup
-          if (inviteResult && !S.parent) {
-            S.view = 'onboard';
-            S.step = 'invite_setup';
+
+          // if user has profile but no child_profile (invited user who lost token)
+          // check if there's a pending caregiver record
+          if (S.parent && !S.childProfileId) {
+            const { data: pendingCaregiver } = await supabase
+              .from('caregivers')
+              .select('child_profile_id, role')
+              .eq('user_id', currentUser.id)
+              .maybeSingle();
+            if (pendingCaregiver?.child_profile_id) {
+              S.childProfileId = pendingCaregiver.child_profile_id;
+              // load shared data
+              const { data: cp } = await supabase
+                .from('child_profiles').select('*')
+                .eq('id', pendingCaregiver.child_profile_id).single();
+              if (cp) { S.child = cp.name; S.age = cp.age; }
+              const { data: sharedGoals } = await supabase
+                .from('goals').select('*')
+                .eq('child_profile_id', pendingCaregiver.child_profile_id)
+                .order('goal_number');
+              if (sharedGoals) S.goals = sharedGoals.map(g => ({
+                goal_id: g.id, goal_number: g.goal_number, goal_version: g.goal_version,
+                icon: g.icon, name: g.name, trigger: g.trigger,
+                actions: g.actions || [], avoid: g.avoid, archived: g.archived || false
+              }));
+              const { data: sharedLogs } = await supabase
+                .from('logs').select('*')
+                .eq('child_profile_id', pendingCaregiver.child_profile_id)
+                .order('created_at');
+              if (sharedLogs) S.logs = sharedLogs.map(l => ({
+                goalIdx: S.goals.findIndex(g => g.goal_id === l.goal_id),
+                date: l.date, caregiver: l.caregiver, before: l.before_state,
+                attempted: l.attempted, technique: l.technique, worked: l.worked,
+                didnt_work: l.didnt_work, reaction: l.reaction, outcome: l.outcome, next: l.next
+              }));
+              S.view = 'home';
+            }
           }
         }
         render();
@@ -443,11 +487,48 @@ async function processInvite(token, displayName) {
     // mark invitation accepted
     await supabase.from('invitations').update({ accepted: true }).eq('id', inv.id);
 
-    // load shared child data
+    // load shared child profile data
     S.childProfileId = inv.child_profile_id;
-    await loadFromSupabase();
+    const { data: childProfile } = await supabase
+      .from('child_profiles').select('*').eq('id', inv.child_profile_id).single();
+    if (childProfile) {
+      S.child = childProfile.name || '';
+      S.age = childProfile.age || '';
+    }
 
-    // show welcome message
+    // load owner's profile for parent name context
+    const { data: ownerCaregiver } = await supabase
+      .from('caregivers').select('user_id, display_name')
+      .eq('child_profile_id', inv.child_profile_id)
+      .eq('role', 'owner').single();
+
+    // load shared goals
+    const { data: sharedGoals } = await supabase
+      .from('goals').select('*')
+      .eq('child_profile_id', inv.child_profile_id)
+      .order('goal_number');
+    if (sharedGoals) {
+      S.goals = sharedGoals.map(g => ({
+        goal_id: g.id, goal_number: g.goal_number, goal_version: g.goal_version,
+        icon: g.icon, name: g.name, trigger: g.trigger,
+        actions: g.actions || [], avoid: g.avoid, archived: g.archived || false
+      }));
+    }
+
+    // load shared logs
+    const { data: sharedLogs } = await supabase
+      .from('logs').select('*')
+      .eq('child_profile_id', inv.child_profile_id)
+      .order('created_at');
+    if (sharedLogs) {
+      S.logs = sharedLogs.map(l => ({
+        goalIdx: S.goals.findIndex(g => g.goal_id === l.goal_id),
+        date: l.date, caregiver: l.caregiver, before: l.before_state,
+        attempted: l.attempted, technique: l.technique, worked: l.worked,
+        didnt_work: l.didnt_work, reaction: l.reaction, outcome: l.outcome, next: l.next
+      }));
+    }
+
     S.inviteAccepted = true;
     return true;
 
@@ -529,11 +610,32 @@ async function loadFromSupabase(retries = 3) {
         }
       }
 
-      // load goals — by child_profile_id if available (shared), else by user_id
+      // load goals — by child_profile_id if shared, fallback to user_id
       const goalsQuery = S.childProfileId
         ? supabase.from('goals').select('*').eq('child_profile_id', S.childProfileId).order('goal_number')
         : supabase.from('goals').select('*').eq('user_id', currentUser.id).order('goal_number');
       const { data: goals } = await goalsQuery;
+
+      // also load any goals that might not have child_profile_id yet
+      if (S.childProfileId && (!goals || goals.length === 0)) {
+        const { data: fallbackGoals } = await supabase
+          .from('goals').select('*').eq('user_id', currentUser.id).order('goal_number');
+        if (fallbackGoals && fallbackGoals.length > 0) {
+          // migrate them to child_profile
+          await supabase.from('goals')
+            .update({ child_profile_id: S.childProfileId })
+            .eq('user_id', currentUser.id);
+          const { data: migratedGoals } = await supabase
+            .from('goals').select('*').eq('child_profile_id', S.childProfileId).order('goal_number');
+          if (migratedGoals) {
+            S.goals = migratedGoals.map(g => ({
+              goal_id: g.id, goal_number: g.goal_number, goal_version: g.goal_version,
+              icon: g.icon, name: g.name, trigger: g.trigger,
+              actions: g.actions || [], avoid: g.avoid, archived: g.archived || false
+            }));
+          }
+        }
+      }
 
       if (goals && goals.length > 0) {
         S.goals = goals.map(g => ({

@@ -118,7 +118,7 @@ textarea { resize: none; height: 60px; line-height: 1.5; }
 </head>
 <body>
 <div class="phone">
-  <div class="status"><span>9:41</span><span>●●● WiFi</span></div>
+  <div class="status"><span id="status-time">9:41</span><span>●●● WiFi</span></div>
   <div class="screen" id="screen"></div>
   <nav class="nav" id="nav" style="display:none"></nav>
   <div style="text-align:center;padding:6px;font-size:10px;color:#bbb;background:#fff;border-top:1px solid #EAE6DE;">
@@ -4226,7 +4226,17 @@ function render() {
   }
 }
 
-initSupabaseAndRender();
+// real-time clock
+function updateClock() {
+  const el = document.getElementById('status-time');
+  if (!el) return;
+  const now = new Date();
+  const h = now.getHours();
+  const m = now.getMinutes().toString().padStart(2,'0');
+  el.textContent = `${h}:${m}`;
+}
+updateClock();
+setInterval(updateClock, 10000);
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(e => console.log('SW error:', e));

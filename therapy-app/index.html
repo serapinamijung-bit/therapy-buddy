@@ -4078,6 +4078,7 @@ function renderGoals() {
 
 // ── RENDER ─────────────────────────────────────────────────────────
 function render() {
+  try {
   const screenEl=document.getElementById('screen');
   screenEl.innerHTML='';
   let content;
@@ -4099,6 +4100,11 @@ function render() {
   } else {
     const existing = document.getElementById('demo-tour-overlay');
     if(existing) existing.remove();
+  }
+  } catch(e) {
+    console.error('Render error:', e);
+    const screenEl=document.getElementById('screen');
+    if(screenEl) screenEl.innerHTML=`<div style="padding:40px;text-align:center;"><p style="color:#C84B3A;font-size:14px;">Something went wrong. <button onclick="location.reload()" style="color:#2D5A3D;background:none;border:none;cursor:pointer;text-decoration:underline;">Reload</button></p></div>`;
   }
 }
 

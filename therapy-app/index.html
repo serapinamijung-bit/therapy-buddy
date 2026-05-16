@@ -2945,7 +2945,7 @@ function renderWeek() {
       card.appendChild(hdr);
 
       const bullets = [];
-      if (l.technique) bullets.push(`${S.lang==='ko'?'시도':'Tried'}: ${l.technique}`);
+      if (l.technique) bullets.push(l.technique);
       if (l.worked) bullets.push(`✓ ${l.worked}`);
       if (l.didnt_work) bullets.push(`✗ ${l.didnt_work}`);
 

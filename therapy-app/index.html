@@ -239,9 +239,14 @@ async function initSupabase() {
         }
         // process pending invite
         if (S.pendingInviteToken) {
-          await processInvite(S.pendingInviteToken, S.pendingInviteName);
+          const inviteResult = await processInvite(S.pendingInviteToken, S.pendingInviteName);
           S.pendingInviteToken = null;
           S.pendingInviteName = null;
+          // if invite accepted, show caregiver setup
+          if (inviteResult && !S.parent) {
+            S.view = 'onboard';
+            S.step = 'invite_setup';
+          }
         }
         render();
       } else if (event === 'SIGNED_OUT') {
@@ -444,6 +449,7 @@ async function processInvite(token, displayName) {
 
     // show welcome message
     S.inviteAccepted = true;
+    return true;
 
   } catch(e) {
     console.log('processInvite error:', e);
@@ -1169,6 +1175,33 @@ function renderOnboard() {
   const wrap = div('flex:1;display:flex;flex-direction:column;padding:28px 22px 36px;');
   const step = S.step;
 
+  // invite setup — for caregivers joining via invite link
+  if (step === 'invite_setup') {
+    wrap.appendChild(h('h1',"font-family:'Fraunces',serif;font-size:28px;font-weight:400;color:#1A1A1A;margin-bottom:8px;", S.lang==='ko'?'환영해요! 👋':'Welcome! 👋'));
+    wrap.appendChild(p(`font-size:14px;color:${T.muted};margin-bottom:24px;line-height:1.6;`,
+      S.lang==='ko'
+        ? `${S.child}의 목표와 기록을 함께 볼 수 있어요. 먼저 이름을 알려주세요.`
+        : `You've been invited to track ${S.child}'s progress together. What should we call you?`));
+    const invInp = document.createElement('input'); invInp.type='text'; invInp.value=S.parent||'';
+    invInp.placeholder=S.lang==='ko'?'예: 아빠, 할머니':'e.g. Dad, Grandma';
+    invInp.style.cssText=`width:100%;padding:12px 14px;border:1.5px solid ${T.border};border-radius:12px;font-size:15px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:24px;`;
+    invInp.oninput=e=>{ S.parent=e.target.value; };
+    wrap.appendChild(invInp);
+    const invBtn=document.createElement('button'); invBtn.className='btn btn-primary';
+    invBtn.textContent=S.lang==='ko'?`시작하기 🌿`:`Let's go 🌿`;
+    invBtn.onclick=async()=>{
+      if (!S.parent.trim()) return;
+      if (currentUser && S.childProfileId) {
+        await supabase.from('caregivers').update({ display_name: S.parent, lang: S.lang }).eq('child_profile_id', S.childProfileId).eq('user_id', currentUser.id);
+        await supabase.from('profiles').upsert({ id: currentUser.id, parent_name: S.parent, lang: S.lang });
+      }
+      S.inviteAccepted = true;
+      go('home');
+    };
+    wrap.appendChild(invBtn);
+    return wrap;
+  }
+
   // dots
   const dots = div('display:flex;gap:5px;margin-bottom:32px;');
   if (!S.fromGoalsTab) {
@@ -1232,8 +1265,6 @@ function renderOnboard() {
   }
 
   const spacer = div('flex:1');
-
-  if (step===1) {
     const back=document.createElement('button'); back.style.cssText=`background:none;border:none;cursor:pointer;color:${T.tm};font-size:14px;margin-bottom:16px;padding:0;font-family:'DM Sans',sans-serif;`; back.textContent='← '+L('back').replace('← ',''); back.onclick=()=>{S.step=0;render();}; wrap.appendChild(back);
     wrap.appendChild(h('h1',"font-family:'Fraunces',serif;font-size:28px;font-weight:400;color:#1A1A1A;margin-bottom:6px;", L('yourName')));
     wrap.appendChild(p(`font-size:14px;color:${T.muted};margin-bottom:24px;`, L('yourNameSub')));

@@ -231,12 +231,17 @@ async function initSupabase() {
         const isSameUser = currentUser?.id === session.user.id;
         currentUser = session.user;
         localStorage.setItem('tb_was_logged_in', '1');
-        // only reset state if different user or no data yet
         if (!isSameUser || !S.parent) {
           S.parent = ''; S.child = ''; S.age = '';
           S.goals = []; S.logs = []; S.analyses = [];
           S.view = 'onboard'; S.step = 0;
           await loadFromSupabase();
+        }
+        // process pending invite
+        if (S.pendingInviteToken) {
+          await processInvite(S.pendingInviteToken, S.pendingInviteName);
+          S.pendingInviteToken = null;
+          S.pendingInviteName = null;
         }
         render();
       } else if (event === 'SIGNED_OUT') {
@@ -251,7 +256,6 @@ async function initSupabase() {
 }
 
 async function initSupabaseAndRender() {
-  // show loading screen while Supabase initializes
   const appEl = document.getElementById('screen');
   if (appEl) {
     appEl.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;padding:40px;">
@@ -260,6 +264,15 @@ async function initSupabaseAndRender() {
     </div>`;
   }
   await initSupabase();
+
+  // check for invite token
+  const urlParams = new URLSearchParams(window.location.search);
+  const inviteToken = urlParams.get('invite');
+  if (inviteToken) {
+    S.pendingInviteToken = inviteToken;
+    S.pendingInviteName = urlParams.get('name') || '';
+  }
+
   render();
 }
 
@@ -294,53 +307,71 @@ async function signOut() {
 }
 
 async function saveToSupabase() {
-  if (!supabase || !currentUser) {
-    console.log('saveToSupabase: no supabase or user', supabase, currentUser);
-    return;
-  }
+  if (!supabase || !currentUser) return;
   try {
-    console.log('Saving to Supabase, user:', currentUser.id);
     // upsert profile
-    const { error: profileError } = await supabase.from('profiles').upsert({
+    await supabase.from('profiles').upsert({
       id: currentUser.id,
       parent_name: S.parent,
       child_name: S.child,
       child_age: S.age,
       lang: S.lang
     });
-    if (profileError) console.log('Profile error:', profileError);
-    else console.log('Profile saved!');
+
+    // create/update child_profile if needed
+    if (!S.childProfileId) {
+      // create new child profile
+      const { data: cp } = await supabase.from('child_profiles').insert({
+        name: S.child, age: S.age
+      }).select().single();
+      if (cp) {
+        S.childProfileId = cp.id;
+        // register as owner caregiver
+        await supabase.from('caregivers').upsert({
+          child_profile_id: cp.id,
+          user_id: currentUser.id,
+          role: 'owner',
+          display_name: S.parent,
+          lang: S.lang
+        });
+      }
+    } else {
+      // update existing child profile
+      await supabase.from('child_profiles').update({ name: S.child, age: S.age }).eq('id', S.childProfileId);
+      await supabase.from('caregivers').update({ display_name: S.parent, lang: S.lang })
+        .eq('child_profile_id', S.childProfileId).eq('user_id', currentUser.id);
+    }
 
     // upsert goals
     for (const g of S.goals) {
-      const { error: goalError } = await supabase.from('goals').upsert({
+      await supabase.from('goals').upsert({
         id: g.goal_id,
         user_id: currentUser.id,
+        child_profile_id: S.childProfileId || null,
         goal_number: g.goal_number,
         icon: g.icon,
         name: g.name,
         trigger: g.trigger,
         actions: g.actions,
         avoid: g.avoid,
-        goal_version: g.goal_version
+        goal_version: g.goal_version,
+        archived: g.archived || false
       });
-      if (goalError) console.log('Goal error:', goalError);
-      else console.log('Goal saved:', g.name);
     }
 
     // save analyses
     for (let i = 0; i < S.goals.length; i++) {
       const a = S.analyses?.[i];
       if (!a) continue;
-      const { error: analysisError } = await supabase.from('analyses').upsert({
+      await supabase.from('analyses').upsert({
         user_id: currentUser.id,
         goal_id: S.goals[i].goal_id,
+        child_profile_id: S.childProfileId || null,
         working: a.working || [],
         not_working: a.not_working || [],
         next_actions: a.next_actions || [],
         avoid: a.avoid || []
       });
-      if (analysisError) console.log('Analysis error:', analysisError);
     }
   } catch(e) {
     console.log('Supabase save failed:', e);
@@ -352,10 +383,11 @@ async function saveLogToSupabase(log, goalId) {
   try {
     await supabase.from('logs').insert({
       user_id: currentUser.id,
+      child_profile_id: S.childProfileId || null,
       goal_id: goalId,
       goal_name: log.goalName,
       date: log.date,
-      caregiver: log.caregiver,
+      caregiver: S.parent || log.caregiver,
       before_state: log.before,
       attempted: log.attempted,
       technique: log.technique,
@@ -367,6 +399,54 @@ async function saveLogToSupabase(log, goalId) {
     });
   } catch(e) {
     console.log('Log save failed:', e);
+  }
+}
+
+async function processInvite(token, displayName) {
+  if (!supabase || !currentUser) return;
+  try {
+    // find invitation
+    const { data: inv } = await supabase
+      .from('invitations')
+      .select('*')
+      .eq('token', token)
+      .eq('accepted', false)
+      .single();
+
+    if (!inv) return;
+
+    // check not already a caregiver
+    const { data: existing } = await supabase
+      .from('caregivers')
+      .select('id')
+      .eq('child_profile_id', inv.child_profile_id)
+      .eq('user_id', currentUser.id)
+      .single();
+
+    if (!existing) {
+      // join as caregiver
+      await supabase.from('caregivers').insert({
+        child_profile_id: inv.child_profile_id,
+        user_id: currentUser.id,
+        role: 'caregiver',
+        display_name: displayName || S.parent || 'Caregiver',
+        lang: S.lang || 'en',
+        invited_by: inv.invited_by
+      });
+    }
+
+    // mark invitation accepted
+    await supabase.from('invitations').update({ accepted: true }).eq('id', inv.id);
+
+    // load shared child data
+    S.childProfileId = inv.child_profile_id;
+    await loadFromSupabase();
+
+    // show welcome message
+    S.inviteAccepted = true;
+
+  } catch(e) {
+    console.log('processInvite error:', e);
   }
 }
 
@@ -408,10 +488,23 @@ async function loadFromSupabase(retries = 3) {
       S.age = profile.child_age || '';
       S.lang = profile.lang || 'en';
 
-      const { data: goals } = await supabase
-        .from('goals').select('*')
+      // load caregiver info first
+      const { data: caregiverRow } = await supabase
+        .from('caregivers')
+        .select('child_profile_id, role, display_name')
         .eq('user_id', currentUser.id)
-        .order('goal_number');
+        .limit(1)
+        .single();
+      if (caregiverRow?.child_profile_id) {
+        S.childProfileId = caregiverRow.child_profile_id;
+        S.caregiverRole = caregiverRow.role;
+      }
+
+      // load goals — by child_profile_id if available (shared), else by user_id
+      const goalsQuery = S.childProfileId
+        ? supabase.from('goals').select('*').eq('child_profile_id', S.childProfileId).order('goal_number')
+        : supabase.from('goals').select('*').eq('user_id', currentUser.id).order('goal_number');
+      const { data: goals } = await goalsQuery;
 
       if (goals && goals.length > 0) {
         S.goals = goals.map(g => ({
@@ -427,10 +520,11 @@ async function loadFromSupabase(retries = 3) {
         }));
       }
 
-      const { data: logs } = await supabase
-        .from('logs').select('*')
-        .eq('user_id', currentUser.id)
-        .order('created_at');
+      // load logs — by child_profile_id if shared
+      const logsQuery = S.childProfileId
+        ? supabase.from('logs').select('*').eq('child_profile_id', S.childProfileId).order('created_at')
+        : supabase.from('logs').select('*').eq('user_id', currentUser.id).order('created_at');
+      const { data: logs } = await logsQuery;
 
       if (logs) {
         S.logs = logs.map(l => ({
@@ -469,6 +563,18 @@ async function loadFromSupabase(retries = 3) {
       S.view = 'home';
       // load report templates
       if (profile.report_templates) S.reportTemplates = profile.report_templates;
+
+      // load child_profile_id from caregivers table
+      const { data: caregiverData } = await supabase
+        .from('caregivers')
+        .select('child_profile_id, role, display_name')
+        .eq('user_id', currentUser.id)
+        .limit(1)
+        .single();
+      if (caregiverData?.child_profile_id) {
+        S.childProfileId = caregiverData.child_profile_id;
+        S.caregiverRole = caregiverData.role;
+      }
       if (S.logs.length > 0 && !S.insightsParentCare && !S.homeParentCareLoading) {
         S.homeParentCareLoading = true;
         const _summary = S.goals.map((g, i) => {
@@ -1655,6 +1761,19 @@ function renderHome() {
       }).catch(() => { S.homeParentCareLoading = false; });
     }
 
+    // invite accepted welcome
+    if (S.inviteAccepted) {
+      const invBox = div(`background:${T.green};border-radius:18px;padding:18px 20px;margin-bottom:16px;`);
+      invBox.innerHTML = `
+        <p style="font-family:'Fraunces',serif;font-size:18px;color:#fff;margin-bottom:6px;">🌿 ${S.lang==='ko'?'초대를 수락했어요!':'You\'re in!'}</p>
+        <p style="font-size:13px;color:rgba(255,255,255,.85);line-height:1.6;margin-bottom:10px;">${S.lang==='ko'
+          ? `${S.child}의 목표와 기록을 함께 볼 수 있어요.`
+          : `You can now see ${S.child}'s goals and logs together.`}</p>
+        <button onclick="S.inviteAccepted=false;render();" style="background:rgba(255,255,255,.2);border:none;border-radius:10px;padding:6px 14px;font-size:12px;color:#fff;cursor:pointer;font-family:'DM Sans',sans-serif;">${S.lang==='ko'?'확인':'Got it'}</button>
+      `;
+      wrap.appendChild(invBox);
+    }
+
     // first visit welcome — show once after onboarding
     if (S.goals.length > 0 && S.logs.length === 0 && !S.firstVisitDismissed) {
       const welcomeBox = div(`background:${T.green};border-radius:18px;padding:18px 20px;margin-bottom:16px;`);
@@ -2655,7 +2774,10 @@ function renderWeek() {
           <span style="font-size:16px;">${g.icon}</span>
           <p style="font-size:13px;font-weight:500;color:${T.text};">${g.name}</p>
         </div>
-        <p style="font-size:11px;color:${T.muted};">${l.date}</p>
+        <div style="text-align:right;">
+          <p style="font-size:11px;color:${T.muted};">${l.date}</p>
+          ${l.caregiver&&l.caregiver!=='You'?`<p style="font-size:10px;color:${T.green};">by ${l.caregiver}</p>`:''}
+        </div>
       `;
       card.appendChild(hdr);
 
@@ -3676,6 +3798,110 @@ function renderGoals() {
   }
 
   // restore code display — only show if not logged in
+  // invite caregiver section
+  if (currentUser && S.childProfileId) {
+    const inviteWrap = div('margin-top:20px;');
+    inviteWrap.appendChild(p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;`, S.lang==='ko'?'공동 보호자':'Caregivers'));
+
+    // show existing caregivers
+    const caregiversBox = div(`background:#fff;border-radius:14px;border:1px solid ${T.border};padding:14px 16px;margin-bottom:10px;`);
+
+    // fetch caregivers async
+    if (!S.caregiversList) {
+      caregiversBox.innerHTML = `<p style="font-size:13px;color:${T.muted};">불러오는 중...</p>`;
+      supabase.from('caregivers')
+        .select('user_id, display_name, role, lang')
+        .eq('child_profile_id', S.childProfileId)
+        .then(({data}) => {
+          if (data) { S.caregiversList = data; render(); }
+        });
+    } else {
+      S.caregiversList.forEach(c => {
+        const row = div('display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;');
+        const isMe = c.user_id === currentUser.id;
+        row.innerHTML = `
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:32px;height:32px;border-radius:50%;background:${T.gl};display:flex;align-items:center;justify-content:center;font-size:14px;">👤</div>
+            <div>
+              <p style="font-size:13px;font-weight:500;color:${T.text};">${c.display_name||'Caregiver'}${isMe?` (${S.lang==='ko'?'나':'me'})`:''}</p>
+              <p style="font-size:11px;color:${T.muted};">${c.role==='owner'?(S.lang==='ko'?'소유자':'Owner'):(S.lang==='ko'?'보호자':'Caregiver')} · ${c.lang==='ko'?'한국어':'English'}</p>
+            </div>
+          </div>
+        `;
+        caregiversBox.appendChild(row);
+      });
+    }
+    inviteWrap.appendChild(caregiversBox);
+
+    // invite form
+    const inviteBox = div(`background:${T.gl};border-radius:14px;padding:14px 16px;`);
+    inviteBox.innerHTML = `<p style="font-size:12px;font-weight:500;color:${T.green};margin-bottom:10px;">+ ${S.lang==='ko'?'보호자 초대하기':'Invite a caregiver'}</p>`;
+
+    const emailInp = document.createElement('input');
+    emailInp.type = 'email';
+    emailInp.placeholder = S.lang==='ko'?'이메일 주소':'Email address';
+    emailInp.style.cssText=`width:100%;padding:10px 12px;border:1.5px solid ${T.border};border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:8px;`;
+
+    const nameInp = document.createElement('input');
+    nameInp.type = 'text';
+    nameInp.placeholder = S.lang==='ko'?'호칭 (예: 아빠, 할머니)':'Display name (e.g. Dad, Grandma)';
+    nameInp.style.cssText=`width:100%;padding:10px 12px;border:1.5px solid ${T.border};border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:8px;`;
+
+    const sendBtn = document.createElement('button');
+    sendBtn.style.cssText=`width:100%;padding:10px;background:${T.green};color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+    sendBtn.textContent = S.lang==='ko'?'초대 링크 보내기':'Send invite';
+    sendBtn.onclick = async() => {
+      const email = emailInp.value.trim();
+      const name = nameInp.value.trim();
+      if (!email) return;
+      sendBtn.textContent = S.lang==='ko'?'전송 중...':'Sending...';
+      sendBtn.disabled = true;
+      try {
+        // create invitation
+        const { data: inv } = await supabase.from('invitations').insert({
+          child_profile_id: S.childProfileId,
+          invited_by: currentUser.id,
+          email,
+        }).select().single();
+
+        if (inv) {
+          const inviteUrl = `https://therapybuddy.org?invite=${inv.token}&name=${encodeURIComponent(name||email)}`;
+          // send via email function
+          await fetch('/.netlify/functions/email', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({
+              to: email,
+              subject: `${S.parent} invited you to Therapy Buddy`,
+              body: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#F8F6F2;">
+                <a href="https://therapybuddy.org" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;margin-bottom:20px;">
+                  <div style="width:28px;height:28px;border-radius:50%;background:#2D5A3D;display:inline-flex;align-items:center;justify-content:center;font-size:14px;">🌿</div>
+                  <span style="font-family:Georgia,serif;font-size:18px;color:#2D5A3D;">Therapy Buddy</span>
+                </a>
+                <h2 style="font-size:20px;font-weight:400;color:#1A1A1A;margin-bottom:12px;">${S.parent} invited you to track ${S.child}'s progress together.</h2>
+                <p style="font-size:14px;color:#4A4A4A;line-height:1.7;margin-bottom:20px;">You'll be able to log notes, see what's working, and coordinate with other caregivers — all in one place.</p>
+                <a href="${inviteUrl}" style="display:block;background:#2D5A3D;color:#fff;text-align:center;padding:14px;border-radius:12px;font-size:15px;font-weight:500;text-decoration:none;margin-bottom:16px;">Accept invitation →</a>
+                <p style="font-size:12px;color:#909090;">If the button doesn't work, copy this link: ${inviteUrl}</p>
+              </div>`
+            })
+          });
+          sendBtn.textContent = S.lang==='ko'?'✓ 초대 전송됐어요':'✓ Invite sent!';
+          sendBtn.style.background = '#4A8C60';
+          emailInp.value = ''; nameInp.value = '';
+        }
+      } catch(e) {
+        sendBtn.textContent = S.lang==='ko'?'다시 시도':'Try again';
+        sendBtn.disabled = false;
+      }
+    };
+
+    inviteBox.appendChild(emailInp);
+    inviteBox.appendChild(nameInp);
+    inviteBox.appendChild(sendBtn);
+    inviteWrap.appendChild(inviteBox);
+    wrap.appendChild(inviteWrap);
+  }
+
   // language toggle
   const langWrap = div('margin-top:16px;');
   const langLabel = p(`font-size:11px;font-weight:500;color:${T.muted};letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;`, S.lang==='ko'?'언어 설정':'Language');

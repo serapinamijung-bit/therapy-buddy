@@ -498,6 +498,29 @@ async function loadFromSupabase(retries = 3) {
       if (caregiverRow?.child_profile_id) {
         S.childProfileId = caregiverRow.child_profile_id;
         S.caregiverRole = caregiverRow.role;
+      } else if (profile.parent_name) {
+        // existing user without child_profile — create one now
+        const { data: cp } = await supabase.from('child_profiles').insert({
+          name: profile.child_name || '',
+          age: profile.child_age || ''
+        }).select().single();
+        if (cp) {
+          S.childProfileId = cp.id;
+          await supabase.from('caregivers').insert({
+            child_profile_id: cp.id,
+            user_id: currentUser.id,
+            role: 'owner',
+            display_name: profile.parent_name || '',
+            lang: profile.lang || 'en'
+          });
+          // link existing goals to this child_profile
+          await supabase.from('goals')
+            .update({ child_profile_id: cp.id })
+            .eq('user_id', currentUser.id);
+          await supabase.from('logs')
+            .update({ child_profile_id: cp.id })
+            .eq('user_id', currentUser.id);
+        }
       }
 
       // load goals — by child_profile_id if available (shared), else by user_id

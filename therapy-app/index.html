@@ -4251,4 +4251,152 @@ function renderGoalDetail() {
       const newLog={goalIdx:S.logGoalIdx, date, caregiver:S.parent||'Me',
         before:S.tempLog.before||'', attempted:'Yes',
         technique:S.tempLog.technique||S.tempLog.diary||'',
-        worked:S.tempLog.worked||'
+        worked:S.tempLog.worked||'', didnt_work:S.tempLog.didnt_work||'',
+        reaction:'', outcome:S.tempLog.outcome||'', next:S.tempLog.next||''};
+      S.logs.push(newLog);
+      saveState();
+      if(currentUser) saveLogToSupabase({goalName:g.name,date,caregiver:S.parent||'Me',
+        before:newLog.before,attempted:newLog.attempted,technique:newLog.technique,
+        worked:newLog.worked,didnt_work:newLog.didnt_work,reaction:newLog.reaction,
+        outcome:newLog.outcome,next:newLog.next},g.goal_id);
+      S.tempLog={};
+      S.goalDetailStep='view';
+      go('home');
+    };
+    wrap.appendChild(saveBtn);
+    wrap.appendChild(skipBtn);
+    return wrap;
+  }
+
+  // ── UPDATE: AI suggests new action cards ───────────────────────
+  if (S.goalDetailStep === 'update') {
+    wrap.appendChild(h('h2',"font-family:'Fraunces',serif;font-size:22px;font-weight:400;color:#1A1A1A;margin-bottom:6px;", S.lang==='ko'?'액션 카드 업데이트':'Update Action Cards'));
+    wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:16px;line-height:1.6;`, S.lang==='ko'?'기록을 바탕으로 더 나은 방법을 제안해드릴게요.':'Based on your notes, we can suggest better steps.'));
+
+    if (!S.goalDetailNewActions) {
+      // loading state — fetch AI suggestions
+      const loadBox = div(`background:${T.gl};border-radius:14px;padding:20px;text-align:center;margin-bottom:16px;`);
+      loadBox.innerHTML=`<p style="font-size:14px;color:${T.green};">✨ ${S.lang==='ko'?'분석 중...':'Analyzing...'}</p>`;
+      wrap.appendChild(loadBox);
+
+      // fetch
+      const recentLogs = S.logs.filter(l=>l.goalIdx===S.logGoalIdx).slice(-5);
+      fetch('/.netlify/functions/analyze', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          type:'cycle_analysis',
+          goal: g.name,
+          trigger: g.trigger,
+          actions: g.actions,
+          logs: recentLogs,
+          child: S.child,
+          lang: S.lang
+        })
+      }).then(r=>r.json()).then(data=>{
+        if (data.next_actions) {
+          S.goalDetailNewActions = data.next_actions;
+          render();
+        }
+      }).catch(()=>{ S.goalDetailNewActions = []; render(); });
+      return wrap;
+    }
+
+    if (S.goalDetailNewActions.length > 0) {
+      const newBox = div(`background:#fff;border-radius:16px;border:1px solid ${T.border};padding:16px 18px;margin-bottom:16px;`);
+      newBox.innerHTML=`<p style="font-size:11px;font-weight:700;color:${T.green};letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;">✨ ${S.lang==='ko'?'새로운 추천':'New Suggestions'}</p>`;
+      S.goalDetailNewActions.slice(0,3).forEach((a,i)=>{
+        const row=div('display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;');
+        row.innerHTML=`<div style="width:22px;height:22px;min-width:22px;border-radius:50%;background:${T.gl};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:${T.green};">${i+1}</div><p style="font-size:13px;color:${T.tm};line-height:1.6;">${a}</p>`;
+        newBox.appendChild(row);
+      });
+      wrap.appendChild(newBox);
+
+      // current actions for comparison
+      const currentBox = div(`background:#F8F6F2;border-radius:16px;padding:14px 16px;margin-bottom:16px;`);
+      currentBox.innerHTML=`<p style="font-size:11px;font-weight:700;color:${T.muted};letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;">${S.lang==='ko'?'현재 액션 카드':'Current Action Cards'}</p>`;
+      (g.actions||[]).filter(a=>a).forEach((a,i)=>{
+        const row=div('display:flex;gap:8px;margin-bottom:6px;');
+        row.innerHTML=`<span style="font-size:11px;color:${T.muted};margin-top:2px;">${i+1}.</span><p style="font-size:12px;color:${T.muted};line-height:1.5;">${a}</p>`;
+        currentBox.appendChild(row);
+      });
+      wrap.appendChild(currentBox);
+
+      const updateBtn=document.createElement('button'); updateBtn.style.cssText=`width:100%;padding:14px;background:${T.green};color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:8px;`;
+      updateBtn.textContent=S.lang==='ko'?'새 방법으로 업데이트':'Update with new steps';
+      updateBtn.onclick=async()=>{
+        g.actions = S.goalDetailNewActions.slice(0,4);
+        saveState();
+        if(currentUser&&supabase&&g.goal_id){
+          await supabase.from('goals').update({actions:g.actions}).eq('id',g.goal_id);
+        }
+        S.goalDetailNewActions=null;
+        S.tempLog={};
+        S.goalDetailStep='view';
+        go('home');
+      };
+      wrap.appendChild(updateBtn);
+    }
+
+    const keepBtn=document.createElement('button'); keepBtn.style.cssText=`width:100%;padding:12px;background:none;border:1.5px solid ${T.border};border-radius:14px;font-size:13px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;`;
+    keepBtn.textContent=S.lang==='ko'?'현재 유지하고 홈으로':'Keep current & go home';
+    keepBtn.onclick=()=>{ S.goalDetailNewActions=null; S.tempLog={}; S.goalDetailStep='view'; go('home'); };
+    wrap.appendChild(keepBtn);
+    return wrap;
+  }
+
+  return wrap;
+}
+
+// ── RENDER ─────────────────────────────────────────────────────────
+function render() {
+  try {
+  const screenEl=document.getElementById('screen');
+  screenEl.innerHTML='';
+  let content;
+  if(S.view==='onboard') content=renderOnboard();
+  else if(S.view==='home') content=renderHome();
+  else if(S.view==='goalDetail') content=renderGoalDetail();
+  else if(S.view==='log') content=renderLog();
+  else if(S.view==='week') content=renderWeek();
+  else if(S.view==='goals') content=renderGoals();
+  else if(S.view==='report') content=renderReport();
+  if(content) screenEl.appendChild(content);
+  renderNav();
+  // demo tour overlay
+  if(S.demoTour) {
+    const existing = document.getElementById('demo-tour-overlay');
+    if(existing) existing.remove();
+    const overlay = renderDemoTour();
+    overlay.id = 'demo-tour-overlay';
+    document.body.appendChild(overlay);
+  } else {
+    const existing = document.getElementById('demo-tour-overlay');
+    if(existing) existing.remove();
+  }
+  } catch(e) {
+    console.error('Render error:', e);
+    const screenEl=document.getElementById('screen');
+    if(screenEl) screenEl.innerHTML=`<div style="padding:40px;text-align:center;"><p style="color:#C84B3A;font-size:14px;">Something went wrong. <button onclick="location.reload()" style="color:#2D5A3D;background:none;border:none;cursor:pointer;text-decoration:underline;">Reload</button></p></div>`;
+  }
+}
+
+// real-time clock
+function updateClock() {
+  const el = document.getElementById('status-time');
+  if (!el) return;
+  const now = new Date();
+  const h = now.getHours();
+  const m = now.getMinutes().toString().padStart(2,'0');
+  el.textContent = `${h}:${m}`;
+}
+setInterval(updateClock, 10000);
+
+initSupabaseAndRender();
+updateClock();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(e => console.log('SW error:', e));
+}
+</script>
+</body>
+</html>

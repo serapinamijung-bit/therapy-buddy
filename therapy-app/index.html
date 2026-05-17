@@ -563,6 +563,8 @@ function getReportTemplate(purpose) {
 
 async function loadFromSupabase(retries = 3) {
   if (!supabase || !currentUser) return;
+  // reset lang to en before loading — profile will set correct lang
+  S.lang = 'en';
   try {
     const { data: profile } = await supabase
       .from('profiles')
@@ -1179,8 +1181,8 @@ function renderNav() {
   nav.style.display = show ? 'flex' : 'none';
   if (!show) return;
   const navLabels = S.lang === 'ko'
-    ? [['home','⌂','홈'],['log','✎','노트'],['week','◎','돌아보기'],['goals','⚙','설정']]
-    : [['home','⌂','Home'],['log','✎','Notes'],['week','◎','Insights'],['goals','⚙','Settings']];
+    ? [['home','⌂','홈'],['log','✎','일지'],['week','◎','돌아보기'],['goals','⚙','설정']]
+    : [['home','⌂','Home'],['log','✎','Journal'],['week','◎','Insights'],['goals','⚙','Settings']];
   nav.innerHTML = navLabels.map(([id,ic,lb]) => `
     <button class="nav-btn ${S.view===id?'active':''}" onclick="go('${id}')">
       <span style="font-size:19px">${ic}</span><span>${lb}</span>
@@ -1194,9 +1196,7 @@ function p(style='',text='') { const e=document.createElement('p'); if(style)e.s
 function h(tag,style='',text='') { const e=document.createElement(tag); if(style)e.style.cssText=style; e.textContent=text; return e; }
 
 // ── ONBOARDING ─────────────────────────────────────────────────────
-function renderOnboard() {
-  // voice button helper for onboarding
-  function makeVoiceBtn(onResult, targetEl) {
+function makeVoiceBtn(onResult, targetEl) {
     const vb = document.createElement('button');
     vb.style.cssText=`background:#fff;border:1.5px solid ${T.border};border-radius:10px;padding:8px 10px;font-size:16px;cursor:pointer;flex-shrink:0;`;
     vb.textContent='🎤';
@@ -1281,6 +1281,9 @@ function renderOnboard() {
     };
     return vb;
   }
+
+function renderOnboard() {
+  // voice button helper for onboarding (uses global makeVoiceBtn)
   const wrap = div('flex:1;display:flex;flex-direction:column;padding:28px 22px 36px;');
   const step = S.step;
 
@@ -2051,7 +2054,7 @@ function renderHome() {
         }
       }
 
-      card.onclick=()=>{S.logGoalIdx=i;S.tempLog={noteMode:'goal', fromHome:true};go('log');};
+      card.onclick=()=>{S.logGoalIdx=i;S.view='goalDetail';S.goalDetailStep='view';render();};
       wrap.appendChild(card);
     });
   }
@@ -4079,55 +4082,173 @@ function renderGoals() {
   return wrap;
 }
 
-// ── RENDER ─────────────────────────────────────────────────────────
-function render() {
-  try {
-  const screenEl=document.getElementById('screen');
-  screenEl.innerHTML='';
-  let content;
-  if(S.view==='onboard') content=renderOnboard();
-  else if(S.view==='home') content=renderHome();
-  else if(S.view==='log') content=renderLog();
-  else if(S.view==='week') content=renderWeek();
-  else if(S.view==='goals') content=renderGoals();
-  else if(S.view==='report') content=renderReport();
-  if(content) screenEl.appendChild(content);
-  renderNav();
-  // demo tour overlay
-  if(S.demoTour) {
-    const existing = document.getElementById('demo-tour-overlay');
-    if(existing) existing.remove();
-    const overlay = renderDemoTour();
-    overlay.id = 'demo-tour-overlay';
-    document.body.appendChild(overlay);
-  } else {
-    const existing = document.getElementById('demo-tour-overlay');
-    if(existing) existing.remove();
+// ── GOAL DETAIL ────────────────────────────────────────────────────
+function renderGoalDetail() {
+  const wrap = div('flex:1;overflow-y:auto;padding:24px 22px 40px;');
+  const g = S.goals[S.logGoalIdx];
+  if (!g) { go('home'); return wrap; }
+
+  const back = document.createElement('button');
+  back.style.cssText=`background:none;border:none;cursor:pointer;color:${T.tm};font-size:14px;margin-bottom:20px;padding:0;font-family:'DM Sans',sans-serif;`;
+  back.textContent = '← ' + (S.lang==='ko'?'홈으로':'Home');
+  back.onclick = () => { S.goalDetailStep='view'; go('home'); };
+  wrap.appendChild(back);
+
+  // ── VIEW: action steps + add note ──────────────────────────────
+  if (S.goalDetailStep === 'view' || !S.goalDetailStep) {
+
+    // goal header
+    const hdr = div('margin-bottom:20px;');
+    hdr.innerHTML=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><span style="font-size:28px;">${g.icon}</span><h2 style="font-family:'Fraunces',serif;font-size:22px;font-weight:400;color:#1A1A1A;line-height:1.3;">${g.name}</h2></div>${g.trigger?`<p style="font-size:13px;color:${T.muted};line-height:1.5;">📍 ${g.trigger}</p>`:''}`;
+    wrap.appendChild(hdr);
+
+    // action steps
+    if (g.actions && g.actions.filter(a=>a).length > 0) {
+      const stepsBox = div(`background:#fff;border-radius:16px;border:1px solid ${T.border};padding:16px 18px;margin-bottom:16px;`);
+      stepsBox.innerHTML=`<p style="font-size:11px;font-weight:700;color:${T.green};letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;">${S.lang==='ko'?'액션 스텝':'Action Steps'}</p>`;
+      const validActions = g.actions.filter(a=>a);
+      const showAll = S.goalDetailShowAllSteps;
+      const toShow = showAll ? validActions : validActions.slice(0,2);
+      toShow.forEach((a,i) => {
+        const row = div('display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;');
+        row.innerHTML=`<div style="width:22px;height:22px;min-width:22px;border-radius:50%;background:${T.gl};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:${T.green};">${i+1}</div><p style="font-size:13px;color:${T.tm};line-height:1.6;">${a}</p>`;
+        stepsBox.appendChild(row);
+      });
+      if (validActions.length > 2) {
+        const moreBtn = document.createElement('button');
+        moreBtn.style.cssText=`background:none;border:none;font-size:13px;color:${T.green};cursor:pointer;font-family:'DM Sans',sans-serif;padding:4px 0;font-weight:500;`;
+        moreBtn.textContent = showAll ? (S.lang==='ko'?'접기 ↑':'Show less ↑') : `+ ${validActions.length-2} ${S.lang==='ko'?'더 보기':'more steps'}`;
+        moreBtn.onclick = () => { S.goalDetailShowAllSteps=!showAll; render(); };
+        stepsBox.appendChild(moreBtn);
+      }
+      if (g.avoid) {
+        const avoidRow = div(`margin-top:10px;padding-top:10px;border-top:1px solid ${T.border};`);
+        avoidRow.innerHTML=`<p style="font-size:11px;font-weight:600;color:#C84B3A;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">✗ ${S.lang==='ko'?'피하기':'Avoid'}</p><p style="font-size:12px;color:${T.tm};line-height:1.6;">${g.avoid}</p>`;
+        stepsBox.appendChild(avoidRow);
+      }
+      wrap.appendChild(stepsBox);
+    }
+
+    // recent logs for this goal
+    const goalLogs = S.logs.filter(l=>l.goalIdx===S.logGoalIdx&&l.attempted==='Yes').slice(-3).reverse();
+    if (goalLogs.length > 0) {
+      const recentBox = div(`background:#fff;border-radius:16px;border:1px solid ${T.border};padding:14px 16px;margin-bottom:16px;`);
+      recentBox.innerHTML=`<p style="font-size:11px;font-weight:700;color:${T.muted};letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;">${S.lang==='ko'?'최근 기록':'Recent logs'}</p>`;
+      goalLogs.forEach(l => {
+        const row = div(`padding:8px 0;border-bottom:1px solid ${T.border};`);
+        row.innerHTML=`<div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="font-size:11px;color:${T.muted};">${l.date}${l.caregiver&&l.caregiver!==S.parent?` · by ${l.caregiver}`:''}</span><span style="font-size:11px;font-weight:500;color:${l.outcome?.includes('No')?T.muted:l.outcome?.includes('Partial')?T.orange:T.green};">${l.outcome||''}</span></div><p style="font-size:12px;color:${T.tm};line-height:1.5;">${l.technique||''}</p>`;
+        recentBox.appendChild(row);
+      });
+      wrap.appendChild(recentBox);
+    }
+
+    // add note section
+    const noteBox = div(`background:${T.gl};border-radius:16px;padding:16px 18px;margin-bottom:16px;`);
+    noteBox.innerHTML=`<p style="font-family:'Fraunces',serif;font-size:17px;font-weight:400;color:#1A1A1A;margin-bottom:6px;">${S.lang==='ko'?'이 목표에 대해 추가할 내용이 있나요?':'Anything to add about this goal?'}</p><p style="font-size:12px;color:${T.muted};margin-bottom:12px;line-height:1.5;">${S.lang==='ko'?'오늘 시도한 것, 결과, 느낀 점 등 자유롭게 말해주세요.':'What did you try today? How did it go? Speak or type freely.'}</p>`;
+
+    const ta = document.createElement('textarea');
+    ta.value = S.tempLog?.diary || '';
+    ta.placeholder = S.lang==='ko' ? '여기에 적어주세요...' : 'Write here...';
+    ta.style.cssText=`width:100%;min-height:100px;padding:12px 14px;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;resize:none;line-height:1.7;background:#fff;`;
+    ta.oninput = e => { if(!S.tempLog) S.tempLog={}; S.tempLog.diary=e.target.value; };
+
+    const voiceRow = div('display:flex;gap:8px;margin-top:8px;');
+    const vb = makeVoiceBtn(v => {
+      if(!S.tempLog) S.tempLog={};
+      S.tempLog.diary=(S.tempLog.diary?S.tempLog.diary+' ':'')+v;
+      ta.value=S.tempLog.diary;
+      ta.style.height='auto'; ta.style.height=Math.min(ta.scrollHeight,200)+'px';
+    }, ta);
+    vb.style.cssText=`padding:10px 16px;background:#fff;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;gap:6px;`;
+    vb.innerHTML=`<span>🎤</span><span style="font-size:13px;color:${T.tm};">${S.lang==='ko'?'말하기':'Speak'}</span>`;
+
+    const analyzeBtn = document.createElement('button');
+    analyzeBtn.style.cssText=`flex:1;padding:11px;background:${T.green};color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+    analyzeBtn.textContent = S.lang==='ko'?'✨ 정리해드릴게요':'✨ Organize this for me';
+    analyzeBtn.onclick = async () => {
+      const diary = S.tempLog?.diary;
+      if (!diary?.trim()) return;
+      analyzeBtn.textContent = S.lang==='ko'?'✨ 분석 중...':'✨ Analyzing...';
+      analyzeBtn.disabled = true;
+      let dots=0; const iv=setInterval(()=>{dots=(dots+1)%4;analyzeBtn.textContent=(S.lang==='ko'?'✨ 분석 중':'✨ Analyzing')+'.'.repeat(dots);},500);
+      try {
+        const res = await fetch('/.netlify/functions/analyze', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            type:'parse_diary', diary, child:S.child,
+            goals: S.goals.map((g,i)=>`${i}: ${g.name}${g.archived?' (archived)':''}`),
+            goal: g.name, lang: S.lang
+          })
+        });
+        clearInterval(iv);
+        const data = await res.json();
+        if (data.parsed) {
+          S.tempLog = { ...S.tempLog, ...data.parsed, goalIdx: S.logGoalIdx,
+            goalIdxs: [S.logGoalIdx], diaryParsed: true };
+          S.goalDetailStep = 'review';
+          render();
+        }
+      } catch(e) { clearInterval(iv); analyzeBtn.textContent=S.lang==='ko'?'✨ 정리해드릴게요':'✨ Organize this for me'; analyzeBtn.disabled=false; }
+    };
+
+    noteBox.appendChild(ta);
+    voiceRow.appendChild(vb);
+    voiceRow.appendChild(analyzeBtn);
+    noteBox.appendChild(voiceRow);
+    wrap.appendChild(noteBox);
+    return wrap;
   }
-  } catch(e) {
-    console.error('Render error:', e);
-    const screenEl=document.getElementById('screen');
-    if(screenEl) screenEl.innerHTML=`<div style="padding:40px;text-align:center;"><p style="color:#C84B3A;font-size:14px;">Something went wrong. <button onclick="location.reload()" style="color:#2D5A3D;background:none;border:none;cursor:pointer;text-decoration:underline;">Reload</button></p></div>`;
-  }
-}
 
-// real-time clock
-function updateClock() {
-  const el = document.getElementById('status-time');
-  if (!el) return;
-  const now = new Date();
-  const h = now.getHours();
-  const m = now.getMinutes().toString().padStart(2,'0');
-  el.textContent = `${h}:${m}`;
-}
-setInterval(updateClock, 10000);
+  // ── REVIEW: show parsed note + save ────────────────────────────
+  if (S.goalDetailStep === 'review') {
+    wrap.appendChild(h('h2',"font-family:'Fraunces',serif;font-size:22px;font-weight:400;color:#1A1A1A;margin-bottom:6px;", S.lang==='ko'?'정리된 내용이에요':'Here\'s what we captured'));
+    wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:16px;`, S.lang==='ko'?'수정할 수 있어요.':'Feel free to edit.'));
 
-initSupabaseAndRender();
-updateClock();
+    const fields = [
+      ['technique', S.lang==='ko'?'시도한 것':'What was tried'],
+      ['worked', S.lang==='ko'?'효과 있었던 것':'What worked'],
+      ['didnt_work', S.lang==='ko'?'효과 없었던 것':'What didn\'t work'],
+      ['outcome', S.lang==='ko'?'결과':'Outcome'],
+    ];
+    fields.forEach(([key, label]) => {
+      if (!S.tempLog[key]) return;
+      const box = div(`background:#fff;border-radius:12px;border:1px solid ${T.border};padding:12px 14px;margin-bottom:8px;`);
+      box.innerHTML=`<p style="font-size:10px;font-weight:700;color:${T.green};text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">${label}</p>`;
+      const inp = document.createElement('textarea'); inp.value=S.tempLog[key]||'';
+      inp.style.cssText=`width:100%;padding:6px 0;border:none;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;resize:none;color:${T.tm};line-height:1.6;background:transparent;`;
+      inp.oninput=e=>{S.tempLog[key]=e.target.value; inp.style.height='auto'; inp.style.height=inp.scrollHeight+'px';};
+      setTimeout(()=>{inp.style.height='auto';inp.style.height=inp.scrollHeight+'px';},0);
+      box.appendChild(inp);
+      wrap.appendChild(box);
+    });
 
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').catch(e => console.log('SW error:', e));
-}
-</script>
-</body>
-</html>
+    const saveBtn = document.createElement('button');
+    saveBtn.style.cssText=`width:100%;padding:14px;background:${T.green};color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:8px;`;
+    saveBtn.textContent = S.lang==='ko'?'저장하고 액션 카드 업데이트 →':'Save & update action cards →';
+    saveBtn.onclick = async () => {
+      // save log
+      const d=new Date(); const date=`${d.getMonth()+1}/${d.getDate()}`;
+      const newLog={goalIdx:S.logGoalIdx, date, caregiver:S.parent||'Me',
+        before:S.tempLog.before||'', attempted:'Yes',
+        technique:S.tempLog.technique||S.tempLog.diary||'',
+        worked:S.tempLog.worked||'', didnt_work:S.tempLog.didnt_work||'',
+        reaction:'', outcome:S.tempLog.outcome||'', next:S.tempLog.next||''};
+      S.logs.push(newLog);
+      saveState();
+      if(currentUser) saveLogToSupabase({goalName:g.name,date,caregiver:S.parent||'Me',
+        before:newLog.before,attempted:newLog.attempted,technique:newLog.technique,
+        worked:newLog.worked,didnt_work:newLog.didnt_work,reaction:newLog.reaction,
+        outcome:newLog.outcome,next:newLog.next},g.goal_id);
+      S.goalDetailStep = 'update';
+      render();
+    };
+
+    const skipBtn = document.createElement('button');
+    skipBtn.style.cssText=`width:100%;padding:12px;background:none;border:1.5px solid ${T.border};border-radius:14px;font-size:13px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:8px;`;
+    skipBtn.textContent = S.lang==='ko'?'저장만 하고 홈으로':'Save & go home';
+    skipBtn.onclick = () => {
+      const d=new Date(); const date=`${d.getMonth()+1}/${d.getDate()}`;
+      const newLog={goalIdx:S.logGoalIdx, date, caregiver:S.parent||'Me',
+        before:S.tempLog.before||'', attempted:'Yes',
+        technique:S.tempLog.technique||S.tempLog.diary||'',
+        worked:S.tempLog.worked||'

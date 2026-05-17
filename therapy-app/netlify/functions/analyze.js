@@ -103,6 +103,66 @@ Respond ONLY with this JSON:
       };
     }
 
+    // CYCLE ANALYSIS MODE — suggest new action steps based on logs
+    if (data.type === 'cycle_analysis') {
+      const isKo = data.lang === 'ko';
+      const logs = data.logs || [];
+      const worked = logs.filter(l=>l.worked).map(l=>l.worked).filter(Boolean);
+      const notWorked = logs.filter(l=>l.didnt_work).map(l=>l.didnt_work).filter(Boolean);
+      const techniques = logs.filter(l=>l.technique).map(l=>l.technique).filter(Boolean);
+
+      const prompt = `A parent is working on this goal with their child:
+
+Goal: "${data.goal}"
+Trigger: "${data.trigger || 'not specified'}"
+Child: ${data.child || 'child'}
+
+Current action steps:
+${(data.actions||[]).filter(a=>a).map((a,i)=>`${i+1}. ${a}`).join('\n')}
+
+Recent home observations:
+- What worked: ${worked.slice(-3).join(' / ') || 'nothing noted yet'}
+- What didn\'t work: ${notWorked.slice(-3).join(' / ') || 'nothing noted yet'}
+- Techniques tried: ${techniques.slice(-3).join(' / ') || 'nothing noted yet'}
+
+Based on what\'s working and what isn\'t, suggest 3-4 NEW or IMPROVED action steps.
+- Build on what worked
+- Avoid repeating what didn\'t work
+- Keep steps concrete, specific, and age-appropriate
+- Each step should be doable in under 5 minutes at home
+
+Respond in ${isKo ? 'Korean' : 'English'}.
+Respond ONLY with this JSON:
+{
+  "next_actions": ["step 1", "step 2", "step 3"]
+}`;
+
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-5-20250929',
+          max_tokens: 500,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+
+      const result = await response.json();
+      const text = result.content?.[0]?.text || '';
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : { next_actions: [] };
+
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ status: 'ok', next_actions: parsed.next_actions || [] })
+      };
+    }
+
     // SUGGEST GOALS MODE
     if (data.type === 'suggest_goals') {
       const isKo = data.lang === 'ko';

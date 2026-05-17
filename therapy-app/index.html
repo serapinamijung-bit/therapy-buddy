@@ -2055,7 +2055,12 @@ function renderHome() {
         }
       }
 
-      card.onclick=()=>{S.logGoalIdx=i;S.view='goalDetail';S.goalDetailStep='view';render();};
+      // tap to view button
+      const tapBtn = div('margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.15);');
+      tapBtn.innerHTML=`<p style="font-size:12px;color:rgba(255,255,255,.7);font-family:'DM Sans',sans-serif;font-weight:500;">${S.lang==='ko'?'탭해서 자세히 보기 & 업데이트':'Tap for more & updates →'}</p>`;
+      card.appendChild(tapBtn);
+
+      card.onclick=()=>{S.logGoalIdx=i;S.view='goalDetail';S.goalDetailStep='view';S.goalDetailShowAllSteps=false;S.goalDetailNewActions=null;S.tempLog={};render();};
       wrap.appendChild(card);
     });
   }
@@ -2381,11 +2386,19 @@ function renderLog() {
           const d=new Date(); const date=`${d.getMonth()+1}/${d.getDate()}`;
           const idxsToSave = matchedGoals.length > 0 ? goalIdxs.filter(idx=>idx>=0) : [0];
           idxsToSave.forEach(gIdx => {
-            const newLog={goalIdx:gIdx,date,caregiver:'You',before:S.tempLog.before||'',attempted:'Yes',technique:S.tempLog.technique||S.tempLog.diary||'',worked:S.tempLog.worked||'',didnt_work:S.tempLog.didnt_work||'',reaction:'',outcome:S.tempLog.outcome||'',next:S.tempLog.next||''};
+            const newLog={goalIdx:gIdx,date,caregiver:S.parent||'Me',before:S.tempLog.before||'',attempted:'Yes',technique:S.tempLog.technique||S.tempLog.diary||'',worked:S.tempLog.worked||'',didnt_work:S.tempLog.didnt_work||'',reaction:'',outcome:S.tempLog.outcome||'',next:S.tempLog.next||''};
             S.logs.push(newLog);
-            if(currentUser){ saveLogToSupabase({goalName:S.goals[gIdx]?.name||'',date,caregiver:'You',before:newLog.before,attempted:newLog.attempted,technique:newLog.technique,worked:newLog.worked,didnt_work:newLog.didnt_work,reaction:newLog.reaction,outcome:newLog.outcome,next:newLog.next},S.goals[gIdx]?.goal_id||''); }
+            if(currentUser){ saveLogToSupabase({goalName:S.goals[gIdx]?.name||'',date,caregiver:S.parent||'Me',before:newLog.before,attempted:newLog.attempted,technique:newLog.technique,worked:newLog.worked,didnt_work:newLog.didnt_work,reaction:newLog.reaction,outcome:newLog.outcome,next:newLog.next},S.goals[gIdx]?.goal_id||''); }
           });
-          S.tempLog={}; saveState(); go('home');
+          saveState();
+          // go to goal detail of first matched goal
+          const firstGoalIdx = idxsToSave[0] ?? 0;
+          S.tempLog = {};
+          S.logGoalIdx = firstGoalIdx;
+          S.view = 'goalDetail';
+          S.goalDetailStep = 'update';
+          S.goalDetailNewActions = null;
+          render();
         };
         const skipBtn = document.createElement('button');
         skipBtn.style.cssText=`width:100%;padding:12px;background:none;border:none;font-size:13px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;`;

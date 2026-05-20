@@ -7,257 +7,163 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
-body {
-  font-family: 'DM Sans', sans-serif;
-  background: #F8F6F2;
-  color: #1A1A1A;
-  min-height: 100vh;
-  padding: 32px 24px 40px;
-}
+body { font-family: 'DM Sans', sans-serif; background: #F8F6F2; color: #1A1A1A; min-height: 100vh; padding: 32px 24px 40px; }
 .page { max-width: 680px; margin: 0 auto; }
-
-.header {
-  display: flex; align-items: flex-start; justify-content: space-between;
-  margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #EAE6DE;
-}
+.header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid #EAE6DE; }
 .logo { display: flex; align-items: center; gap: 12px; }
-.logo-blob {
-  width: 44px; height: 44px;
-  border-radius: 62% 38% 70% 30%/45% 65% 35% 55%;
-  background: linear-gradient(140deg, #4A8C60, #2D5A3D);
-  display: flex; align-items: center; justify-content: center; font-size: 20px;
-}
+.logo-blob { width: 44px; height: 44px; border-radius: 62% 38% 70% 30%/45% 65% 35% 55%; background: linear-gradient(140deg, #4A8C60, #2D5A3D); display: flex; align-items: center; justify-content: center; font-size: 20px; }
 .logo-text { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 400; color: #2D5A3D; }
-.beta-badge {
-  background: #EAF2EC; color: #2D5A3D;
-  font-size: 11px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase;
-  padding: 4px 10px; border-radius: 20px; margin-top: 4px;
-}
-
-.hero { margin-bottom: 24px; }
-.hero h1 { font-family: 'Fraunces', serif; font-size: 32px; font-weight: 400; line-height: 1.2; color: #1A1A1A; margin-bottom: 10px; }
+.beta-badge { background: #EAF2EC; color: #2D5A3D; font-size: 11px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; padding: 4px 10px; border-radius: 20px; margin-top: 4px; }
+.hero { margin-bottom: 28px; }
+.hero h1 { font-family: 'Fraunces', serif; font-size: 32px; font-weight: 400; line-height: 1.25; color: #1A1A1A; margin-bottom: 12px; }
 .hero h1 em { font-style: italic; color: #2D5A3D; }
-.hero p { font-size: 14px; color: #4A4A4A; line-height: 1.7; max-width: 520px; }
-
-.story-box {
-  background: #EAF2EC; border-radius: 16px; padding: 18px 20px; margin-bottom: 20px;
-  border-left: 3px solid #2D5A3D;
-}
-.story-box p { font-size: 14px; color: #2D5A3D; line-height: 1.7; font-style: italic; }
-.story-box .attribution { font-size: 12px; color: #4A8C60; margin-top: 8px; font-style: normal; font-weight: 500; }
-
-.how-it-works {
-  background: #fff; border-radius: 16px; border: 1px solid #EAE6DE;
-  padding: 16px 18px; margin-bottom: 20px;
-}
-.how-it-works-title { font-size: 11px; font-weight: 500; color: #909090; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 12px; }
-.loop-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.loop-item { background: #F8F6F2; border-radius: 10px; padding: 8px 12px; font-size: 13px; color: #1A1A1A; font-weight: 500; }
-.loop-arrow { color: #2D5A3D; font-size: 16px; font-weight: 700; }
-.loop-note { font-size: 12px; color: #4A4A4A; line-height: 1.6; margin-top: 10px; }
-
-.url-box {
-  background: #2D5A3D; border-radius: 16px;
-  padding: 16px 20px; margin-bottom: 24px;
-  display: flex; align-items: center; justify-content: space-between; gap: 16px;
-}
-.url-box-left p:first-child { font-size: 11px; font-weight: 500; color: rgba(255,255,255,.6); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 4px; }
-.url-box-left p:last-child { font-family: 'Fraunces', serif; font-size: 18px; color: #fff; }
-
-.section { margin-bottom: 20px; }
-.section-label { font-size: 11px; font-weight: 500; color: #909090; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 10px; }
-
-.steps { display: flex; flex-direction: column; gap: 8px; }
-.step { display: flex; gap: 12px; align-items: flex-start; background: #fff; border-radius: 12px; border: 1px solid #EAE6DE; padding: 10px 14px; }
-.step-num { width: 26px; height: 26px; min-width: 26px; border-radius: 50%; background: #2D5A3D; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; margin-top: 1px; }
-.step-content p:first-child { font-size: 13px; font-weight: 500; color: #1A1A1A; margin-bottom: 2px; }
-.step-content p:last-child { font-size: 12px; color: #4A4A4A; line-height: 1.5; }
-
-.abc-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 4px; }
-.abc-card { background: #fff; border-radius: 14px; border: 1px solid #EAE6DE; padding: 14px 16px; }
-.abc-icon { font-size: 22px; margin-bottom: 8px; }
-.abc-label { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #909090; margin-bottom: 4px; }
-.abc-title { font-family: 'Fraunces', serif; font-size: 15px; color: #1A1A1A; margin-bottom: 4px; }
-.abc-desc { font-size: 12px; color: #4A4A4A; line-height: 1.5; }
-
-.tips { display: flex; flex-direction: column; gap: 6px; }
-.tip { display: flex; gap: 10px; align-items: flex-start; padding: 8px 12px; border-radius: 10px; }
-.tip.green { background: #EAF2EC; }
-.tip.orange { background: #FDF0EA; }
-.tip-icon { font-size: 16px; margin-top: 1px; }
-.tip p { font-size: 13px; line-height: 1.55; }
-.tip p strong { font-weight: 500; }
-
-.feedback-box { background: #fff; border-radius: 16px; border: 1px solid #EAE6DE; padding: 20px 22px; }
-.feedback-box p:first-child { font-size: 15px; font-weight: 500; color: #1A1A1A; margin-bottom: 6px; }
-
-.divider { height: 1px; background: #EAE6DE; margin: 20px 0; }
-.footer { text-align: center; }
-.footer p { font-size: 13px; color: #909090; line-height: 1.7; }
-.footer p strong { color: #1A1A1A; font-weight: 500; }
-
-@media print {
-  body { background: white; padding: 12px; }
-  .page { max-width: 100%; }
-  .abc-card, .abc-row, .step, .tip, .section, .feedback-box, .url-box, .story-box, .how-it-works { break-inside: avoid; page-break-inside: avoid; }
-  h1, h2, .section-label, .how-it-works-title { break-after: avoid; page-break-after: avoid; }
-}
-@media (max-width: 600px) {
-  .abc-row { grid-template-columns: 1fr; }
-  .header { flex-direction: column; gap: 12px; }
-  .hero h1 { font-size: 26px; }
-  .loop-row { flex-direction: column; align-items: flex-start; }
-}
+.hero p { font-size: 15px; color: #4A4A4A; line-height: 1.8; max-width: 540px; }
+.empathy-box { background: #EAF2EC; border-radius: 18px; padding: 20px 22px; margin-bottom: 24px; border-left: 4px solid #2D5A3D; }
+.empathy-box p { font-size: 15px; color: #2D5A3D; line-height: 1.8; font-family: 'Fraunces', serif; font-weight: 400; }
+.url-box { background: #2D5A3D; border-radius: 16px; padding: 18px 22px; margin-bottom: 28px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.url-box-left p:first-child { font-size: 11px; font-weight: 500; color: rgba(255,255,255,.6); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; }
+.url-box-left p:last-child { font-family: 'Fraunces', serif; font-size: 20px; color: #fff; }
+.section { margin-bottom: 28px; }
+.section-label { font-size: 11px; font-weight: 700; color: #2D5A3D; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid #EAE6DE; }
+.steps { display: flex; flex-direction: column; gap: 12px; }
+.step { display: flex; gap: 14px; align-items: flex-start; background: #fff; border-radius: 16px; border: 1px solid #EAE6DE; padding: 16px 18px; }
+.step-num { width: 30px; height: 30px; min-width: 30px; border-radius: 50%; background: #2D5A3D; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; margin-top: 1px; }
+.step-icon { font-size: 26px; flex-shrink: 0; margin-top: 2px; }
+.step-content h3 { font-size: 15px; font-weight: 600; color: #1A1A1A; margin-bottom: 4px; }
+.step-content p { font-size: 13px; color: #4A4A4A; line-height: 1.7; }
+.step-content .tip { font-size: 12px; color: #2D5A3D; background: #EAF2EC; border-radius: 8px; padding: 6px 10px; margin-top: 8px; line-height: 1.6; }
+.tabs-box { background: #fff; border-radius: 16px; border: 1px solid #EAE6DE; padding: 16px 18px; margin-bottom: 24px; }
+.tabs-box h3 { font-size: 14px; font-weight: 600; color: #1A1A1A; margin-bottom: 12px; }
+.tab-row { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px; }
+.tab-badge { background: #2D5A3D; color: #fff; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; margin-top: 2px; }
+.tab-row p { font-size: 13px; color: #4A4A4A; line-height: 1.6; }
+.privacy-box { background: #F8F6F2; border-radius: 14px; border: 1px solid #EAE6DE; padding: 14px 18px; margin-bottom: 24px; display: flex; gap: 12px; align-items: flex-start; }
+.privacy-box p { font-size: 13px; color: #4A4A4A; line-height: 1.7; }
+.feedback-box { background: #2D5A3D; border-radius: 18px; padding: 22px 24px; text-align: center; }
+.feedback-box p { color: rgba(255,255,255,.85); font-size: 14px; line-height: 1.7; margin-bottom: 12px; }
+.feedback-box a { color: #fff; font-weight: 600; text-decoration: underline; }
 </style>
 </head>
 <body>
 <div class="page">
 
-  <!-- HEADER -->
   <div class="header">
     <div class="logo">
       <div class="logo-blob">🌿</div>
-      <div class="logo-text">Therapy Buddy</div>
+      <div>
+        <div class="logo-text">Therapy Buddy</div>
+        <div class="beta-badge">Beta</div>
+      </div>
     </div>
-    <div class="beta-badge">Beta Tester Guide</div>
   </div>
 
-  <!-- HERO -->
   <div class="hero">
-    <h1>What if your therapist was<br><em>always</em> with you?</h1>
-    <p>Parents sit down with a therapist for counseling once or twice a week. The other six days are up to you. Therapy Buddy is a pocket-sized companion that helps you apply your child's therapy goals at home — learning more about your child with every log to provide customized guidance designed to accelerate treatment progress.</p>
+    <h1>Your parenting companion —<br><em>here to help with the hard parts.</em></h1>
+    <p style="margin-top:12px;">Therapy happens once or twice a week. The other six days are on you. Therapy Buddy helps you carry that load — turning everyday moments into a plan, tracking what works, and making sure nothing falls through the cracks.</p>
   </div>
 
-  <!-- STORY -->
-  <div class="story-box">
-    <p>"I started thinking: what would it be like if I had access to my therapist 24/7 — in my pocket? I tried it with my son and it actually helped. I stopped forgetting his goals between sessions. And when a technique stopped working, I didn't have to wait until the next appointment to get new ideas."</p>
-    <p class="attribution">— Sera, mom of two & Therapy Buddy builder</p>
+  <div class="empathy-box">
+    <p>"You don't have to be perfect at this. Showing up — logging, trying, adjusting — is the work. We're here to help you do it."</p>
   </div>
 
-  <!-- HOW IT WORKS -->
-  <div class="how-it-works">
-    <div class="how-it-works-title">How it works — the feedback loop</div>
-    <div class="loop-row">
-      <div class="loop-item">🎯 Add goals</div>
-      <div class="loop-arrow">→</div>
-      <div class="loop-item">📝 Log what happened</div>
-      <div class="loop-arrow">→</div>
-      <div class="loop-item">✨ Get new recommendations</div>
-      <div class="loop-arrow">→</div>
-      <div class="loop-item">🔄 Try again</div>
-    </div>
-    <p class="loop-note">The more you log, the smarter the recommendations get. When a technique stops working, tap "Generate next cycle" and AI will analyze your logs and suggest what to try next — so you're never stuck.</p>
-  </div>
-
-  <!-- URL + QR -->
   <div class="url-box">
     <div class="url-box-left">
-      <p>Open this link on your phone</p>
-      <p>therapy-buddy-app.netlify.app</p>
-      <p style="font-size:12px;color:rgba(255,255,255,.5);margin-top:6px;">Or scan the QR code →</p>
+      <p>Open the app at</p>
+      <p>therapybuddy.org</p>
     </div>
-    <div style="background:white;border-radius:12px;padding:8px;width:90px;height:90px;flex-shrink:0;">
-      <img src="https://api.qrserver.com/v1/create-qr-code/?size=74x74&data=https://therapy-buddy-app.netlify.app&color=2D5A3D&bgcolor=ffffff" width="74" height="74" style="display:block;" alt="QR code">
-    </div>
+    <div style="font-size:28px;">📱</div>
   </div>
 
-  <!-- GETTING STARTED -->
   <div class="section">
-    <div class="section-label">Getting started — 3 minutes</div>
+    <div class="section-label">How it works</div>
     <div class="steps">
+
       <div class="step">
         <div class="step-num">1</div>
         <div class="step-content">
-          <p>Open the link and tap "Get started"</p>
-          <p>Enter your name and your child's name and age. Choose English or Korean.</p>
+          <h3>Tell the app what's on your mind</h3>
+          <p>Share any challenge you've been noticing with your child — no need to frame it as a "goal." Just talk or type freely. <em>"He won't share toys," "She doesn't respond when I call her name."</em></p>
+          <div class="tip">💡 You can speak directly using the 🎤 button — no typing needed.</div>
         </div>
       </div>
+
       <div class="step">
         <div class="step-num">2</div>
         <div class="step-content">
-          <p>Add your child's therapy goals</p>
-          <p>Use the goals from your child's treatment plan, or anything you want to work on. Add up to 5 goals. Each one becomes an action card. You can always edit in the Goals tab.</p>
+          <h3>Get goals & action cards, instantly</h3>
+          <p>The app turns your input into therapy-style goals and generates practical action cards — specific steps you can try at home today, built around what your child needs.</p>
+          <div class="tip">💡 Review, edit, or remove any suggested goal before getting started.</div>
         </div>
       </div>
+
       <div class="step">
         <div class="step-num">3</div>
         <div class="step-content">
-          <p>Log what happens, as it happens</p>
-          <p>Tap a goal card, record what you tried and how it went. Takes under 2 minutes. The more you log, the better the recommendations get.</p>
+          <h3>Try it & share your feedback</h3>
+          <p>Tap an action card to see the full steps. After trying something, tap <strong>"Tap for more & updates"</strong> and share how it went — what you tried, what worked, what didn't. You can also include feedback from your therapist or teacher.</p>
+          <div class="tip">💡 Speak freely — the app will organize your input automatically.</div>
         </div>
       </div>
+
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <h3>Get updated action cards</h3>
+          <p>Based on your feedback, the app suggests improved action steps — building on what worked and moving away from what didn't. Your action cards evolve with your child.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-content">
+          <h3>Invite family members</h3>
+          <p>Go to <strong>Settings → Caregivers</strong> to invite a co-parent, grandparent, or other caregiver. They'll see the same goals and logs, so everyone is aligned — even if they speak a different language.</p>
+          <div class="tip">💡 Each caregiver can set their own language preference independently.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">6</div>
+        <div class="step-content">
+          <h3>Generate reports for your providers</h3>
+          <p>Before an IEP meeting, therapist session, or teacher conference — go to <strong>Insights → Generate a report to share</strong>. Choose the purpose, select what to include, and send it directly by email.</p>
+          <div class="tip">💡 Reports are customizable. You control what gets shared with who.</div>
+        </div>
+      </div>
+
     </div>
   </div>
 
-  <!-- HOW TO LOG -->
   <div class="section">
-    <div class="section-label">Each log has 3 parts</div>
-    <div class="abc-row">
-      <div class="abc-card">
-        <div class="abc-icon">🔵</div>
-        <div class="abc-label">Before</div>
-        <div class="abc-title">Child's state</div>
-        <div class="abc-desc">Was your child calm, focused, or resistant before you tried?</div>
+    <div class="section-label">Tab guide</div>
+    <div class="tabs-box">
+      <div class="tab-row">
+        <div class="tab-badge">Home</div>
+        <p>Your action cards. Tap any card to view full steps, add a note, and update your plan.</p>
       </div>
-      <div class="abc-card">
-        <div class="abc-icon">🟢</div>
-        <div class="abc-label">Treatment</div>
-        <div class="abc-title">What you tried</div>
-        <div class="abc-desc">Which technique? What worked, even a little? What didn't?</div>
+      <div class="tab-row">
+        <div class="tab-badge">Journal</div>
+        <p>Anything on your mind — vent, share a therapist note, or log a general observation. AI will organize it for you.</p>
       </div>
-      <div class="abc-card">
-        <div class="abc-icon">🟡</div>
-        <div class="abc-label">After</div>
-        <div class="abc-title">Results</div>
-        <div class="abc-desc">How did your child react? Success, partial success, or no success?</div>
+      <div class="tab-row">
+        <div class="tab-badge">Insights</div>
+        <p>See your recent activity, goal progress, and generate reports to share with providers.</p>
+      </div>
+      <div class="tab-row">
+        <div class="tab-badge">Settings</div>
+        <p>Manage your goals, invite caregivers, change language, and access your account.</p>
       </div>
     </div>
   </div>
 
-  <!-- WHAT'S IN THIS VERSION -->
-  <div class="section">
-    <div class="section-label">What's in this version</div>
-    <div class="tips">
-      <div class="tip green">
-        <div class="tip-icon">✓</div>
-        <p><strong>Action cards</strong> — one per goal, with trigger, steps, and what to avoid. Gets updated automatically when you generate a new cycle.</p>
-      </div>
-      <div class="tip green">
-        <div class="tip-icon">✓</div>
-        <p><strong>Weekly progress</strong> — check the "This Week" tab for success rates per goal, what's working, and what to try next.</p>
-      </div>
-      <div class="tip green">
-        <div class="tip-icon">✨</div>
-        <p><strong>AI next cycle recommendations</strong> — tap "Generate next cycle" in the Week tab. AI reads your logs and updates your action cards. No waiting for the next appointment.</p>
-      </div>
-      <div class="tip orange">
-        <div class="tip-icon">🔑</div>
-        <p><strong>Write down your Restore code</strong> (Goals tab). Use it to recover your data if you clear your browser or switch devices.</p>
-      </div>
-    </div>
+  <div class="privacy-box">
+    <div style="font-size:20px;">🔒</div>
+    <p><strong>Your data is private.</strong> Everything you share stays within your account. Therapy Buddy never sells your data or shares it with third parties. Each caregiver can only see data for the child they're connected to.</p>
   </div>
 
-  <div class="divider"></div>
-
-  <!-- FEEDBACK -->
-  <div class="section">
-    <div class="section-label">Your feedback shapes what's next</div>
-    <div class="feedback-box">
-      <p>You're one of the first people to try this. Please tell us:</p>
-      <p style="font-size:13px;color:#4A4A4A;line-height:1.7;margin-top:6px;">Did this feel useful in real life? Did you actually log — and if not, why not? Was anything confusing or missing? Any feedback, big or small, goes directly into the next version.</p>
-      <div style="margin-top:16px;padding-top:16px;border-top:1px solid #EAE6DE;">
-        <p style="font-size:13px;color:#2D5A3D;font-weight:500;margin-bottom:6px;">Just one text or email away 🌿</p>
-        <p style="font-size:13px;color:#4A4A4A;line-height:1.8;"><strong>Sera Koo</strong><br>
-        📧 serapina.mijung@gmail.com<br>
-        📱 571-919-7424</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- FOOTER -->
-  <div class="footer">
-    <p>Thank you for being part of this. 🌿<br>
-    <strong>Therapy Buddy — Beta v1 · May 2026</strong></p>
+  <div class="feedback-box">
+    <p>This is a beta — your feedback shapes the product.<br>Notice something broken or have an idea? We'd love to hear it.</p>
+    <a href="mailto:serapina.mijung@gmail.com">serapina.mijung@gmail.com</a>
   </div>
 
 </div>

@@ -191,8 +191,14 @@ Respond in ${isKo ? 'Korean' : 'English'}. JSON only:
 
       const result = await response.json();
       const text = result.content?.[0]?.text || '';
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : { goals: [] };
+      console.log('suggest_goals raw response:', text.substring(0, 200));
+      let parsed = { goals: [] };
+      try {
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
+      } catch(parseErr) {
+        console.log('suggest_goals JSON parse error:', parseErr.message);
+      }
 
       return {
         statusCode: 200,

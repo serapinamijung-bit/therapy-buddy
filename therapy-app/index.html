@@ -1562,7 +1562,7 @@ function renderOnboard() {
           }
         } catch(e){
           clearInterval(iv);
-          console.log('onboarding suggest_goals error:', e);
+          console.log('onboarding suggest_goals error:', e.message, e.stack);
           genBtn.textContent=S.lang==='ko'?'✨ 다시 시도':'✨ Try again';
           genBtn.disabled=false;
         }

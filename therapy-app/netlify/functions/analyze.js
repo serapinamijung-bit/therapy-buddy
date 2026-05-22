@@ -168,46 +168,12 @@ Respond ONLY with this JSON:
       const isKo = data.lang === 'ko';
       const ageNum = parseInt(data.age) || 6;
 
-      const ageGuidance = ageNum <= 3
-        ? 'Child is a toddler (age 1-3). Focus on: simple 1-step instructions, visual cues, sensory-based activities, parallel play, short attention spans (1-2 min), caregiver modeling. Avoid: complex language, waiting, abstract concepts.'
-        : ageNum <= 5
-        ? 'Child is preschool age (age 4-5). Focus on: 2-step instructions, visual schedules, play-based learning, peer interaction, 3-5 min activities, choice-giving, praise and immediate rewards. Avoid: long explanations, delayed rewards.'
-        : ageNum <= 8
-        ? 'Child is early elementary age (age 6-8). Focus on: structured routines, token systems, social stories, turn-taking games, 5-10 min activities, simple emotion labeling. Avoid: too many rules at once, public correction.'
-        : ageNum <= 12
-        ? 'Child is older elementary age (age 9-12). Focus on: self-monitoring, peer-based strategies, natural consequences, negotiation, longer activities, perspective-taking. Avoid: baby talk, over-praising, hovering.'
-        : 'Child is a teenager (age 13+). Focus on: autonomy, self-advocacy, natural consequences, collaborative problem-solving. Avoid: lecturing, public correction, over-controlling.';
+      const prompt = `You are a BCBA therapist. Parent concern about their ${ageNum}-year-old child ${data.child}: "${data.concern}"
 
-      const prompt = `You are an experienced behavior therapist (BCBA) who specializes in working with children and supporting their families at home. A parent has shared what they're struggling with.
+Suggest 1-2 goals with home action steps appropriate for age ${ageNum}.
 
-Parent's concern: "${data.concern}"
-Child: ${data.child}, Age: ${ageNum}
-
-Age-specific guidance for a ${ageNum}-year-old:
-${ageGuidance}
-
-Based on what they shared, suggest 2-4 specific, home-based behavioral goals. For each goal:
-- name: short, clear goal name (3-6 words, action-oriented)
-- icon: one relevant emoji
-- trigger: when this behavior typically occurs (one sentence, specific)
-- actions: 3-4 concrete steps a parent can try at home today — evidence-based, developmentally appropriate for age ${ageNum}, practical (not clinical jargon)
-- avoid: 1-2 things the parent should avoid doing (common mistakes)
-
-Think like a therapist who has seen this situation many times. Be specific and practical, not generic. Sound warm and supportive, not clinical.
-
-Respond in ${isKo ? 'Korean' : 'English'}.
-Respond ONLY with this JSON:
-{
-  "goals": [
-    {
-      "name": "...",
-      "icon": "🎯",
-      "trigger": "...",
-      "actions": ["...", "...", "...", "..."],
-      "avoid": "..."
-    }
-  ]
-}`;
+Respond in ${isKo ? 'Korean' : 'English'}. JSON only:
+{"goals":[{"name":"short goal name","icon":"emoji","trigger":"when it happens","actions":["step 1","step 2","step 3"],"avoid":"what not to do"}]}`;
 
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -218,7 +184,7 @@ Respond ONLY with this JSON:
         },
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',
-          max_tokens: 1200,
+          max_tokens: 600,
           messages: [{ role: 'user', content: prompt }]
         })
       });

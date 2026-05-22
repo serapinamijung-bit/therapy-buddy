@@ -1350,9 +1350,8 @@ function renderOnboard() {
         ? '카카오톡 등 메신저에서 열었다면 Safari/Chrome 으로 열어주세요'
         : 'If opened from KakaoTalk or a messenger app, open in Safari or Chrome');
 
-    // Continue without login
     const startBtn = document.createElement('button');
-    startBtn.style.cssText=`width:100%;padding:12px;background:#fff;color:${T.tm};border:1.5px solid ${T.border};border-radius:14px;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:10px;`;
+    startBtn.style.cssText=`width:100%;padding:12px;background:none;color:${T.muted};border:1.5px solid ${T.border};border-radius:14px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:10px;`;
     startBtn.textContent=S.lang==='ko'?'로그인 없이 계속하기':'Continue without account';
     startBtn.onclick=()=>{S.step=1;render();};
 
@@ -1364,7 +1363,7 @@ function renderOnboard() {
 
     wrap.appendChild(blob); wrap.appendChild(langRow); wrap.appendChild(title); wrap.appendChild(desc);
     wrap.appendChild(googleSignInBtn); wrap.appendChild(browserNote);
-    wrap.appendChild(demoBtn);
+    wrap.appendChild(startBtn); wrap.appendChild(demoBtn);
 
     if (currentUser) {
       const signedInBox = div(`background:${T.gl};border-radius:14px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;margin-top:12px;`);

@@ -1550,6 +1550,8 @@ function renderOnboard() {
           const data=await res.json();
           console.log('onboarding suggest_goals response:', data);
           if(data.goals&&data.goals.length>0){
+            // debug: show on screen what we got
+            alert('Goals received: ' + data.goals.length + ' - ' + data.goals.map(g=>g.name).join(', '));
             S.goals=data.goals.map((g,i)=>({
               goal_id:'g_'+Math.random().toString(36).substr(2,9)+'_'+Date.now()+i,
               goal_version:1, goal_number:i+1,
@@ -1557,6 +1559,7 @@ function renderOnboard() {
             }));
             render();
           } else {
+            alert('No goals in response: ' + JSON.stringify(data).substring(0, 200));
             genBtn.textContent=S.lang==='ko'?'✨ 다시 시도':'✨ Try again';
             genBtn.disabled=false;
           }

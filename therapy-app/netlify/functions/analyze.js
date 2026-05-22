@@ -111,11 +111,11 @@ Respond ONLY with this JSON:
       const notWorked = logs.filter(l=>l.didnt_work).map(l=>l.didnt_work).filter(Boolean);
       const techniques = logs.filter(l=>l.technique).map(l=>l.technique).filter(Boolean);
 
-      const prompt = `A parent is working on this goal with their child:
+      const prompt = `You are an experienced behavior therapist (BCBA) reviewing a parent's home practice logs.
 
 Goal: "${data.goal}"
 Trigger: "${data.trigger || 'not specified'}"
-Child: ${data.child || 'child'}
+Child: ${data.child || 'child'}, Age: ${data.age || 'unknown'}
 
 Current action steps:
 ${(data.actions||[]).filter(a=>a).map((a,i)=>`${i+1}. ${a}`).join('\n')}
@@ -125,11 +125,11 @@ Recent home observations:
 - What didn\'t work: ${notWorked.slice(-3).join(' / ') || 'nothing noted yet'}
 - Techniques tried: ${techniques.slice(-3).join(' / ') || 'nothing noted yet'}
 
-Based on what\'s working and what isn\'t, suggest 3-4 NEW or IMPROVED action steps.
-- Build on what worked
-- Avoid repeating what didn\'t work
-- Keep steps concrete, specific, and age-appropriate
-- Each step should be doable in under 5 minutes at home
+As their therapist, suggest 3-4 NEW or IMPROVED action steps based on the data.
+- Build directly on what worked
+- Replace what didn\'t work with evidence-based alternatives
+- Keep steps concrete, under 2 sentences, doable in under 5 minutes at home
+- Sound like a therapist giving specific advice, not generic tips
 
 Respond in ${isKo ? 'Korean' : 'English'}.
 Respond ONLY with this JSON:
@@ -167,22 +167,35 @@ Respond ONLY with this JSON:
     if (data.type === 'suggest_goals') {
       const isKo = data.lang === 'ko';
       const ageNum = parseInt(data.age) || 6;
-      const prompt = `A parent shared their parenting concerns about their child:
 
-"${data.concern}"
+      const ageGuidance = ageNum <= 3
+        ? 'Child is a toddler (age 1-3). Focus on: simple 1-step instructions, visual cues, sensory-based activities, parallel play, short attention spans (1-2 min), caregiver modeling. Avoid: complex language, waiting, abstract concepts.'
+        : ageNum <= 5
+        ? 'Child is preschool age (age 4-5). Focus on: 2-step instructions, visual schedules, play-based learning, peer interaction, 3-5 min activities, choice-giving, praise and immediate rewards. Avoid: long explanations, delayed rewards.'
+        : ageNum <= 8
+        ? 'Child is early elementary age (age 6-8). Focus on: structured routines, token systems, social stories, turn-taking games, 5-10 min activities, simple emotion labeling. Avoid: too many rules at once, public correction.'
+        : ageNum <= 12
+        ? 'Child is older elementary age (age 9-12). Focus on: self-monitoring, peer-based strategies, natural consequences, negotiation, longer activities, perspective-taking. Avoid: baby talk, over-praising, hovering.'
+        : 'Child is a teenager (age 13+). Focus on: autonomy, self-advocacy, natural consequences, collaborative problem-solving. Avoid: lecturing, public correction, over-controlling.';
 
+      const prompt = `You are an experienced behavior therapist (BCBA) who specializes in working with children and supporting their families at home. A parent has shared what they're struggling with.
+
+Parent's concern: "${data.concern}"
 Child: ${data.child}, Age: ${ageNum}
 
-Based on what they shared, suggest 2-4 specific, actionable therapy-style goals to work on at home.
+Age-specific guidance for a ${ageNum}-year-old:
+${ageGuidance}
 
-For each goal:
+Based on what they shared, suggest 2-4 specific, home-based behavioral goals. For each goal:
 - name: short, clear goal name (3-6 words, action-oriented)
 - icon: one relevant emoji
-- trigger: when this behavior typically occurs (one sentence)
-- actions: 2-3 specific steps to try at home (concrete, practical for age ${ageNum})
+- trigger: when this behavior typically occurs (one sentence, specific)
+- actions: 3-4 concrete steps a parent can try at home today — evidence-based, developmentally appropriate for age ${ageNum}, practical (not clinical jargon)
+- avoid: 1-2 things the parent should avoid doing (common mistakes)
 
-Respond in ${isKo ? 'Korean' : 'English'}. Keep everything SHORT and practical.
+Think like a therapist who has seen this situation many times. Be specific and practical, not generic. Sound warm and supportive, not clinical.
 
+Respond in ${isKo ? 'Korean' : 'English'}.
 Respond ONLY with this JSON:
 {
   "goals": [
@@ -190,7 +203,8 @@ Respond ONLY with this JSON:
       "name": "...",
       "icon": "🎯",
       "trigger": "...",
-      "actions": ["...", "...", "..."]
+      "actions": ["...", "...", "...", "..."],
+      "avoid": "..."
     }
   ]
 }`;

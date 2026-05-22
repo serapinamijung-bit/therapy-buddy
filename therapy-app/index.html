@@ -1079,15 +1079,17 @@ function loadDemo() {
 
 function renderDemoTour() {
   const steps = S.lang === 'ko' ? [
-    { icon:'🎯', title:'목표 → 액션 카드', desc:'고민을 말하면 AI 가 목표를 만들어줘요. 각 목표가 액션 카드가 돼요.', tab:'home' },
-    { icon:'📝', title:'기록하기', desc:'카드를 탭하면 오늘 뭘 시도했는지 기록할 수 있어요. 말하기도 가능해요.', tab:'log' },
-    { icon:'✨', title:'인사이트 & 새 추천', desc:'기록이 쌓이면 AI 가 뭐가 효과 있는지 분석하고 다음 방법을 추천해줘요.', tab:'week' },
-    { icon:'📋', title:'리포트 생성', desc:'IEP, 치료사, 선생님 미팅 전에 리포트를 생성해서 이메일로 공유하세요.', tab:'report' },
+    { icon:'🎯', title:'고민 → 목표 → 액션 카드', desc:'어떤 점이 어려운지 말하면 AI 가 목표와 실천 방법을 만들어줘요. 가이드 질문을 따라가도 돼요.', tab:'home' },
+    { icon:'📱', title:'카드 탭 → 기록 & 업데이트', desc:'홈에서 액션 카드를 탭하면 전체 단계를 볼 수 있어요. 오늘 시도한 것을 말하거나 입력하면 AI 가 새로운 방법을 추천해줘요.', tab:'home' },
+    { icon:'✎', title:'일지 — 자유롭게 기록', desc:'목표 없이 오늘 있었던 일이나 치료사 메모를 자유롭게 남길 수 있어요. AI 가 자동으로 정리해줘요.', tab:'log' },
+    { icon:'👨‍👩‍👧', title:'가족과 함께', desc:'설정 탭에서 배우자, 조부모 등 보호자를 초대하세요. 같은 목표와 기록을 공유하고 각자 언어로 볼 수 있어요.', tab:'goals' },
+    { icon:'📋', title:'리포트 생성', desc:'돌아보기 탭에서 IEP, 치료사, 선생님 미팅 전에 리포트를 만들어 이메일로 바로 공유할 수 있어요.', tab:'week' },
   ] : [
-    { icon:'🎯', title:'Goals → Action Cards', desc:'Share your concerns and AI turns them into goals. Each becomes an action card.', tab:'home' },
-    { icon:'📝', title:'Log what happened', desc:'Tap a card to log what you tried today. You can speak or type freely.', tab:'log' },
-    { icon:'✨', title:'Insights & new suggestions', desc:'As you log, AI analyzes what\'s working and suggests what to try next.', tab:'week' },
-    { icon:'📋', title:'Generate reports', desc:'Before IEP, therapist, or teacher meetings — generate and share a report in seconds.', tab:'report' },
+    { icon:'🎯', title:'Concerns → Goals → Action Cards', desc:'Tell us what\'s been challenging. AI turns it into a goal and action steps — or follow a set of guided questions.', tab:'home' },
+    { icon:'📱', title:'Tap a card → Log & update', desc:'Tap any action card on Home to see the full steps. Share what you tried — AI will suggest what to do next based on what worked.', tab:'home' },
+    { icon:'✎', title:'Journal — write freely', desc:'Drop a note without a specific goal in mind — great for therapist feedback or general observations. AI organizes it for you.', tab:'log' },
+    { icon:'👨‍👩‍👧', title:'Coordinate with family', desc:'Invite a co-parent, grandparent, or caregiver from the Settings tab. Everyone sees the same goals and logs — in their own language.', tab:'goals' },
+    { icon:'📋', title:'Generate reports', desc:'In the Insights tab — build a report before any IEP, therapist, or teacher meeting and share it by email in seconds.', tab:'week' },
   ];
 
   const step = S.demoStep || 0;
@@ -1122,6 +1124,7 @@ function renderDemoTour() {
       const nextTab = steps[step + 1].tab;
       if (nextTab === 'log') go('log');
       else if (nextTab === 'week') go('week');
+      else if (nextTab === 'goals') go('goals');
       else if (nextTab === 'report') { S.reportStep=1; go('report'); }
       else go('home');
     };
@@ -1361,7 +1364,7 @@ function renderOnboard() {
 
     wrap.appendChild(blob); wrap.appendChild(langRow); wrap.appendChild(title); wrap.appendChild(desc);
     wrap.appendChild(googleSignInBtn); wrap.appendChild(browserNote);
-    wrap.appendChild(startBtn); wrap.appendChild(demoBtn);
+    wrap.appendChild(demoBtn);
 
     if (currentUser) {
       const signedInBox = div(`background:${T.gl};border-radius:14px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;margin-top:12px;`);
@@ -1773,8 +1776,8 @@ function renderOnboard() {
 
       const aiBox = div(`background:${T.gl};border-radius:16px;padding:18px 20px;margin-bottom:16px;`);
       aiBox.innerHTML=`
-        <p style="font-family:'Fraunces',serif;font-size:18px;font-weight:400;color:#1A1A1A;margin-bottom:6px;">${S.lang==='ko'?'액션 카드를 만들어드릴까요?':'Would you like AI-generated action cards?'}</p>
-        <p style="font-size:13px;color:${T.muted};line-height:1.6;">${S.lang==='ko'?'입력하신 내용을 바탕으로 구체적인 실천 방법을 추천해드릴게요.':'Based on what you\'ve shared, we\'ll suggest specific steps to try at home.'}</p>
+        <p style="font-family:'Fraunces',serif;font-size:18px;font-weight:400;color:#1A1A1A;margin-bottom:6px;">${S.lang==='ko'?'첫 번째 액션 카드를 만들어드릴까요?':'Would you like us to generate your first action card for this goal?'}</p>
+        <p style="font-size:13px;color:${T.muted};line-height:1.6;">${S.lang==='ko'?'지금까지 입력하신 내용을 바탕으로 집에서 바로 해볼 수 있는 방법들을 제안해드릴게요.':'Based on what you\'ve shared, we\'ll suggest specific steps you can try at home right away.'}</p>
       `;
       wrap.appendChild(aiBox);
 
@@ -1803,9 +1806,9 @@ function renderOnboard() {
 
     if(goalStep === 6) {
       wrap.appendChild(h('h1',"font-family:'Fraunces',serif;font-size:24px;font-weight:400;color:#1A1A1A;line-height:1.3;margin-bottom:6px;",
-        S.lang==='ko' ? '액션 카드 확인 & 수정' : 'Review your action steps'));
+        S.lang==='ko' ? '어떠세요? 괜찮아 보이나요?' : 'Does this look good?'));
       wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:16px;line-height:1.6;`,
-        S.lang==='ko' ? '수정하거나 추가할 수 있어요.' : 'Edit or add steps as needed.'));
+        S.lang==='ko' ? '수정하거나 추가할 수 있어요. 나중에 언제든지 바꿀 수 있어요.' : 'Feel free to edit anything. You can always adjust these later as you learn what works.'));
 
       const aw2=div();
       const renderActs2=()=>{

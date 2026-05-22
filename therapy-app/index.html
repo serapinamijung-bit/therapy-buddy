@@ -1562,9 +1562,12 @@ function renderOnboard() {
           }
         } catch(e){
           clearInterval(iv);
-          console.log('onboarding suggest_goals error:', e.message, e.stack);
           genBtn.textContent=S.lang==='ko'?'✨ 다시 시도':'✨ Try again';
           genBtn.disabled=false;
+          // mobile debug — show error on screen
+          const errBox = div(`background:#FDECEA;border-radius:10px;padding:10px;margin-top:8px;`);
+          errBox.innerHTML=`<p style="font-size:11px;color:#C84B3A;word-break:break-all;">${e.message || e}</p>`;
+          genBtn.parentNode.insertBefore(errBox, genBtn.nextSibling);
         }
       };
       wrap.appendChild(genBtn);

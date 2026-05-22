@@ -42,6 +42,14 @@ body { font-family: 'DM Sans', sans-serif; background: #F8F6F2; color: #1A1A1A; 
 .feedback-box { background: #2D5A3D; border-radius: 18px; padding: 22px 24px; text-align: center; }
 .feedback-box p { color: rgba(255,255,255,.85); font-size: 14px; line-height: 1.7; margin-bottom: 12px; }
 .feedback-box a { color: #fff; font-weight: 600; text-decoration: underline; }
+@media print {
+  body { padding: 20px 16px; }
+  .page { max-width: 100%; }
+  .empathy-box, .url-box, .section, .privacy-box, .feedback-box { break-inside: avoid; page-break-inside: avoid; }
+  .section > div > div { break-inside: avoid; page-break-inside: avoid; }
+  .url-box { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .feedback-box { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
 </style>
 </head>
 <body>

@@ -1684,40 +1684,41 @@ function renderOnboard() {
       wrap.appendChild(spacer);
 
       const row = div('display:flex;gap:8px;');
-      const skipBtn=document.createElement('button'); skipBtn.style.cssText=`flex:1;padding:14px;background:none;border:1.5px solid ${T.border};border-radius:14px;font-size:14px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;`;
-      skipBtn.textContent=S.lang==='ko'?'건너뛰기':'Skip';
-      skipBtn.onclick=()=>{ S.goalStep=3; render(); };
-      const nextBtn=document.createElement('button'); nextBtn.style.cssText=`flex:2;padding:14px;background:${T.green};color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
-      nextBtn.textContent=S.lang==='ko'?'다음 →':'Next →';
-      nextBtn.onclick=()=>{ S.goalStep=3; render(); };
-      row.appendChild(skipBtn); row.appendChild(nextBtn);
+      const skipBtn2=document.createElement('button'); skipBtn2.style.cssText=`flex:1;padding:14px;background:none;border:1.5px solid ${T.border};border-radius:14px;font-size:14px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;`;
+      skipBtn2.textContent=S.lang==='ko'?'건너뛰기':'Skip';
+      skipBtn2.onclick=()=>{ S.goalStep=3; render(); };
+      const nextBtn2=document.createElement('button'); nextBtn2.style.cssText=`flex:2;padding:14px;background:${T.green};color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+      nextBtn2.textContent=S.lang==='ko'?'다음 →':'Next →';
+      nextBtn2.onclick=()=>{ S.goalStep=3; render(); };
+      row.appendChild(skipBtn2); row.appendChild(nextBtn2);
       wrap.appendChild(row);
       setTimeout(()=>ti.focus(),50);
     }
 
     if(goalStep === 3) {
       wrap.appendChild(h('h1',"font-family:'Fraunces',serif;font-size:24px;font-weight:400;color:#1A1A1A;line-height:1.3;margin-bottom:6px;",
-        S.lang==='ko' ? '지금 어떻게 대응하고 계세요?' : 'What have you tried so far?'));
+        S.lang==='ko' ? '지금까지 어떻게 해보셨나요?' : 'What have you tried so far?'));
       wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:16px;line-height:1.6;`,
-        S.lang==='ko' ? '알고 있는 것만 입력하세요 — 나중에 추가할 수 있어요.' : 'Add what you know — you can always add more later.'));
+        S.lang==='ko' ? '알고 있는 것만 적어주세요 — 없으면 건너뛰어도 괜찮아요.' : 'Add what you know — it\'s okay to skip if you\'re not sure yet.'));
 
       const aw=div();
       const renderActs=()=>{
         aw.innerHTML='';
-        g.actions.forEach((a,ai)=>{
+        (g.actions||['']).forEach((a,ai)=>{
           const row2=div('display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;');
           const num=div(`width:22px;height:22px;min-width:22px;border-radius:50%;background:${T.gl};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:${T.green};margin-top:10px;`,(ai+1).toString());
           const ai2=document.createElement('textarea'); ai2.value=a;
-          ai2.placeholder=S.lang==='ko'?'예: 먼저 아이 상태 확인하기':`e.g. Check child's state first`;
+          ai2.placeholder=S.lang==='ko'?'예: 이름을 여러 번 불렀어요':`e.g. I called his name multiple times`;
           ai2.style.cssText=`flex:1;padding:10px 12px;font-size:13px;border:1.5px solid ${T.border};border-radius:10px;background:#fff;outline:none;font-family:'DM Sans',sans-serif;color:${T.text};resize:none;overflow:hidden;min-height:40px;line-height:1.5;`;
           ai2.oninput=e=>{g.actions[ai]=e.target.value; ai2.style.height='auto'; ai2.style.height=Math.min(ai2.scrollHeight,120)+'px';};
-          const vb=makeVoiceBtn(v=>{g.actions[ai]=v;}, ai2);
+          const vb=makeVoiceBtn(v=>{g.actions[ai]=v;renderActs();}, ai2);
           vb.style.cssText=`background:#fff;border:1.5px solid ${T.border};border-radius:10px;padding:6px 8px;font-size:14px;cursor:pointer;flex-shrink:0;margin-top:4px;`;
           row2.appendChild(num); row2.appendChild(ai2); row2.appendChild(vb);
           if(g.actions.length>1){const del=document.createElement('button');del.textContent='✕';del.style.cssText='background:none;border:none;font-size:14px;color:#aaa;cursor:pointer;padding:0 4px;';del.onclick=()=>{g.actions.splice(ai,1);renderActs();};row2.appendChild(del);}
           aw.appendChild(row2);
         });
       };
+      if(!g.actions||g.actions.length===0) g.actions=[''];
       renderActs(); wrap.appendChild(aw);
       if(g.actions.length<4){
         const add=document.createElement('button');
@@ -1728,58 +1729,129 @@ function renderOnboard() {
       }
       wrap.appendChild(spacer);
 
-      const row = div('display:flex;gap:8px;');
-      const skipBtn=document.createElement('button'); skipBtn.style.cssText=`flex:1;padding:14px;background:none;border:1.5px solid ${T.border};border-radius:14px;font-size:14px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;`;
-      skipBtn.textContent=S.lang==='ko'?'건너뛰기':'Skip';
-      skipBtn.onclick=()=>{ S.goalStep=4; render(); };
-      const nextBtn=document.createElement('button'); nextBtn.style.cssText=`flex:2;padding:14px;background:${T.green};color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
-      nextBtn.textContent=S.lang==='ko'?'다음 →':'Next →';
-      nextBtn.onclick=()=>{ S.goalStep=4; render(); };
-      row.appendChild(skipBtn); row.appendChild(nextBtn);
-      wrap.appendChild(row);
+      const row3 = div('display:flex;gap:8px;');
+      const skipBtn3=document.createElement('button'); skipBtn3.style.cssText=`flex:1;padding:14px;background:none;border:1.5px solid ${T.border};border-radius:14px;font-size:14px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;`;
+      skipBtn3.textContent=S.lang==='ko'?'건너뛰기':'Skip';
+      skipBtn3.onclick=()=>{ S.goalStep=4; render(); };
+      const nextBtn3=document.createElement('button'); nextBtn3.style.cssText=`flex:2;padding:14px;background:${T.green};color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+      nextBtn3.textContent=S.lang==='ko'?'다음 →':'Next →';
+      nextBtn3.onclick=()=>{ S.goalStep=4; render(); };
+      row3.appendChild(skipBtn3); row3.appendChild(nextBtn3);
+      wrap.appendChild(row3);
     }
 
     if(goalStep === 4) {
       wrap.appendChild(h('h1',"font-family:'Fraunces',serif;font-size:24px;font-weight:400;color:#1A1A1A;line-height:1.3;margin-bottom:6px;",
-        S.lang==='ko' ? '피하고 싶은 것 또는 다른 추가사항' : 'Anything to avoid or additional notes?'));
+        S.lang==='ko' ? '효과가 있었나요?' : 'Did it work?'));
+      wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:20px;line-height:1.6;`,
+        S.lang==='ko' ? '지금까지 시도한 것들이 어떠셨나요?' : 'How have the things you\'ve tried been working?'));
+
+      const options = S.lang==='ko'
+        ? [['✅','잘 되고 있어요','worked'], ['⚠️','가끔 효과 있어요','partial'], ['❌','효과가 없었어요','not_working'], ['🆕','처음 시작해요','new']]
+        : [['✅','It\'s working well','worked'], ['⚠️','Sometimes works','partial'], ['❌','Not working','not_working'], ['🆕','Just getting started','new']];
+
+      options.forEach(([icon, label, val]) => {
+        const btn = document.createElement('button');
+        const isSelected = g._effectiveness === val;
+        btn.style.cssText=`width:100%;padding:13px 16px;background:${isSelected?T.gl:'#fff'};border:${isSelected?`2px solid ${T.green}`:`1px solid ${T.border}`};border-radius:14px;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:left;margin-bottom:8px;display:flex;align-items:center;gap:12px;`;
+        btn.innerHTML=`<span style="font-size:20px;">${icon}</span><span style="color:${isSelected?T.green:T.text};font-weight:${isSelected?'500':'400'};">${label}</span>`;
+        btn.onclick=()=>{ g._effectiveness=val; S.goalStep=5; render(); };
+        wrap.appendChild(btn);
+      });
+    }
+
+    if(goalStep === 5) {
+      // Goal summary
+      const summaryBox = div(`background:#fff;border-radius:16px;border:1px solid ${T.border};padding:16px 18px;margin-bottom:16px;`);
+      summaryBox.innerHTML=`
+        <p style="font-size:11px;font-weight:700;color:${T.green};text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">🎯 ${S.lang==='ko'?'목표 요약':'Your Goal'}</p>
+        <p style="font-size:15px;font-weight:500;color:${T.text};margin-bottom:6px;">${g.icon||'🎯'} ${g.name||''}</p>
+        ${g.trigger?`<p style="font-size:12px;color:${T.muted};">📍 ${g.trigger}</p>`:''}
+        ${g.actions?.filter(a=>a).length>0?`<p style="font-size:12px;color:${T.muted};margin-top:6px;">${S.lang==='ko'?'시도한 것':'Tried'}: ${g.actions.filter(a=>a).join(', ')}</p>`:''}
+      `;
+      wrap.appendChild(summaryBox);
+
+      const aiBox = div(`background:${T.gl};border-radius:16px;padding:18px 20px;margin-bottom:16px;`);
+      aiBox.innerHTML=`
+        <p style="font-family:'Fraunces',serif;font-size:18px;font-weight:400;color:#1A1A1A;margin-bottom:6px;">${S.lang==='ko'?'액션 카드를 만들어드릴까요?':'Would you like AI-generated action cards?'}</p>
+        <p style="font-size:13px;color:${T.muted};line-height:1.6;">${S.lang==='ko'?'입력하신 내용을 바탕으로 구체적인 실천 방법을 추천해드릴게요.':'Based on what you\'ve shared, we\'ll suggest specific steps to try at home.'}</p>
+      `;
+      wrap.appendChild(aiBox);
+
+      const genBtn=document.createElement('button'); genBtn.style.cssText=`width:100%;padding:14px;background:${T.green};color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:8px;`;
+      genBtn.textContent=S.lang==='ko'?'✨ 액션 카드 생성하기':'✨ Generate action cards';
+      genBtn.onclick=async()=>{
+        genBtn.textContent=S.lang==='ko'?'✨ 생성 중...':'✨ Generating...'; genBtn.disabled=true;
+        let dots=0; const iv=setInterval(()=>{dots=(dots+1)%4;genBtn.textContent=(S.lang==='ko'?'✨ 생성 중':'✨ Generating')+'.'.repeat(dots);},500);
+        const concern = `${g.name}. When: ${g.trigger||'various situations'}. Tried: ${(g.actions||[]).filter(a=>a).join(', ')||'nothing yet'}. Effectiveness: ${g._effectiveness||'unknown'}.`;
+        try {
+          const res=await fetch('/.netlify/functions/analyze',{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({type:'suggest_goals',concern,child:S.child,age:S.age,lang:S.lang})});
+          clearInterval(iv);
+          const data=await res.json();
+          if(data.goals?.length>0){ g.actions=data.goals[0].actions||g.actions; g.avoid=data.goals[0].avoid||''; }
+          S.goalStep=6; render();
+        } catch(e){ clearInterval(iv); genBtn.textContent=S.lang==='ko'?'✨ 액션 카드 생성하기':'✨ Generate action cards'; genBtn.disabled=false; }
+      };
+      wrap.appendChild(genBtn);
+
+      const skipBtn5=document.createElement('button'); skipBtn5.style.cssText=`width:100%;padding:12px;background:none;border:1.5px solid ${T.border};border-radius:14px;font-size:13px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;`;
+      skipBtn5.textContent=S.lang==='ko'?'나중에 설정하기':'Set up later';
+      skipBtn5.onclick=()=>{ S.goalStep=6; render(); };
+      wrap.appendChild(skipBtn5);
+    }
+
+    if(goalStep === 6) {
+      wrap.appendChild(h('h1',"font-family:'Fraunces',serif;font-size:24px;font-weight:400;color:#1A1A1A;line-height:1.3;margin-bottom:6px;",
+        S.lang==='ko' ? '액션 카드 확인 & 수정' : 'Review your action steps'));
       wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:16px;line-height:1.6;`,
-        S.lang==='ko' ? '예: 이름을 여러 번 반복하기, 강요하기' : 'e.g. Repeating the question, forcing a response'));
-      const av=document.createElement('textarea'); av.value=g.avoid;
-      av.placeholder=L('avoidPlaceholder');
-      av.style.cssText=`flex:1;padding:12px 14px;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;resize:none;overflow:hidden;min-height:44px;line-height:1.5;`;
-      av.oninput=e=>{g.avoid=e.target.value; av.style.height='auto'; av.style.height=Math.min(av.scrollHeight,160)+'px';};
-      const avRow=div('display:flex;gap:8px;margin-bottom:16px;align-items:flex-start;');
-      avRow.appendChild(av);
-      avRow.appendChild(makeVoiceBtn(v=>{g.avoid=v;}, av));
-      wrap.appendChild(avRow);
+        S.lang==='ko' ? '수정하거나 추가할 수 있어요.' : 'Edit or add steps as needed.'));
+
+      const aw2=div();
+      const renderActs2=()=>{
+        aw2.innerHTML='';
+        (g.actions||['']).forEach((a,ai)=>{
+          const row2=div('display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;');
+          const num=div(`width:22px;height:22px;min-width:22px;border-radius:50%;background:${T.gl};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:${T.green};margin-top:10px;`,(ai+1).toString());
+          const ai2=document.createElement('textarea'); ai2.value=a;
+          ai2.placeholder=S.lang==='ko'?'예: 먼저 아이 상태 확인하기':`e.g. Check child's state first`;
+          ai2.style.cssText=`flex:1;padding:10px 12px;font-size:13px;border:1.5px solid ${T.border};border-radius:10px;background:#fff;outline:none;font-family:'DM Sans',sans-serif;color:${T.text};resize:none;overflow:hidden;min-height:40px;line-height:1.5;`;
+          ai2.oninput=e=>{g.actions[ai]=e.target.value; ai2.style.height='auto'; ai2.style.height=Math.min(ai2.scrollHeight,120)+'px';};
+          const vb=makeVoiceBtn(v=>{g.actions[ai]=v;renderActs2();}, ai2);
+          vb.style.cssText=`background:#fff;border:1.5px solid ${T.border};border-radius:10px;padding:6px 8px;font-size:14px;cursor:pointer;flex-shrink:0;margin-top:4px;`;
+          row2.appendChild(num); row2.appendChild(ai2); row2.appendChild(vb);
+          if(g.actions.length>1){const del=document.createElement('button');del.textContent='✕';del.style.cssText='background:none;border:none;font-size:14px;color:#aaa;cursor:pointer;padding:0 4px;';del.onclick=()=>{g.actions.splice(ai,1);renderActs2();};row2.appendChild(del);}
+          aw2.appendChild(row2);
+          setTimeout(()=>{ai2.style.height='auto';ai2.style.height=Math.min(ai2.scrollHeight,120)+'px';},0);
+        });
+      };
+      renderActs2(); wrap.appendChild(aw2);
+      if((g.actions||[]).length<4){
+        const add2=document.createElement('button');
+        add2.style.cssText=`background:none;border:none;font-size:13px;color:${T.gm};cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:12px;padding:0;`;
+        add2.textContent=L('addStep');
+        add2.onclick=()=>{g.actions.push('');renderActs2();};
+        wrap.appendChild(add2);
+      }
       wrap.appendChild(spacer);
 
-      const row = div('display:flex;gap:8px;');
-      const skipBtn=document.createElement('button'); skipBtn.style.cssText=`flex:1;padding:14px;background:none;border:1.5px solid ${T.border};border-radius:14px;font-size:14px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;`;
-      skipBtn.textContent=S.lang==='ko'?'건너뛰기':'Skip';
-      skipBtn.onclick=()=>{
+      const row6 = div('display:flex;gap:8px;');
+      const saveBtn6=document.createElement('button'); saveBtn6.style.cssText=`width:100%;padding:14px;background:${T.green};color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+      saveBtn6.textContent=S.lang==='ko'?'저장하기 ✓':'Save goal ✓';
+      saveBtn6.onclick=()=>{
         g.goal_id = g.goal_id || 'g_' + Math.random().toString(36).substr(2,9) + '_' + Date.now();
         g.goal_version = g._saved ? (g.goal_version||1)+1 : 1;
         g.goal_number = g.goal_number || (S.editIdx+1);
         g._saved = true;
         S.goalStep = 1;
         saveState();
+        if(currentUser&&supabase&&g.goal_id){
+          supabase.from('goals').upsert({id:g.goal_id,user_id:currentUser.id,child_profile_id:S.childProfileId||null,goal_number:g.goal_number,icon:g.icon,name:g.name,trigger:g.trigger,actions:g.actions,avoid:g.avoid||'',goal_version:g.goal_version,archived:g.archived||false});
+        }
         if (S.fromGoalsTab) { S.fromGoalsTab=false; go('goals'); } else { S.step=3; render(); }
       };
-      const saveBtn=document.createElement('button'); saveBtn.style.cssText=`flex:2;padding:14px;background:${T.green};color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
-      saveBtn.textContent=S.lang==='ko'?'저장하기 ✓':'Save ✓';
-      saveBtn.onclick=()=>{
-        g.goal_id = g.goal_id || 'g_' + Math.random().toString(36).substr(2,9) + '_' + Date.now();
-        g.goal_version = g._saved ? (g.goal_version||1)+1 : 1;
-        g.goal_number = g.goal_number || (S.editIdx+1);
-        g._saved = true;
-        S.goalStep = 1;
-        saveState();
-        if (S.fromGoalsTab) { S.fromGoalsTab=false; go('goals'); } else { S.step=3; render(); }
-      };
-      row.appendChild(skipBtn); row.appendChild(saveBtn);
-      wrap.appendChild(row);
-      setTimeout(()=>av.focus(),50);
+      row6.appendChild(saveBtn6);
+      wrap.appendChild(row6);
     }
   }
 
@@ -3938,9 +4010,7 @@ function renderGoals() {
 
   if(activeGoals.length < maxGoals){
     const ab=document.createElement('button'); ab.style.cssText=`width:100%;padding:13px;background:none;border:1.5px dashed ${T.border};border-radius:14px;font-size:14px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px;`; ab.textContent=`+ ${S.lang==='ko'?'목표 추가하기':'Add a behavior goal'}`; ab.onclick=()=>{
-      const newGoalId='g_'+Math.random().toString(36).substr(2,9)+'_'+Date.now();
-      S.goals.push({goal_id:newGoalId,goal_version:1,goal_number:S.goals.length+1,icon:'🎯',name:'',trigger:'',actions:[''],avoid:'',_new:true});
-      S.editIdx=S.goals.length-1;S.goalStep=1;S.fromGoalsTab=true;S.step=3.5;S.view='onboard';render();
+      S.view='goalAI'; S.goalAIStep='input'; S.goalAIConcern=''; S.goalAISuggested=null; render();
     };
     wrap.appendChild(ab);
   } else {
@@ -4092,6 +4162,126 @@ function renderGoals() {
     sheet.appendChild(deleteBtn); sheet.appendChild(cancelBtn); overlay.appendChild(sheet); overlay.onclick=(e)=>{if(e.target===overlay)document.body.removeChild(overlay);}; document.body.appendChild(overlay);
   };
   wrap.appendChild(resetBtn);
+
+  return wrap;
+}
+
+// ── GOAL AI ────────────────────────────────────────────────────────
+function renderGoalAI() {
+  const wrap = div('flex:1;overflow-y:auto;padding:24px 22px 40px;');
+  const back = document.createElement('button');
+  back.style.cssText=`background:none;border:none;cursor:pointer;color:${T.tm};font-size:14px;margin-bottom:20px;padding:0;font-family:'DM Sans',sans-serif;`;
+  back.textContent = '← ' + (S.lang==='ko'?'설정으로':'Settings');
+  back.onclick = () => { S.view='goals'; render(); };
+  wrap.appendChild(back);
+
+  if (S.goalAIStep === 'input') {
+    wrap.appendChild(h('h2',"font-family:'Fraunces',serif;font-size:24px;font-weight:400;color:#1A1A1A;margin-bottom:8px;line-height:1.3;",
+      S.lang==='ko' ? '어떤 점이 어려우세요?' : "What's been challenging lately?"));
+    wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:16px;line-height:1.6;`,
+      S.lang==='ko' ? '자유롭게 말씀해주세요. 목표와 액션 카드를 만들어드릴게요.' : "Tell us what's on your mind. We'll turn it into a goal and action steps."));
+
+    const exKo = '예: "밥 먹을 때 집중을 못 해요" "친구들이랑 잘 못 어울려요" "이름을 불러도 반응을 잘 안 해요"';
+    const exEn = 'e.g. "He won\'t sit still at mealtimes" "She struggles to play with other kids"';
+    const exBox = div(`background:${T.gl};border-radius:12px;padding:10px 14px;margin-bottom:16px;`);
+    exBox.innerHTML=`<p style="font-size:12px;color:${T.green};line-height:1.7;">${S.lang==='ko' ? exKo : exEn}</p>`;
+    wrap.appendChild(exBox);
+
+    const ta = document.createElement('textarea');
+    ta.value = S.goalAIConcern || '';
+    ta.placeholder = S.lang==='ko' ? '여기에 적어주세요...' : 'Write or speak freely...';
+    ta.style.cssText=`width:100%;min-height:120px;padding:12px 14px;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;resize:none;line-height:1.7;`;
+    ta.oninput=e=>{ S.goalAIConcern=e.target.value; };
+    wrap.appendChild(ta);
+
+    const vb = makeVoiceBtn(v=>{
+      S.goalAIConcern = (S.goalAIConcern ? S.goalAIConcern+' ' : '') + v;
+      ta.value = S.goalAIConcern;
+      ta.style.height='auto'; ta.style.height=Math.min(ta.scrollHeight,200)+'px';
+    }, ta);
+    vb.style.cssText=`width:100%;padding:11px;background:#fff;border:1.5px solid ${T.border};border-radius:12px;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px;`;
+    vb.innerHTML=`<span style="font-size:18px;">🎤</span><span style="font-size:13px;color:${T.tm};">${S.lang==='ko'?'말하기':'Speak instead'}</span>`;
+    wrap.appendChild(vb);
+    wrap.appendChild(div('height:16px;'));
+
+    const genBtn = document.createElement('button');
+    genBtn.style.cssText=`width:100%;padding:14px;background:${T.green};color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+    genBtn.textContent = S.lang==='ko'?'✨ 목표 & 액션 카드 만들기':'✨ Generate goal & action steps';
+    genBtn.onclick = async () => {
+      if (!S.goalAIConcern?.trim()) return;
+      genBtn.textContent = S.lang==='ko'?'✨ 생성 중...':'✨ Generating...'; genBtn.disabled = true;
+      let dots=0; const iv=setInterval(()=>{dots=(dots+1)%4;genBtn.textContent=(S.lang==='ko'?'✨ 생성 중':'✨ Generating')+'.'.repeat(dots);},500);
+      try {
+        const res = await fetch('/.netlify/functions/analyze', {method:'POST',headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({type:'suggest_goals',concern:S.goalAIConcern,child:S.child,age:S.age,lang:S.lang})});
+        clearInterval(iv);
+        const data = await res.json();
+        if (data.goals?.length > 0) { S.goalAISuggested = data.goals[0]; S.goalAIStep = 'review'; render(); }
+      } catch(e) { clearInterval(iv); genBtn.textContent = S.lang==='ko'?'✨ 목표 & 액션 카드 만들기':'✨ Generate goal & action steps'; genBtn.disabled = false; }
+    };
+    wrap.appendChild(genBtn);
+    return wrap;
+  }
+
+  if (S.goalAIStep === 'review' && S.goalAISuggested) {
+    const g = S.goalAISuggested;
+    wrap.appendChild(h('h2',"font-family:'Fraunces',serif;font-size:22px;font-weight:400;color:#1A1A1A;margin-bottom:6px;",
+      S.lang==='ko'?'이런 목표는 어떨까요?':"Here's what we came up with"));
+    wrap.appendChild(p(`font-size:13px;color:${T.muted};margin-bottom:16px;`, S.lang==='ko'?'수정하고 저장하세요.':'Review and edit before saving.'));
+
+    const nameBox = div(`background:#fff;border-radius:14px;border:1px solid ${T.border};padding:14px 16px;margin-bottom:10px;`);
+    nameBox.innerHTML=`<p style="font-size:10px;font-weight:700;color:${T.green};text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">🎯 ${S.lang==='ko'?'목표':'Goal'}</p>`;
+    const nameInp = document.createElement('input'); nameInp.type='text'; nameInp.value=g.name||'';
+    nameInp.style.cssText=`width:100%;padding:8px 0;border:none;font-size:15px;font-weight:500;font-family:'DM Sans',sans-serif;outline:none;color:${T.text};`;
+    nameInp.oninput=e=>{S.goalAISuggested.name=e.target.value;};
+    nameBox.appendChild(nameInp);
+    if (g.trigger) nameBox.appendChild(p(`font-size:12px;color:${T.muted};margin-top:4px;`, '📍 '+g.trigger));
+    wrap.appendChild(nameBox);
+
+    if (g.actions?.length > 0) {
+      const stepsBox = div(`background:${T.gl};border-radius:14px;padding:14px 16px;margin-bottom:10px;`);
+      stepsBox.innerHTML=`<p style="font-size:10px;font-weight:700;color:${T.green};text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">⚡ ${S.lang==='ko'?'액션 스텝':'Action Steps'}</p>`;
+      g.actions.forEach((a,i) => {
+        const row = div('display:flex;gap:10px;margin-bottom:8px;align-items:flex-start;');
+        const num = div(`width:22px;height:22px;min-width:22px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:${T.green};flex-shrink:0;margin-top:2px;`);
+        num.textContent = i+1;
+        const ta2 = document.createElement('textarea'); ta2.value=a;
+        ta2.style.cssText=`flex:1;padding:6px 8px;border:1px solid ${T.border};border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;resize:none;line-height:1.5;background:#fff;`;
+        ta2.oninput=e=>{S.goalAISuggested.actions[i]=e.target.value; ta2.style.height='auto'; ta2.style.height=ta2.scrollHeight+'px';};
+        setTimeout(()=>{ta2.style.height='auto';ta2.style.height=ta2.scrollHeight+'px';},0);
+        row.appendChild(num); row.appendChild(ta2);
+        stepsBox.appendChild(row);
+      });
+      wrap.appendChild(stepsBox);
+    }
+
+    const retryBtn = document.createElement('button');
+    retryBtn.style.cssText=`background:none;border:none;font-size:12px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;display:block;margin-bottom:16px;`;
+    retryBtn.textContent = S.lang==='ko'?'↩ 다시 입력하기':'↩ Try different input';
+    retryBtn.onclick=()=>{ S.goalAIStep='input'; S.goalAISuggested=null; render(); };
+    wrap.appendChild(retryBtn);
+
+    const saveBtn = document.createElement('button');
+    saveBtn.style.cssText=`width:100%;padding:14px;background:${T.green};color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;`;
+    saveBtn.textContent = S.lang==='ko'?'저장하기 ✓':'Save goal ✓';
+    saveBtn.onclick = async () => {
+      const newGoal = {
+        goal_id: 'g_'+Math.random().toString(36).substr(2,9)+'_'+Date.now(),
+        goal_version: 1, goal_number: S.goals.length+1,
+        icon: g.icon||'🎯', name: g.name||'', trigger: g.trigger||'',
+        actions: g.actions||[], avoid: g.avoid||'', archived: false
+      };
+      S.goals.push(newGoal); saveState();
+      if (currentUser && supabase) {
+        await supabase.from('goals').upsert({id:newGoal.goal_id,user_id:currentUser.id,child_profile_id:S.childProfileId||null,
+          goal_number:newGoal.goal_number,icon:newGoal.icon,name:newGoal.name,trigger:newGoal.trigger,
+          actions:newGoal.actions,avoid:newGoal.avoid,goal_version:1,archived:false});
+      }
+      S.view='goals'; S.goalAIStep=null; S.goalAIConcern=''; S.goalAISuggested=null; render();
+    };
+    wrap.appendChild(saveBtn);
+    return wrap;
+  }
 
   return wrap;
 }
@@ -4370,6 +4560,7 @@ function render() {
   if(S.view==='onboard') content=renderOnboard();
   else if(S.view==='home') content=renderHome();
   else if(S.view==='goalDetail') content=renderGoalDetail();
+  else if(S.view==='goalAI') content=renderGoalAI();
   else if(S.view==='log') content=renderLog();
   else if(S.view==='week') content=renderWeek();
   else if(S.view==='goals') content=renderGoals();

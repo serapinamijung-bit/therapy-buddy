@@ -4218,8 +4218,10 @@ function renderGoalAI() {
           body: JSON.stringify({type:'suggest_goals',concern:S.goalAIConcern,child:S.child,age:S.age,lang:S.lang})});
         clearInterval(iv);
         const data = await res.json();
+        console.log('goalAI response:', data);
         if (data.goals?.length > 0) { S.goalAISuggested = data.goals[0]; S.goalAIStep = 'review'; render(); }
-      } catch(e) { clearInterval(iv); genBtn.textContent = S.lang==='ko'?'✨ 목표 & 액션 카드 만들기':'✨ Generate goal & action steps'; genBtn.disabled = false; }
+        else { genBtn.textContent = S.lang==='ko'?'✨ 다시 시도':'✨ Try again'; genBtn.disabled = false; }
+      } catch(e) { clearInterval(iv); console.log('goalAI error:', e); genBtn.textContent = S.lang==='ko'?'✨ 다시 시도':'✨ Try again'; genBtn.disabled = false; }
     };
     wrap.appendChild(genBtn);
     return wrap;

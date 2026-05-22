@@ -1562,7 +1562,7 @@ function renderOnboard() {
     wrap.appendChild(spacer);
     const skipToManual=document.createElement('button');
     skipToManual.style.cssText=`background:none;border:none;font-size:13px;color:${T.muted};cursor:pointer;font-family:'DM Sans',sans-serif;width:100%;padding:8px;`;
-    skipToManual.textContent=S.lang==='ko'?'직접 목표 입력하기':'I\'ll add goals manually';
+    skipToManual.textContent=S.lang==='ko'?'질문에 따라 직접 입력하기':'I\'d like to follow a set of guided questions';
     skipToManual.onclick=()=>{
       const newGoalId='g_'+Math.random().toString(36).substr(2,9)+'_'+Date.now();
       S.goals.push({goal_id:newGoalId,goal_version:1,goal_number:1,icon:'🎯',name:'',trigger:'',actions:[''],avoid:''});

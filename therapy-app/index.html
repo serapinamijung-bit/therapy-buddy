@@ -1079,15 +1079,15 @@ function loadDemo() {
 
 function renderDemoTour() {
   const steps = S.lang === 'ko' ? [
-    { icon:'🎯', title:'고민 → 목표 → 액션 카드', desc:'어떤 점이 어려운지 말하면 AI 가 목표와 실천 방법을 만들어줘요. 가이드 질문을 따라가도 돼요.', tab:'home' },
-    { icon:'📱', title:'카드 탭 → 기록 & 업데이트', desc:'홈에서 액션 카드를 탭하면 전체 단계를 볼 수 있어요. 오늘 시도한 것을 말하거나 입력하면 AI 가 새로운 방법을 추천해줘요.', tab:'home' },
-    { icon:'✎', title:'일지 — 자유롭게 기록', desc:'목표 없이 오늘 있었던 일이나 치료사 메모를 자유롭게 남길 수 있어요. AI 가 자동으로 정리해줘요.', tab:'log' },
+    { icon:'🎯', title:'고민 → 목표 → 액션 카드', desc:'어떤 점이 어려운지 말하면 목표와 실천 방법을 만들어줘요. 가이드 질문을 따라가도 돼요.', tab:'home', hint:'온보딩에서 고민을 입력하면 시작돼요.' },
+    { icon:'📱', title:'카드 탭 → 기록 & 업데이트', desc:'홈에서 액션 카드를 탭하면 전체 단계를 볼 수 있어요. 오늘 시도한 것을 말하거나 입력하면 새로운 방법을 추천해줘요.', tab:'home', hint:'위에 보이는 초록 카드를 탭해보세요!' },
+    { icon:'💭', title:'하고 싶은 말이 있을 때', desc:'"Need to get something off your chest?" 를 탭해서 오늘 있었던 일을 자유롭게 말해보세요.', tab:'home', hint:'위에 보이는 말풍선 박스를 찾아보세요!' },
     { icon:'👨‍👩‍👧', title:'가족과 함께', desc:'설정 탭에서 배우자, 조부모 등 보호자를 초대하세요. 같은 목표와 기록을 공유하고 각자 언어로 볼 수 있어요.', tab:'goals' },
     { icon:'📋', title:'리포트 생성', desc:'돌아보기 탭에서 IEP, 치료사, 선생님 미팅 전에 리포트를 만들어 이메일로 바로 공유할 수 있어요.', tab:'week' },
   ] : [
-    { icon:'🎯', title:'Concerns → Goals → Action Cards', desc:'Tell us what\'s been challenging. AI turns it into a goal and action steps — or follow a set of guided questions.', tab:'home' },
-    { icon:'📱', title:'Tap a card → Log & update', desc:'Tap any action card on Home to see the full steps. Share what you tried — AI will suggest what to do next based on what worked.', tab:'home' },
-    { icon:'✎', title:'Journal — write freely', desc:'Drop a note without a specific goal in mind — great for therapist feedback or general observations. AI organizes it for you.', tab:'log' },
+    { icon:'🎯', title:'Concerns → Goals → Action Cards', desc:'Tell us what\'s been challenging. We turn it into a goal and action steps — or follow a set of guided questions.', tab:'home', hint:'It starts when you share your concern during onboarding.' },
+    { icon:'📱', title:'Tap a card → Log & update', desc:'Tap any action card on Home to see full steps. Share what you tried — and get suggestions on what to do next.', tab:'home', hint:'Try tapping the green action card above!' },
+    { icon:'💭', title:'Need to get something off your chest?', desc:'Tap this anytime to freely share what happened today — with a therapist, at school, or at home.', tab:'home', hint:'Look for the speech bubble box above!' },
     { icon:'👨‍👩‍👧', title:'Coordinate with family', desc:'Invite a co-parent, grandparent, or caregiver from the Settings tab. Everyone sees the same goals and logs — in their own language.', tab:'goals' },
     { icon:'📋', title:'Generate reports', desc:'In the Insights tab — build a report before any IEP, therapist, or teacher meeting and share it by email in seconds.', tab:'week' },
   ];
@@ -1111,6 +1111,7 @@ function renderDemoTour() {
     <div style="font-size:36px;margin-bottom:12px;">${current.icon}</div>
     <p style="font-family:'Fraunces',serif;font-size:20px;font-weight:400;color:#1A1A1A;margin-bottom:8px;">${current.title}</p>
     <p style="font-size:14px;color:#4A4A4A;line-height:1.7;margin-bottom:20px;">${current.desc}</p>
+    ${current.hint ? `<p style="font-size:12px;color:${T.green};background:${T.gl};border-radius:8px;padding:8px 10px;margin-bottom:16px;line-height:1.5;">👆 ${current.hint}</p>` : ''}
   `;
 
   const btnRow = div('display:flex;gap:8px;');
@@ -1537,23 +1538,32 @@ function renderOnboard() {
         genBtn.disabled=true;
         let dots=0; const iv=setInterval(()=>{dots=(dots+1)%4;genBtn.textContent=(S.lang==='ko'?'✨ 분석 중':'✨ Thinking')+'.'.repeat(dots);},500);
         try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 25000);
           const res=await fetch('/.netlify/functions/analyze',{
             method:'POST',headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({type:'suggest_goals',concern:S.onboardingConcern,child:S.child,age:S.age,lang:S.lang})
+            body:JSON.stringify({type:'suggest_goals',concern:S.onboardingConcern,child:S.child,age:S.age,lang:S.lang}),
+            signal: controller.signal
           });
+          clearTimeout(timeoutId);
           clearInterval(iv);
           const data=await res.json();
+          console.log('onboarding suggest_goals response:', data);
           if(data.goals&&data.goals.length>0){
             S.goals=data.goals.map((g,i)=>({
               goal_id:'g_'+Math.random().toString(36).substr(2,9)+'_'+Date.now()+i,
               goal_version:1, goal_number:i+1,
-              icon:g.icon||'🎯', name:g.name, trigger:g.trigger||'', actions:g.actions||[], avoid:''
+              icon:g.icon||'🎯', name:g.name, trigger:g.trigger||'', actions:g.actions||[], avoid:g.avoid||''
             }));
             render();
+          } else {
+            genBtn.textContent=S.lang==='ko'?'✨ 다시 시도':'✨ Try again';
+            genBtn.disabled=false;
           }
         } catch(e){
           clearInterval(iv);
-          genBtn.textContent=S.lang==='ko'?'✨ 목표 제안받기':'✨ Suggest goals for me';
+          console.log('onboarding suggest_goals error:', e);
+          genBtn.textContent=S.lang==='ko'?'✨ 다시 시도':'✨ Try again';
           genBtn.disabled=false;
         }
       };
@@ -1955,8 +1965,8 @@ function renderHome() {
   greet.innerHTML=`<p style="font-size:12px;color:${T.muted};margin-bottom:2px;">${date}</p><h2 style="font-family:'Fraunces',serif;font-size:24px;font-weight:400;color:${T.text};">${S.lang==='ko'?`안녕하세요, ${S.parent} 👋`:`Hey ${S.parent} 👋`}</h2>`;
   wrap.appendChild(greet);
 
-  // demo banner
-  if(S.isDemo) {
+  // demo banner — hide during tour
+  if(S.isDemo && !S.demoTour) {
     const banner = div(`background:${T.ol};border-radius:12px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;`);
     banner.innerHTML=`<p style="font-size:12px;color:${T.orange};font-weight:500;">${L('demoExiting')}</p>`;
     const exitBtn = document.createElement('button');
